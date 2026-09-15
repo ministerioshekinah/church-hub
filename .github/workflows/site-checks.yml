@@ -1,0 +1,85 @@
+name: Site checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate website
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify required site files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_files=(
+            index.html
+            newsletter.html
+            admin.html
+            style.css
+            script.js
+            admin.js
+            supabase-config.js
+            admin-service-validation.js
+            administrators.js
+            supabase/functions/admin-users/index.ts
+          )
+
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "Missing required file: $file"
+              exit 1
+            fi
+          done
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find . -type f -name '*.js' \
+            -not -path './.git/*' \
+            -not -path './node_modules/*' -print0)
+
+      - name: Guard against committed secret credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude='*.md' \
+            --exclude='*.sql' \
+            --exclude='site-checks.yml' \
+            '(sb_secret_|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,})' .; then
+            echo "Potential secret credential committed to the repository."
+            exit 1
+          fi
+
+      - name: Verify public browser config uses a publishable key
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'publishableKey' supabase-config.js
+          grep -q 'sb_publishable_' supabase-config.js
+          if grep -q 'sb_secret_' supabase-config.js; then
+            echo "supabase-config.js must contain only browser-safe Supabase credentials."
+            exit 1
+          fi
