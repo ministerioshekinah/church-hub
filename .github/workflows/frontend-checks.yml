@@ -3,7 +3,21 @@ name: Frontend Checks
 on:
   pull_request:
     paths:
-      - "*.js"
+      - "**/*.js"
+      - "tests/**/*.test.js"
+      - "supabase/functions/**/*.ts"
+      - "supabase/config.toml"
+      - "supabase/migrations/**/*.sql"
+      - ".github/workflows/frontend-checks.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.js"
+      - "tests/**/*.test.js"
+      - "supabase/functions/**/*.ts"
+      - "supabase/config.toml"
+      - "supabase/migrations/**/*.sql"
       - ".github/workflows/frontend-checks.yml"
   workflow_dispatch:
 
@@ -11,14 +25,26 @@ permissions:
   contents: read
 
 jobs:
-  javascript-syntax:
+  source-security-checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - name: Check browser JavaScript syntax
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Check every JavaScript file syntax
+        shell: bash
         run: |
-          node --check script.js
-          node --check admin.js
-          node --check supabase-config.js
-          node --check newsletter-extensions.js
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(
+            find . -type f -name "*.js" -not -path "./.git/*" -print0
+          )
+
+      - name: Run security regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.js

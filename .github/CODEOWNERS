@@ -1,0 +1,9 @@
+# Security-sensitive source. This only becomes an enforced approval boundary
+# when the main branch/ruleset requires CODEOWNER review.
+/.github/workflows/ @ministerioshekinah
+/supabase/ @ministerioshekinah
+/tests/ @ministerioshekinah
+/admin.html @ministerioshekinah
+/admin.js @ministerioshekinah
+/administrators.js @ministerioshekinah
+/supabase-config.js @ministerioshekinah
