@@ -1,0 +1,882 @@
+{
+  "checkedAt": "2026-10-10T20:39:46.499Z",
+  "site": "https://mcshekinah.org",
+  "repository": "ministerioshekinah/church-hub",
+  "auditedSourceCommit": "89b3822b33f414db7cc7f4424b78d5516c0467bc",
+  "scope": "Security only: code/handler execution, live PostgreSQL authorization, and read-only production HTTP probes. UI/theme/translation/routing interaction tests are not included in this count.",
+  "counts": {
+    "executed": 120,
+    "passed": 120,
+    "failed": 0,
+    "skipped": 0,
+    "openConfigurationFindings": 6
+  },
+  "groups": {
+    "Code and administrator handler": 70,
+    "Live database authorization": 21,
+    "Live HTTP endpoints": 29
+  },
+  "tests": [
+    {
+      "id": "S001",
+      "group": "Code and administrator handler",
+      "name": "Edge: unauthenticated caller",
+      "pass": true
+    },
+    {
+      "id": "S002",
+      "group": "Code and administrator handler",
+      "name": "Edge: ordinary authenticated user",
+      "pass": true
+    },
+    {
+      "id": "S003",
+      "group": "Code and administrator handler",
+      "name": "Edge: content administrator cannot manage accounts",
+      "pass": true
+    },
+    {
+      "id": "S004",
+      "group": "Code and administrator handler",
+      "name": "Edge: owner lookup failure fails closed",
+      "pass": true
+    },
+    {
+      "id": "S005",
+      "group": "Code and administrator handler",
+      "name": "Edge: GET cannot list administrators",
+      "pass": true
+    },
+    {
+      "id": "S006",
+      "group": "Code and administrator handler",
+      "name": "Edge: PUT cannot perform actions",
+      "pass": true
+    },
+    {
+      "id": "S007",
+      "group": "Code and administrator handler",
+      "name": "Edge: DELETE cannot perform actions",
+      "pass": true
+    },
+    {
+      "id": "S008",
+      "group": "Code and administrator handler",
+      "name": "Edge: foreign browser origin",
+      "pass": true
+    },
+    {
+      "id": "S009",
+      "group": "Code and administrator handler",
+      "name": "Edge: null origin",
+      "pass": true
+    },
+    {
+      "id": "S010",
+      "group": "Code and administrator handler",
+      "name": "Edge: lookalike site origin",
+      "pass": true
+    },
+    {
+      "id": "S011",
+      "group": "Code and administrator handler",
+      "name": "Edge: text body rejected",
+      "pass": true
+    },
+    {
+      "id": "S012",
+      "group": "Code and administrator handler",
+      "name": "Edge: JSONP content type rejected",
+      "pass": true
+    },
+    {
+      "id": "S013",
+      "group": "Code and administrator handler",
+      "name": "Edge: malformed JSON",
+      "pass": true
+    },
+    {
+      "id": "S014",
+      "group": "Code and administrator handler",
+      "name": "Edge: null body",
+      "pass": true
+    },
+    {
+      "id": "S015",
+      "group": "Code and administrator handler",
+      "name": "Edge: array body",
+      "pass": true
+    },
+    {
+      "id": "S016",
+      "group": "Code and administrator handler",
+      "name": "Edge: scalar body",
+      "pass": true
+    },
+    {
+      "id": "S017",
+      "group": "Code and administrator handler",
+      "name": "Edge: missing action",
+      "pass": true
+    },
+    {
+      "id": "S018",
+      "group": "Code and administrator handler",
+      "name": "Edge: nonstring action",
+      "pass": true
+    },
+    {
+      "id": "S019",
+      "group": "Code and administrator handler",
+      "name": "Edge: oversized body",
+      "pass": true
+    },
+    {
+      "id": "S020",
+      "group": "Code and administrator handler",
+      "name": "Edge: unknown action",
+      "pass": true
+    },
+    {
+      "id": "S021",
+      "group": "Code and administrator handler",
+      "name": "Edge: invalid invite address",
+      "pass": true
+    },
+    {
+      "id": "S022",
+      "group": "Code and administrator handler",
+      "name": "Edge: email header injection",
+      "pass": true
+    },
+    {
+      "id": "S023",
+      "group": "Code and administrator handler",
+      "name": "Edge: oversized invite address",
+      "pass": true
+    },
+    {
+      "id": "S024",
+      "group": "Code and administrator handler",
+      "name": "Edge: nonstrings cannot become email",
+      "pass": true
+    },
+    {
+      "id": "S025",
+      "group": "Code and administrator handler",
+      "name": "Edge: role must be allowlisted",
+      "pass": true
+    },
+    {
+      "id": "S026",
+      "group": "Code and administrator handler",
+      "name": "Edge: role target must be UUID",
+      "pass": true
+    },
+    {
+      "id": "S027",
+      "group": "Code and administrator handler",
+      "name": "Edge: remove target must be UUID",
+      "pass": true
+    },
+    {
+      "id": "S028",
+      "group": "Code and administrator handler",
+      "name": "Edge: self-demotion blocked",
+      "pass": true
+    },
+    {
+      "id": "S029",
+      "group": "Code and administrator handler",
+      "name": "Edge: self-removal blocked",
+      "pass": true
+    },
+    {
+      "id": "S030",
+      "group": "Code and administrator handler",
+      "name": "Edge: missing removal target",
+      "pass": true
+    },
+    {
+      "id": "S031",
+      "group": "Code and administrator handler",
+      "name": "Edge: successful owner list is never cached",
+      "pass": true
+    },
+    {
+      "id": "S032",
+      "group": "Code and administrator handler",
+      "name": "Edge: internal auth errors do not reach caller",
+      "pass": true
+    },
+    {
+      "id": "S033",
+      "group": "Code and administrator handler",
+      "name": "Edge: invites default to content admin even if role is injected",
+      "pass": true
+    },
+    {
+      "id": "S034",
+      "group": "Code and administrator handler",
+      "name": "Edge: already-authorized owner is not demoted by invite",
+      "pass": true
+    },
+    {
+      "id": "S035",
+      "group": "Code and administrator handler",
+      "name": "Edge: an owner may change another administrator role",
+      "pass": true
+    },
+    {
+      "id": "S036",
+      "group": "Code and administrator handler",
+      "name": "Edge: an owner may remove another content administrator",
+      "pass": true
+    },
+    {
+      "id": "S037",
+      "group": "Code and administrator handler",
+      "name": "Edge: authentication middleware required and CORS constrained",
+      "pass": true
+    },
+    {
+      "id": "S038",
+      "group": "Code and administrator handler",
+      "name": "XSS: announcement title_en",
+      "pass": true
+    },
+    {
+      "id": "S039",
+      "group": "Code and administrator handler",
+      "name": "XSS: announcement title_es",
+      "pass": true
+    },
+    {
+      "id": "S040",
+      "group": "Code and administrator handler",
+      "name": "XSS: announcement description_en",
+      "pass": true
+    },
+    {
+      "id": "S041",
+      "group": "Code and administrator handler",
+      "name": "XSS: announcement description_es",
+      "pass": true
+    },
+    {
+      "id": "S042",
+      "group": "Code and administrator handler",
+      "name": "XSS: announcement tag_en",
+      "pass": true
+    },
+    {
+      "id": "S043",
+      "group": "Code and administrator handler",
+      "name": "XSS: announcement tag_es",
+      "pass": true
+    },
+    {
+      "id": "S044",
+      "group": "Code and administrator handler",
+      "name": "XSS: service service_label_en",
+      "pass": true
+    },
+    {
+      "id": "S045",
+      "group": "Code and administrator handler",
+      "name": "XSS: service time_display",
+      "pass": true
+    },
+    {
+      "id": "S046",
+      "group": "Code and administrator handler",
+      "name": "XSS: service special_message_en",
+      "pass": true
+    },
+    {
+      "id": "S047",
+      "group": "Code and administrator handler",
+      "name": "XSS: newsletter title_en",
+      "pass": true
+    },
+    {
+      "id": "S048",
+      "group": "Code and administrator handler",
+      "name": "XSS: newsletter date_en",
+      "pass": true
+    },
+    {
+      "id": "S049",
+      "group": "Code and administrator handler",
+      "name": "XSS: newsletter heading_en",
+      "pass": true
+    },
+    {
+      "id": "S050",
+      "group": "Code and administrator handler",
+      "name": "XSS: newsletter body_en",
+      "pass": true
+    },
+    {
+      "id": "S051",
+      "group": "Code and administrator handler",
+      "name": "XSS: archive issue ID remains a same-origin encoded query",
+      "pass": true
+    },
+    {
+      "id": "S052",
+      "group": "Code and administrator handler",
+      "name": "XSS: optional newsletter custom",
+      "pass": true
+    },
+    {
+      "id": "S053",
+      "group": "Code and administrator handler",
+      "name": "XSS: optional newsletter important_announcement",
+      "pass": true
+    },
+    {
+      "id": "S054",
+      "group": "Code and administrator handler",
+      "name": "XSS: optional newsletter __proto__",
+      "pass": true
+    },
+    {
+      "id": "S055",
+      "group": "Code and administrator handler",
+      "name": "XSS: optional newsletter constructor",
+      "pass": true
+    },
+    {
+      "id": "S056",
+      "group": "Code and administrator handler",
+      "name": "XSS: admin announcement editor list",
+      "pass": true
+    },
+    {
+      "id": "S057",
+      "group": "Code and administrator handler",
+      "name": "XSS: admin newsletter ID and status attributes",
+      "pass": true
+    },
+    {
+      "id": "S058",
+      "group": "Code and administrator handler",
+      "name": "CSP: index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S059",
+      "group": "Code and administrator handler",
+      "name": "CSP: newsletter/index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S060",
+      "group": "Code and administrator handler",
+      "name": "CSP: admin/index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S061",
+      "group": "Code and administrator handler",
+      "name": "CSP: newsletter.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S062",
+      "group": "Code and administrator handler",
+      "name": "CSP: admin.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S063",
+      "group": "Code and administrator handler",
+      "name": "CSP: privacy/index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S064",
+      "group": "Code and administrator handler",
+      "name": "CSP: terms/index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S065",
+      "group": "Code and administrator handler",
+      "name": "CSP: contact/index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "id": "S066",
+      "group": "Code and administrator handler",
+      "name": "Supply chain: pinned browser SDK requires verified SRI",
+      "pass": true
+    },
+    {
+      "id": "S067",
+      "group": "Code and administrator handler",
+      "name": "Redirect: invitation parameters cannot change the origin",
+      "pass": true
+    },
+    {
+      "id": "S068",
+      "group": "Code and administrator handler",
+      "name": "Privacy: admin requests never select author UUIDs or wildcard columns",
+      "pass": true
+    },
+    {
+      "id": "S069",
+      "group": "Code and administrator handler",
+      "name": "Availability security: backend failure never resurrects static hidden announcements",
+      "pass": true
+    },
+    {
+      "id": "S070",
+      "group": "Code and administrator handler",
+      "name": "Availability security: backend failure never resurrects static unpublished newsletters",
+      "pass": true
+    },
+    {
+      "id": "S071",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot see admin memberships",
+      "pass": true
+    },
+    {
+      "id": "S072",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot read hidden announcements",
+      "pass": true
+    },
+    {
+      "id": "S073",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot read unpublished newsletters",
+      "pass": true
+    },
+    {
+      "id": "S074",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot insert announcement",
+      "pass": true
+    },
+    {
+      "id": "S075",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot insert newsletter",
+      "pass": true
+    },
+    {
+      "id": "S076",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot update service",
+      "pass": true
+    },
+    {
+      "id": "S077",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot update announcements",
+      "pass": true
+    },
+    {
+      "id": "S078",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot delete announcements",
+      "pass": true
+    },
+    {
+      "id": "S079",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot update newsletters",
+      "pass": true
+    },
+    {
+      "id": "S080",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot delete newsletters",
+      "pass": true
+    },
+    {
+      "id": "S081",
+      "group": "Live database authorization",
+      "name": "Non-admin cannot promote own membership",
+      "pass": true
+    },
+    {
+      "id": "S082",
+      "group": "Live database authorization",
+      "name": "Owner can read own membership",
+      "pass": true
+    },
+    {
+      "id": "S083",
+      "group": "Live database authorization",
+      "name": "Announcement insert author is session user",
+      "pass": true
+    },
+    {
+      "id": "S084",
+      "group": "Live database authorization",
+      "name": "Announcement insert timestamps are server owned",
+      "pass": true
+    },
+    {
+      "id": "S085",
+      "group": "Live database authorization",
+      "name": "Announcement update preserves attribution",
+      "pass": true
+    },
+    {
+      "id": "S086",
+      "group": "Live database authorization",
+      "name": "Service audit cannot be forged",
+      "pass": true
+    },
+    {
+      "id": "S087",
+      "group": "Live database authorization",
+      "name": "Newsletter insert author is session user",
+      "pass": true
+    },
+    {
+      "id": "S088",
+      "group": "Live database authorization",
+      "name": "Newsletter update preserves attribution",
+      "pass": true
+    },
+    {
+      "id": "S089",
+      "group": "Live database authorization",
+      "name": "Anonymous cannot read hidden fixture announcement",
+      "pass": true
+    },
+    {
+      "id": "S090",
+      "group": "Live database authorization",
+      "name": "Anonymous cannot read fixture draft newsletter",
+      "pass": true
+    },
+    {
+      "id": "S091",
+      "group": "Live database authorization",
+      "name": "Anonymous cannot read memberships",
+      "pass": true
+    },
+    {
+      "id": "S092",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /",
+      "pass": true
+    },
+    {
+      "id": "S093",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /newsletter/",
+      "pass": true
+    },
+    {
+      "id": "S094",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /admin/",
+      "pass": true
+    },
+    {
+      "id": "S095",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /privacy/",
+      "pass": true
+    },
+    {
+      "id": "S096",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /terms/",
+      "pass": true
+    },
+    {
+      "id": "S097",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /contact/",
+      "pass": true
+    },
+    {
+      "id": "S098",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /newsletter.html",
+      "pass": true
+    },
+    {
+      "id": "S099",
+      "group": "Live HTTP endpoints",
+      "name": "HTTPS page and CSP: /admin.html",
+      "pass": true
+    },
+    {
+      "id": "S100",
+      "group": "Live HTTP endpoints",
+      "name": "HTTP redirects to HTTPS",
+      "pass": true
+    },
+    {
+      "id": "S101",
+      "group": "Live HTTP endpoints",
+      "name": "Public intended fields remain readable: service_settings",
+      "pass": true
+    },
+    {
+      "id": "S102",
+      "group": "Live HTTP endpoints",
+      "name": "Public intended fields remain readable: announcements",
+      "pass": true
+    },
+    {
+      "id": "S103",
+      "group": "Live HTTP endpoints",
+      "name": "Public intended fields remain readable: newsletters",
+      "pass": true
+    },
+    {
+      "id": "S104",
+      "group": "Live HTTP endpoints",
+      "name": "Hidden content excluded: announcements active=eq.false",
+      "pass": true
+    },
+    {
+      "id": "S105",
+      "group": "Live HTTP endpoints",
+      "name": "Hidden content excluded: newsletters status=neq.published",
+      "pass": true
+    },
+    {
+      "id": "S106",
+      "group": "Live HTTP endpoints",
+      "name": "Hidden content excluded: newsletters published_at=is.null",
+      "pass": true
+    },
+    {
+      "id": "S107",
+      "group": "Live HTTP endpoints",
+      "name": "Author metadata denied: service_settings.updated_by",
+      "pass": true
+    },
+    {
+      "id": "S108",
+      "group": "Live HTTP endpoints",
+      "name": "Author metadata denied: announcements.created_by",
+      "pass": true
+    },
+    {
+      "id": "S109",
+      "group": "Live HTTP endpoints",
+      "name": "Author metadata denied: announcements.updated_by",
+      "pass": true
+    },
+    {
+      "id": "S110",
+      "group": "Live HTTP endpoints",
+      "name": "Author metadata denied: newsletters.created_by",
+      "pass": true
+    },
+    {
+      "id": "S111",
+      "group": "Live HTTP endpoints",
+      "name": "Author metadata denied: newsletters.updated_by",
+      "pass": true
+    },
+    {
+      "id": "S112",
+      "group": "Live HTTP endpoints",
+      "name": "Anonymous cannot list administrator memberships",
+      "pass": true
+    },
+    {
+      "id": "S113",
+      "group": "Live HTTP endpoints",
+      "name": "Forged REST session cannot authenticate",
+      "pass": true
+    },
+    {
+      "id": "S114",
+      "group": "Live HTTP endpoints",
+      "name": "Admin Edge rejects missing session",
+      "pass": true
+    },
+    {
+      "id": "S115",
+      "group": "Live HTTP endpoints",
+      "name": "Admin Edge rejects malformed session",
+      "pass": true
+    },
+    {
+      "id": "S116",
+      "group": "Live HTTP endpoints",
+      "name": "Admin Edge rejects forged session",
+      "pass": true
+    },
+    {
+      "id": "S117",
+      "group": "Live HTTP endpoints",
+      "name": "Admin Edge CORS is restricted to church origin",
+      "pass": true
+    },
+    {
+      "id": "S118",
+      "group": "Live HTTP endpoints",
+      "name": "Sensitive file absent: /.env",
+      "pass": true
+    },
+    {
+      "id": "S119",
+      "group": "Live HTTP endpoints",
+      "name": "Sensitive file absent: /.git/config",
+      "pass": true
+    },
+    {
+      "id": "S120",
+      "group": "Live HTTP endpoints",
+      "name": "Sensitive file absent: /supabase/.env",
+      "pass": true
+    }
+  ],
+  "findings": [
+    {
+      "id": "F01",
+      "priority": "High priority hardening",
+      "title": "Administrator MFA is not enrolled or enforced",
+      "evidence": "The sole owner has zero verified MFA factors. The current administrator client, Edge handler, and inspected public RLS policies do not enforce aal2.",
+      "impact": "A compromised administrator password can grant publishing access; a compromised owner password can also grant administrator-management access.",
+      "next_step": "Implement the enrollment and challenge flows, enroll the owner, and enforce MFA for privileged access in both RLS and the Edge handler. Do not enforce aal2 before a working enrollment/recovery path exists.",
+      "reference": "https://supabase.com/docs/guides/auth/auth-mfa"
+    },
+    {
+      "id": "F02",
+      "priority": "Recommended",
+      "title": "Leaked-password protection is disabled",
+      "evidence": "Supabase Security Advisor returned auth_leaked_password_protection at WARN level.",
+      "impact": "The account system does not currently reject passwords on the compromised-password list using this feature.",
+      "next_step": "Enable leaked-password protection if supported by the project plan and choose a strong, unique administrator password.",
+      "reference": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    },
+    {
+      "id": "F03",
+      "priority": "Recommended",
+      "title": "Public account signup remains enabled",
+      "evidence": "The live Auth settings endpoint reports disable_signup=false; the church website has no public registration feature.",
+      "impact": "Unnecessary accounts can be registered through Auth. The tested allowlist and RLS still deny non-administrators CMS access.",
+      "next_step": "Disable new public signups while preserving the owner invitation flow."
+    },
+    {
+      "id": "F04",
+      "priority": "Recommended",
+      "title": "Administrator page lacks a framing restriction",
+      "evidence": "The live /admin/ response has neither X-Frame-Options nor an HTTP Content-Security-Policy frame-ancestors directive.",
+      "impact": "The response does not supply a standard header-based defense against another site framing the administrator interface. Browser exploitation was not attempted.",
+      "next_step": "Configure an appropriate frame-ancestors policy at a hosting or proxy layer that supports response headers; a meta CSP cannot enforce this directive."
+    },
+    {
+      "id": "F05",
+      "priority": "Defense in depth",
+      "title": "Strict-Transport-Security header is absent",
+      "evidence": "The live /admin/ response has no Strict-Transport-Security header. HTTP-to-HTTPS redirect testing passed.",
+      "impact": "The response itself does not instruct browsers to require HTTPS on future visits through HSTS.",
+      "next_step": "Configure HSTS through a suitable host/proxy after validating HTTPS coverage. Do not blindly enable includeSubDomains or preload."
+    },
+    {
+      "id": "F06",
+      "priority": "Defense in depth",
+      "title": "X-Content-Type-Options header is absent",
+      "evidence": "The live /admin/ response has no X-Content-Type-Options header. The Edge handler sets nosniff in its tested responses.",
+      "impact": "Static-page responses lack this additional MIME-sniffing defense.",
+      "next_step": "Set X-Content-Type-Options: nosniff through a host/proxy with response-header support."
+    }
+  ],
+  "additionalReviews": {
+    "productionPosture": {
+      "posture": {
+        "rls": [
+          {
+            "table": "admin_users",
+            "rls_enabled": true
+          },
+          {
+            "table": "service_settings",
+            "rls_enabled": true
+          },
+          {
+            "table": "announcements",
+            "rls_enabled": true
+          },
+          {
+            "table": "newsletters",
+            "rls_enabled": true
+          }
+        ],
+        "owners": 1,
+        "public_storage_buckets": 0,
+        "owners_with_verified_mfa": 0
+      },
+      "rollback": {
+        "announcement_test_rows": 0,
+        "newsletter_test_rows": 0
+      },
+      "function": {
+        "version": 4,
+        "status": "ACTIVE",
+        "matchesTestedSource": true
+      }
+    },
+    "repositoryDependencyAudit": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "dependencies": {
+        "prod": 1,
+        "dev": 15,
+        "optional": 0,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 15
+      }
+    },
+    "pinnedSDKs": {
+      "@supabase/supabase-js": "2.112.2",
+      "@supabase/server": "1.9.1"
+    },
+    "freshlyResolvedSDKDependencyAudit": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "dependencies": {
+        "prod": 14,
+        "dev": 0,
+        "optional": 0,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 13
+      }
+    },
+    "trackedFileSecretPatternScan": {
+      "tracked_files_scanned": 56,
+      "findings": []
+    }
+  },
+  "limits": [
+    "Passing these checks is not a guarantee that every vulnerability has been found.",
+    "Parameterized cases count separate fields, inputs, roles, or endpoints; they are not 120 different classes of vulnerability.",
+    "The Edge handler tests execute the real source with mocked SDK/auth/database responses. Live missing, malformed, and forged tokens are checked separately.",
+    "No real invitation, signup, password change, or content publication was performed. Database fixture writes were rolled back, and fixture absence was verified.",
+    "No interactive browser penetration test, authenticated end-to-end owner session, denial-of-service test, or account brute force was performed.",
+    "Dependency advisories and secret patterns cannot detect every unknown vulnerability or every secret format. The SDK audit uses freshly resolved dependency trees for the pinned packages, not an attestation of every provider runtime dependency.",
+    "The separate Codex Security plugin was not used; these checks were run directly with Codex."
+  ]
+}

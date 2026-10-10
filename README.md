@@ -144,7 +144,7 @@ For an existing production project, apply the audit-trigger migration first, dep
 
 The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
 
-See [the audit record](security/AUDIT-2026-10-10.md) for scope, results, and remaining account/hosting work.
+See [the latest 120-test security recheck](security/RECHECK-2026-10-10.md) for current results and remaining account/hosting work, and [the earlier audit record](security/AUDIT-2026-10-10.md) for the hardening changes. `npm run security:test` runs the security-only local suite.
 
 ## Church information
 
