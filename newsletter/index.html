@@ -19,10 +19,15 @@
 
   <link rel="stylesheet" href="/style.css?v=8.0" />
   <link rel="stylesheet" href="/newsletter-extensions.css?v=1.0" />
-  <link rel="stylesheet" href="/public-glass.css?v=2.0" />
+  <link rel="stylesheet" href="/public-glass.css?v=3.0" />
   <link rel="stylesheet" href="/footer.css?v=1.0" />
 </head>
 <body data-page="newsletter">
+  <div class="ambient-background" aria-hidden="true">
+    <span class="ambient-orb ambient-orb--sage"></span>
+    <span class="ambient-orb ambient-orb--gold"></span>
+    <span class="ambient-orb ambient-orb--mist"></span>
+  </div>
   <a class="skip-link" href="#main-content" data-i18n="skip_to_content">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
@@ -94,6 +99,10 @@
       <div class="footer-row">
         <p>© <span id="year">2026</span> Ministerio Cristiano Shekinah</p>
         <p>Los Angeles, California</p>
+        <button class="ambient-motion-toggle" id="backgroundMotion" type="button" role="switch" aria-checked="false" hidden>
+          <span data-i18n="background_motion">Background motion</span>
+          <span class="ambient-switch" aria-hidden="true"></span>
+        </button>
       </div>
       <div class="footer-bottom">
         <nav class="footer-policy-links" aria-label="Website information and help" data-i18n-aria-label="footer_information">
@@ -107,7 +116,7 @@
   </footer>
 
   <script src="/supabase-config.js?v=10.0"></script>
-  <script src="/script.js?v=13.0"></script>
+  <script src="/script.js?v=14.0"></script>
   <script src="/newsletter-extensions.js?v=3.0"></script>
 </body>
 </html>

@@ -12,6 +12,7 @@ The public site reads current service information, active announcements, and pub
 
 - English / Spanish public website with reduced-motion-aware language transitions
 - Light / dark appearance, saved per browser, with a system-theme default
+- Slow lava-lamp background in matching light/dark colors, with a saved footer motion switch
 - Live service day and time
 - Apple Maps and Google Maps directions
 - Public announcements
@@ -171,3 +172,9 @@ The privacy policy describes the current website only: hosting and font requests
 Contact and accessibility help currently directs visitors to church leadership in person at the existing published address. No public email, telephone, mailing address, or response deadline has been inferred from Git metadata or private administrator accounts. Add an approved public remote contact method when the church supplies one.
 
 All three information pages work without the content backend and render English text without JavaScript. With JavaScript disabled, Spanish policy text is also available. Language and appearance controls use the same stored preferences and reduced-motion behavior as the rest of the public site.
+
+## Background motion
+
+The five public pages share a decorative background in `public-glass.css`. Three bounded gradient shapes move using CSS transforms; small screens display two. The layer cannot receive pointer or keyboard input and is hidden from assistive technology. There is no video, canvas, animation dependency, animated blur, or JavaScript render loop.
+
+The bilingual **Background motion** switch in the footer saves a local preference. Motion pauses when the document is hidden or enters the back-forward cache, and resumes only when the visitor's preference permits it. Reduced-motion, reduced-transparency, and forced-color settings override the animation. Without JavaScript the background stays still; print hides it. Privacy and accessibility copy describes the control and preference storage in both languages.
