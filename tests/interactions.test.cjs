@@ -18,3 +18,42 @@ test('Newsletter: one initial request includes optional sections',async()=>{cons
 test('Newsletter: selection and back navigation use cache without scroll jump',async()=>{const p=await page('newsletter/index.html',{issues});click(p,p.document.querySelector('.archive-item'));assert.equal(p.location.search,'?issue=old');assert.equal(p.reports.scrolls.length,0);assert(p.document.getElementById('latestNewsletter').textContent.includes('Older'));p.location.search='';p.browser.dispatchEvent(new p.Event('popstate'));assert(p.document.getElementById('latestNewsletter').textContent.includes('Newest'));assert.equal(p.reports.requests.length,1);});
 test('Newsletter: Ctrl-click retains normal link behavior',async()=>{const p=await page('newsletter/index.html',{issues});const event=click(p,p.document.querySelector('.archive-item'),{ctrlKey:true});assert.equal(event.defaultPrevented,false);assert.equal(p.location.search,'');});
 test('Newsletter: language changes translate optional sections without refetch',async()=>{const p=await page('newsletter/index.html',{issues,reduced:true});click(p,p.document.querySelector('[data-lang="es"]'));assert(p.document.getElementById('latestNewsletter').textContent.includes('Bienvenidos'));assert.equal(p.reports.requests.length,1);});
+
+for (const slug of ['privacy', 'terms', 'contact']) {
+  test(`Information: ${slug} restores preferences and switches the complete document in both directions`, async () => {
+    const p = await page(`${slug}/index.html`, {storage:{ministerioLanguage:'es', ministerioTheme:'dark'}, unavailable:true});
+    const en = p.document.querySelector('[data-language-content="en"]');
+    const es = p.document.querySelector('[data-language-content="es"]');
+    assert.equal(en.hidden, true);
+    assert.equal(es.hidden, false);
+    assert.equal(p.document.documentElement.dataset.theme, 'dark');
+    assert.equal(p.document.querySelector('.footer-policy-links a').textContent, 'Política de privacidad');
+    const spanishTitle = p.document.title;
+    click(p, p.document.querySelector('[data-lang="en"]'));
+    await settle();
+    assert.equal(en.hidden, false);
+    assert.equal(es.hidden, true);
+    assert.notEqual(p.document.title, spanishTitle);
+    assert.equal(p.reports.animations.length, 2);
+    click(p, p.document.querySelector('[data-lang="es"]'));
+    await settle();
+    assert.equal(en.hidden, true);
+    assert.equal(es.hidden, false);
+    assert.equal(p.document.title, spanishTitle);
+    assert.equal(p.reports.animations.length, 4);
+    click(p, p.document.querySelector('[data-theme-toggle]'));
+    assert.equal(p.storage.get('ministerioTheme'), 'light');
+    assert.equal(p.reports.requests.length, 0, 'information stays available without the content backend');
+    assert.equal(p.reports.errors.length, 0);
+  });
+}
+
+test('Information: blocked storage and reduced motion keep help available in either language', async () => {
+  const p = await page('contact/index.html', {blockedStorage:true, reduced:true, unavailable:true});
+  click(p, p.document.querySelector('[data-lang="es"]'));
+  assert.equal(p.document.querySelector('[data-language-content="es"]').hidden, false);
+  assert.equal(p.document.querySelector('[data-language-content="en"]').hidden, true);
+  assert.equal(p.reports.animations.length, 0);
+  assert.equal(p.reports.requests.length, 0);
+  assert.equal(p.reports.errors.length, 0);
+});

@@ -23,18 +23,18 @@ test('Routes: legacy links preserve newsletter queries and auth fragments on the
   }
 });
 test('Routes: direct index filenames normalize in place without another navigation', () => {
-  for(const [old,next] of [['/index.html','/'],['/newsletter/index.html','/newsletter/'],['/admin/index.html','/admin/']]) {
+  for(const [old,next] of [['/index.html','/'],['/newsletter/index.html','/newsletter/'],['/admin/index.html','/admin/'],['/privacy/index.html','/privacy/'],['/terms/index.html','/terms/'],['/contact/index.html','/contact/']]) {
     const {moves}=resolveRoute(old+'?issue=older#visit');
     assert.equal(moves.length,1);assert.equal(moves[0].kind,'normalize');assert.equal(moves[0].destination,next+'?issue=older#visit');assert.equal(moves[0].state.preserved,true);
   }
 });
 test('Routes: already clean paths do not redirect or loop', () => {
-  for(const pathname of ['/','/newsletter/','/admin/'])assert.equal(resolveRoute(pathname+'?issue=old').moves.length,0);
+  for(const pathname of ['/','/newsletter/','/admin/','/privacy/','/terms/','/contact/'])assert.equal(resolveRoute(pathname+'?issue=old').moves.length,0);
   const {moves}=resolveRoute('/admin/index.html?code=example#recovery',true);
   assert.equal(moves[0].destination,'/admin/?code=example#recovery');
 });
 test('Routes: every page link is clean and local styles/scripts resolve from directory URLs', () => {
-  for(const [file,url] of [['index.html','/'],['newsletter/index.html','/newsletter/'],['admin/index.html','/admin/']]) {
+  for(const [file,url] of [['index.html','/'],['newsletter/index.html','/newsletter/'],['admin/index.html','/admin/'],['privacy/index.html','/privacy/'],['terms/index.html','/terms/'],['contact/index.html','/contact/']]) {
     const {document}=parseHTML(read(file));
     for(const link of document.querySelectorAll('a[href]')) {
       const target=new URL(link.getAttribute('href'),'https://mcshekinah.org'+url);

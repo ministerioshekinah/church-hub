@@ -11,7 +11,10 @@
   const indexes = new Map([
     ["/index.html", "/"],
     ["/newsletter/index.html", "/newsletter/"],
-    ["/admin/index.html", "/admin/"]
+    ["/admin/index.html", "/admin/"],
+    ["/privacy/index.html", "/privacy/"],
+    ["/terms/index.html", "/terms/"],
+    ["/contact/index.html", "/contact/"]
   ]);
   const suffix = location.search + location.hash;
   const destination = legacy.get(location.pathname);
