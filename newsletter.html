@@ -12,35 +12,38 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css?v=8.0" />
+  <link rel="stylesheet" href="public-glass.css?v=1.0" />
+  <meta name="theme-color" content="#f7f6f0" />
 </head>
 <body data-page="newsletter">
+  <a class="skip-link" href="#main-content" data-i18n="skip_to_content">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
-      <a class="brand" href="index.html">Ministerio Cristiano Shekinah</a>
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 32" fill="none" aria-hidden="true"><path d="M12 3v26M4 11h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="brand-copy"><small>Ministerio Cristiano</small><strong>Shekinah</strong></span></a>
 
       <div class="header-actions">
-        <div class="language-toggle" aria-label="Language selector">
-          <button class="lang-button active" data-lang="en" type="button">EN</button>
+        <div class="language-toggle" role="group" aria-label="Language selector" data-i18n-aria-label="language_selector">
+          <button class="lang-button active" data-lang="en" type="button" aria-pressed="true" aria-label="English" lang="en">EN</button>
           <span>/</span>
-          <button class="lang-button" data-lang="es" type="button">ES</button>
+          <button class="lang-button" data-lang="es" type="button" aria-pressed="false" aria-label="Español" lang="es">ES</button>
         </div>
 
-        <button class="menu-button" id="menuButton" aria-label="Open navigation" aria-expanded="false">
-          ☰
+        <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="navMenu">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span>
         </button>
       </div>
 
-      <nav class="nav" id="navMenu">
+      <nav class="nav" id="navMenu" aria-label="Primary navigation" data-i18n-aria-label="primary_navigation">
         <a href="index.html" data-i18n="nav_home">Home</a>
         <a href="index.html#services" data-i18n="nav_services">Services</a>
-        <a href="newsletter.html" data-i18n="nav_newsletter">Newsletter</a>
+        <a href="newsletter.html" aria-current="page" data-i18n="nav_newsletter">Newsletter</a>
         <a href="index.html#announcements" data-i18n="nav_announcements">Announcements</a>
         <a href="index.html#visit" data-i18n="nav_visit">Visit</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <section class="newsletter-hero">
       <div class="container">
         <p class="eyebrow" data-i18n="stay_connected">Stay connected</p>
@@ -55,7 +58,7 @@
       <div class="container newsletter-page-grid">
         <div>
           <p class="eyebrow" data-i18n="latest_issue">Latest Issue</p>
-          <article class="full-newsletter" id="latestNewsletter">
+          <article class="full-newsletter" id="latestNewsletter" tabindex="-1">
             <p data-i18n="loading_newsletter">Loading newsletter…</p>
           </article>
         </div>
@@ -70,6 +73,10 @@
     </section>
   </main>
 
+  <button class="back-to-top" id="backToTop" type="button" aria-label="Back to top" data-i18n-aria-label="back_to_top" hidden>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
   <footer class="footer">
     <div class="container footer-row">
       <p>© <span id="year"></span> Ministerio Cristiano Shekinah</p>
@@ -81,6 +88,6 @@
   </footer>
 
   <script src="supabase-config.js?v=8.1"></script>
-  <script src="script.js?v=8.2"></script>
+  <script src="script.js?v=10.0"></script>
 </body>
 </html>
