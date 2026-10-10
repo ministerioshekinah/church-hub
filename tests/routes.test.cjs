@@ -14,7 +14,7 @@ function resolveRoute(input, blockedHistory = false) {
   return {original,moves};
 }
 test('Routes: legacy links preserve newsletter queries and auth fragments on the same origin', () => {
-  for(const [old,next] of [['/newsletter.html','/newsletter/'],['/admin.html','/admin/']]) {
+  for(const [old,next] of [['/newsletter.html','/newsletter/'],['/admin.html','/admin/'],['/newsletter','/newsletter/'],['/admin','/admin/']]) {
     const suffix='?issue=archive%202&next=https%3A%2F%2Fevil.example#access_token=example&refresh_token=example';
     const {moves}=resolveRoute(old+suffix);
     assert.equal(moves.length,1);assert.equal(moves[0].kind,'navigate');

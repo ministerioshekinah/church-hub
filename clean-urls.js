@@ -2,6 +2,9 @@
 (() => {
   const location = window.location;
   const legacy = new Map([
+    // Pages may serve a legacy .html file for the extensionless spelling too.
+    ["/newsletter", "/newsletter/"],
+    ["/admin", "/admin/"],
     ["/newsletter.html", "/newsletter/"],
     ["/admin.html", "/admin/"]
   ]);
