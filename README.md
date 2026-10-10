@@ -10,7 +10,8 @@ The public site reads current service information, active announcements, and pub
 
 ## Current production features
 
-- English / Spanish public website
+- English / Spanish public website with reduced-motion-aware language transitions
+- Light / dark appearance, saved per browser, with a system-theme default
 - Live service day and time
 - Apple Maps and Google Maps directions
 - Public announcements
@@ -48,15 +49,18 @@ For a new project, apply the committed migrations **in order**:
 3. `supabase/migrations/202608090003_security_hardening.sql`
 4. `supabase/migrations/202608090004_service_role_least_privilege.sql`
 5. `supabase/migrations/202608090005_public_content_query_indexes.sql`
+6. `supabase/migrations/20260817225828_add_newsletter_optional_sections.sql`
+7. `supabase/migrations/20261010195208_secure_content_audit_fields.sql`
+8. `supabase/migrations/20261010195215_restrict_content_author_columns.sql`
 
 Then:
 
-6. Create the initial administrator in Supabase Authentication.
-7. Add that user's UUID to `public.admin_users` if the allow-list is empty.
-8. Ensure at least one row in `public.admin_users` has `role = 'owner'`.
-9. Deploy `supabase/functions/admin-users/index.ts` as the `admin-users` Edge Function.
-10. Disable public signups because the website has no public registration flow.
-11. Verify the RLS and role behavior described in `ADMINISTRATORS_SETUP.md` before inviting additional administrators.
+1. Create the initial administrator in Supabase Authentication.
+2. Add that user's UUID to `public.admin_users` if the allow-list is empty.
+3. Ensure at least one row in `public.admin_users` has `role = 'owner'`.
+4. Deploy `supabase/functions/admin-users/index.ts` as the `admin-users` Edge Function.
+5. Disable public signups because the website has no public registration flow.
+6. Verify the RLS and role behavior described in `ADMINISTRATORS_SETUP.md` before inviting additional administrators.
 
 `supabase-admin-setup.sql` is historical reference only. It is **not** the canonical production setup.
 
@@ -119,6 +123,18 @@ See `ADMINISTRATORS_SETUP.md` for the production administrator-management runboo
 - `supabase-config.js` — public Supabase URL and publishable key only
 - `supabase/functions/admin-users/index.ts` — protected administrator-management Edge Function
 - `supabase/migrations/` — canonical database migrations
+
+## Verification and staged updates
+
+Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The 81 automated checks include 66 security checks and 15 interaction checks. GitHub Actions runs them for pull requests and pushes to main.
+
+`npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
+
+For an existing production project, apply the audit-trigger migration first, deploy the frontend with explicit column lists, and then apply the author-column restriction migration. Do not replay historical migrations. Reload an admin tab opened before the rollout so it uses the new query column lists.
+
+The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
+
+See [the audit record](security/AUDIT-2026-10-10.md) for scope, results, and remaining account/hosting work.
 
 ## Church information
 

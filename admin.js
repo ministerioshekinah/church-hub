@@ -289,7 +289,7 @@ function updateServicePreview() {
 async function loadServiceEditor() {
   const { data, error } = await supabaseClient
     .from("service_settings")
-    .select("*")
+    .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address")
     .eq("id", 1)
     .maybeSingle();
 
@@ -343,8 +343,8 @@ document.getElementById("saveServiceButton").addEventListener(
         time_display: form.time_display,
         special_message_en: form.special_message_en,
         special_message_es: form.special_message_es,
-        updated_at: new Date().toISOString(),
-        updated_by: authenticatedAdmin.id
+
+
       })
       .eq("id", 1);
 
@@ -369,7 +369,7 @@ let announcementFilter = "all";
 async function loadAnnouncementEditor() {
   const { data, error } = await supabaseClient
     .from("announcements")
-    .select("*")
+    .select("id,active,tag_en,tag_es,title_en,title_es,description_en,description_es,sort_order,created_at,updated_at")
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
@@ -540,9 +540,7 @@ function announcementFormPayload(activeOverride = null) {
       .getElementById("announcementDescriptionEs")
       .value.trim(),
     sort_order: Number(existing?.sort_order) || 10,
-    updated_at: new Date().toISOString(),
-    updated_by: authenticatedAdmin.id,
-    ...(existing?.isNew ? { created_by: authenticatedAdmin.id } : {})
+
   };
 }
 
@@ -560,7 +558,7 @@ async function saveAnnouncement(activeOverride = null) {
   const { data, error } = await supabaseClient
     .from("announcements")
     .upsert(payload, { onConflict: "id" })
-    .select()
+    .select("id")
     .single();
 
   if (error) {
@@ -569,7 +567,7 @@ async function saveAnnouncement(activeOverride = null) {
     return null;
   }
 
-  adminAnnouncements[selectedAnnouncementIndex] = data;
+  adminAnnouncements[selectedAnnouncementIndex] = { ...payload, ...data };
   selectAnnouncement(selectedAnnouncementIndex);
   return data;
 }
@@ -677,7 +675,7 @@ let newsletterFilter = "all";
 async function loadNewsletterEditor() {
   const { data, error } = await supabaseClient
     .from("newsletters")
-    .select("*")
+    .select("id,issue_date,status,title_en,title_es,gathering_en,gathering_es,scripture_en,scripture_es,community_en,community_es,optional_sections,published_at,created_at,updated_at")
     .order("issue_date", { ascending: false });
 
   if (error) {
@@ -724,7 +722,7 @@ function renderAdminNewsletterList() {
       type="button"
       data-newsletter-id="${escapeAdminHtml(item.id)}">
       <div class="management-list-item-top">
-        <span class="status-pill" data-status="${item.status}">
+        <span class="status-pill" data-status="${escapeAdminHtml(item.status)}">
           ${newsletterStatusLabel(item.status)}
         </span>
         <span class="management-list-date">${formatDate(item.issue_date, "en")}</span>
@@ -976,9 +974,9 @@ async function persistNewsletter(targetStatus = null) {
     scripture_es: data.scripture_es,
     community_en: data.community_en,
     community_es: data.community_es,
-    updated_at: new Date().toISOString(),
-    updated_by: authenticatedAdmin.id,
-    created_by: existing?.created_by || authenticatedAdmin.id,
+
+
+
     published_at:
       status === "published"
         ? existing?.published_at || new Date().toISOString()
@@ -988,7 +986,7 @@ async function persistNewsletter(targetStatus = null) {
   const { data: saved, error } = await supabaseClient
     .from("newsletters")
     .upsert(payload, { onConflict: "id" })
-    .select()
+    .select("id,status")
     .single();
 
   if (error) {

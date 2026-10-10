@@ -1,4 +1,4 @@
-import { withSupabase } from "npm:@supabase/server@^1";
+import { withSupabase } from "npm:@supabase/server@1.9.1";
 
 type AdminAction =
   | { action: "list" }
@@ -6,8 +6,37 @@ type AdminAction =
   | { action: "set-role"; userId?: string; role?: "owner" | "admin" }
   | { action: "remove"; userId?: string };
 
-function jsonError(message: string, status = 400) {
-  return Response.json({ error: message }, { status });
+const SITE_ORIGIN = "https://mcshekinah.org";
+const MAX_REQUEST_BYTES = 8192;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+class RequestError extends Error {
+  status: number;
+  constructor(message: string, status = 400) { super(message); this.status = status; }
+}
+function jsonResponse(value: unknown, status = 200) {
+  return Response.json(value, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
+}
+function jsonError(message: string, status = 400) { return jsonResponse({ error: message }, status); }
+async function readAction(req: Request): Promise<AdminAction> {
+  if (req.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") throw new RequestError("JSON is required.", 415);
+  const reader = req.body?.getReader();
+  if (!reader) throw new RequestError("Invalid request body.");
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_REQUEST_BYTES) { await reader.cancel(); throw new RequestError("Request is too large.", 413); }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  let body;
+  try { body = JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new RequestError("Invalid request body."); }
+  if (!body || typeof body !== "object" || Array.isArray(body) || typeof body.action !== "string") throw new RequestError("Invalid request body.");
+  return body as AdminAction;
 }
 
 async function assertOwner(ctx: any) {
@@ -74,7 +103,7 @@ async function ensureAnotherOwner(ctx: any, targetUserId: string) {
     .maybeSingle();
 
   if (targetError) throw targetError;
-  if (!target) throw new Error("Administrator not found.");
+  if (!target) throw new RequestError("Administrator not found.", 404);
   if (target.role !== "owner") return;
 
   const { count, error: countError } = await ctx.supabaseAdmin
@@ -84,30 +113,38 @@ async function ensureAnotherOwner(ctx: any, targetUserId: string) {
 
   if (countError) throw countError;
   if ((count ?? 0) <= 1) {
-    throw new Error("At least one Owner must remain.");
+    throw new RequestError("At least one Owner must remain.", 409);
   }
 }
 
 export default {
-  fetch: withSupabase({ auth: "user" }, async (req: Request, ctx: any) => {
+  fetch: withSupabase({ auth: "user", cors: {
+    "Access-Control-Allow-Origin": SITE_ORIGIN,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  } }, async (req: Request, ctx: any) => {
+    if (req.method !== "POST") return jsonError("Method not allowed.", 405);
+    const origin = req.headers.get("origin");
+    if (origin && origin !== SITE_ORIGIN) return jsonError("Origin not allowed.", 403);
     const owner = await assertOwner(ctx);
     if (owner.error) return owner.error;
 
     let body: AdminAction;
     try {
-      body = (await req.json()) as AdminAction;
-    } catch {
-      return jsonError("Invalid request body.");
+      body = await readAction(req);
+    } catch (error) {
+      return error instanceof RequestError ? jsonError(error.message, error.status) : jsonError("Invalid request body.");
     }
 
     try {
       if (body.action === "list") {
-        return Response.json({ admins: await listAdministrators(ctx) });
+        return jsonResponse({ admins: await listAdministrators(ctx) });
       }
 
       if (body.action === "invite") {
-        const email = String(body.email ?? "").trim().toLowerCase();
-        if (!email || !email.includes("@")) return jsonError("Enter a valid email address.");
+        const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+        if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonError("Enter a valid email address.");
 
         const users = await listAuthUsers(ctx);
         let user = users.find((candidate: any) => candidate.email?.toLowerCase() === email);
@@ -132,7 +169,7 @@ export default {
         if (membershipError) throw membershipError;
 
         if (existingMembership) {
-          return Response.json({
+          return jsonResponse({
             ok: true,
             invited,
             alreadyAuthorized: true,
@@ -147,13 +184,13 @@ export default {
           .insert({ user_id: user.id, role: "admin" });
         if (allowError) throw allowError;
 
-        return Response.json({ ok: true, invited, alreadyAuthorized: false, userId: user.id, email, role: "admin" });
+        return jsonResponse({ ok: true, invited, alreadyAuthorized: false, userId: user.id, email, role: "admin" });
       }
 
       if (body.action === "set-role") {
-        const userId = String(body.userId ?? "");
+        const userId = typeof body.userId === "string" ? body.userId : "";
         const role = body.role;
-        if (!userId || (role !== "owner" && role !== "admin")) {
+        if (!UUID_PATTERN.test(userId) || (role !== "owner" && role !== "admin")) {
           return jsonError("A valid administrator and role are required.");
         }
 
@@ -171,12 +208,12 @@ export default {
           .single();
         if (error) throw error;
 
-        return Response.json({ ok: true, admin: data });
+        return jsonResponse({ ok: true, admin: data });
       }
 
       if (body.action === "remove") {
-        const userId = String(body.userId ?? "");
-        if (!userId) return jsonError("Administrator ID is required.");
+        const userId = typeof body.userId === "string" ? body.userId : "";
+        if (!UUID_PATTERN.test(userId)) return jsonError("A valid administrator ID is required.");
         if (userId === owner.callerId) {
           return jsonError("You cannot remove your own Owner access from this page.", 409);
         }
@@ -189,13 +226,15 @@ export default {
           .eq("user_id", userId);
         if (error) throw error;
 
-        return Response.json({ ok: true });
+        return jsonResponse({ ok: true });
       }
 
       return jsonError("Unknown administrator action.");
     } catch (error) {
       console.error("admin-users error:", error);
-      return jsonError(error instanceof Error ? error.message : "Administrator request failed.", 500);
+      return error instanceof RequestError
+        ? jsonError(error.message, error.status)
+        : jsonError("Administrator request failed. Please try again.", 500);
     }
   }),
 };

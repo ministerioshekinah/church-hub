@@ -178,6 +178,7 @@ function applyLanguage(language) {
     if (label) element.setAttribute("aria-label", label);
   });
   updateMenuLabel();
+  window.SHEKINAH_THEME?.updateLabel();
   const copyStatus = document.getElementById("copyStatus");
   if (copyStatus) copyStatus.textContent = "";
 
@@ -189,8 +190,39 @@ function applyLanguage(language) {
   }
 }
 
+let languageChange = 0;
+let pendingLanguage = currentLanguage;
+let languageAnimation = null;
+async function changeLanguage(language) {
+  const next = language === "es" ? "es" : "en";
+  if (next === pendingLanguage) return;
+  pendingLanguage = next;
+  const change = ++languageChange;
+  languageAnimation?.cancel();
+  const content = document.getElementById("main-content");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!content?.animate || reduced) { applyLanguage(next); return; }
+  try {
+    languageAnimation = content.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, fill: "forwards" });
+    await languageAnimation.finished;
+    if (change !== languageChange) return;
+    applyLanguage(next);
+    languageAnimation.cancel();
+    languageAnimation = content.animate(
+      [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }],
+      { duration: 260, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+    );
+    await languageAnimation.finished;
+  } catch { /* A newer choice cancels the previous transition. */ }
+  finally {
+    if (change === languageChange) { languageAnimation?.cancel(); languageAnimation = null; if (currentLanguage !== pendingLanguage) applyLanguage(pendingLanguage); }
+  }
+}
 document.querySelectorAll(".lang-button").forEach((button) => {
-  button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+  button.addEventListener("click", () => changeLanguage(button.dataset.lang));
+});
+window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event) => {
+  if (event.matches) { ++languageChange; languageAnimation?.cancel(); languageAnimation = null; applyLanguage(pendingLanguage); }
 });
 
 const menuButton = document.getElementById("menuButton");
@@ -637,36 +669,15 @@ function initializePublicInteractions() {
     renderNewsletterPage(cachedNewsletterIssues);
     const article = document.getElementById("latestNewsletter");
     article?.focus({ preventScroll: true });
-    article?.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+    const top = article?.getBoundingClientRect().top;
+    if (top < 100 || top > window.innerHeight * 0.7) {
+      article?.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+    }
   });
   window.addEventListener("popstate", () => {
     if (archive && cachedNewsletterIssues) renderNewsletterPage(cachedNewsletterIssues);
   });
 
-  // Animate once on entry, without ever hiding content in the stylesheet.
-  if ("IntersectionObserver" in window && typeof Element.prototype.animate === "function") {
-    const animations = new Set();
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        observer.unobserve(entry.target);
-        if (reducedMotion.matches) return;
-        const animation = entry.target.animate(
-          [{ opacity: 0.5, transform: "translateY(18px)" }, { opacity: 1, transform: "none" }],
-          { duration: 650, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
-        );
-        animations.add(animation);
-        animation.onfinish = () => animations.delete(animation);
-      });
-    }, { threshold: 0.08 });
-    document.querySelectorAll(".hero-grid > div, .service-feature, .newsletter-preview-grid > div, #announcementList, .visit-grid > div").forEach((element) => observer.observe(element));
-    reducedMotion.addEventListener("change", () => {
-      if (reducedMotion.matches) {
-        animations.forEach((animation) => animation.cancel());
-        animations.clear();
-      }
-    });
-  }
 
   const heroCard = document.querySelector(".hero-card");
   const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -691,5 +702,13 @@ function initializePublicInteractions() {
   }
 }
 
-initializePublicPage();
-initializePublicInteractions();
+let publicPageStarted = false;
+function startPublicPage() {
+  if (publicPageStarted) return;
+  publicPageStarted = true;
+  initializePublicPage();
+  initializePublicInteractions();
+}
+// All deferred extensions register before the single initial content request.
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startPublicPage, { once: true });
+else startPublicPage();

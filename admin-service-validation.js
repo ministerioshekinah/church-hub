@@ -59,8 +59,6 @@
           time_display: formatServiceTime(serviceTime),
           special_message_en: document.getElementById("serviceMessageEn").value.trim(),
           special_message_es: document.getElementById("serviceMessageEs").value.trim(),
-          updated_at: new Date().toISOString(),
-          updated_by: user.id
         };
 
         const { data: savedService, error } = await supabaseClient

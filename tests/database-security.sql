@@ -1,0 +1,107 @@
+-- Run deliberately in the SQL editor; every test write is rolled back.
+-- No Auth accounts are created and no invitations are sent.
+begin;
+do $audit$
+declare
+  owner_id uuid;
+  test_id text := 'security-check-' || pg_catalog.gen_random_uuid()::text;
+  row_count integer;
+  denied boolean;
+  result jsonb := '[]'::jsonb;
+begin
+  select user_id into strict owner_id from public.admin_users where role='owner' limit 1;
+  perform set_config('request.jwt.claims', jsonb_build_object('sub','00000000-0000-4000-8000-000000000001','role','authenticated')::text,true);
+  set local role authenticated;
+  if ((select count(*)=0 from public.admin_users)) is not true then raise exception 'FAIL: Non-admin cannot see admin memberships'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot see admin memberships','pass',true));
+  if ((select count(*)=0 from public.announcements where active=false)) is not true then raise exception 'FAIL: Non-admin cannot read hidden announcements'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot read hidden announcements','pass',true));
+  if ((select count(*)=0 from public.newsletters where status <> 'published' or published_at is null)) is not true then raise exception 'FAIL: Non-admin cannot read unpublished newsletters'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot read unpublished newsletters','pass',true));
+  denied := false;
+  begin
+    insert into public.announcements(id,title_en,title_es) values(test_id,'Test','Test');
+  exception when insufficient_privilege then denied := true; end;
+  if (denied) is not true then raise exception 'FAIL: Non-admin cannot insert announcement'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot insert announcement','pass',true));
+  denied := false;
+  begin
+    insert into public.newsletters(id,issue_date,title_en,title_es) values(test_id,'2999-12-30','Test','Test');
+  exception when insufficient_privilege then denied := true; end;
+  if (denied) is not true then raise exception 'FAIL: Non-admin cannot insert newsletter'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot insert newsletter','pass',true));
+  update public.service_settings set day_en=day_en where id=1;
+  get diagnostics row_count = ROW_COUNT;
+  if (row_count = 0) is not true then raise exception 'FAIL: Non-admin cannot update service'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot update service','pass',true));
+  update public.announcements set title_en=title_en;
+  get diagnostics row_count = ROW_COUNT;
+  if (row_count = 0) is not true then raise exception 'FAIL: Non-admin cannot update announcements'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot update announcements','pass',true));
+  delete from public.announcements;
+  get diagnostics row_count = ROW_COUNT;
+  if (row_count = 0) is not true then raise exception 'FAIL: Non-admin cannot delete announcements'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot delete announcements','pass',true));
+  update public.newsletters set title_en=title_en;
+  get diagnostics row_count = ROW_COUNT;
+  if (row_count = 0) is not true then raise exception 'FAIL: Non-admin cannot update newsletters'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot update newsletters','pass',true));
+  delete from public.newsletters;
+  get diagnostics row_count = ROW_COUNT;
+  if (row_count = 0) is not true then raise exception 'FAIL: Non-admin cannot delete newsletters'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot delete newsletters','pass',true));
+  denied := false;
+  begin
+    insert into public.admin_users(user_id,role) values('00000000-0000-4000-8000-000000000001','owner');
+  exception when insufficient_privilege then denied := true; end;
+  if (denied) is not true then raise exception 'FAIL: Non-admin cannot promote own membership'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Non-admin cannot promote own membership','pass',true));
+  reset role;
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_id::text,'role','authenticated')::text,true);
+  set local role authenticated;
+  if ((select count(*)=1 from public.admin_users where user_id=owner_id)) is not true then raise exception 'FAIL: Owner can read own membership'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Owner can read own membership','pass',true));
+  insert into public.announcements(id,active,title_en,title_es,created_by,updated_by,created_at,updated_at) values(test_id,false,'Audit test','Prueba',null,null,'2000-01-01','2000-01-01');
+  reset role;
+  if ((select created_by=owner_id and updated_by=owner_id from public.announcements where id=test_id)) is not true then raise exception 'FAIL: Announcement insert author is session user'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Announcement insert author is session user','pass',true));
+  if ((select created_at=now() and updated_at=now() from public.announcements where id=test_id)) is not true then raise exception 'FAIL: Announcement insert timestamps are server owned'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Announcement insert timestamps are server owned','pass',true));
+  set local role authenticated;
+  update public.announcements set created_by=null,updated_by=null,created_at='1999-01-01',updated_at='1999-01-01' where id=test_id;
+  reset role;
+  if ((select created_by=owner_id and updated_by=owner_id and created_at=now() and updated_at=now() from public.announcements where id=test_id)) is not true then raise exception 'FAIL: Announcement update preserves attribution'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Announcement update preserves attribution','pass',true));
+  set local role authenticated;
+  update public.service_settings set updated_by=null,updated_at='1999-01-01' where id=1;
+  reset role;
+  if ((select updated_by=owner_id and updated_at=now() from public.service_settings where id=1)) is not true then raise exception 'FAIL: Service audit cannot be forged'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Service audit cannot be forged','pass',true));
+  set local role authenticated;
+  insert into public.newsletters(id,issue_date,title_en,title_es,created_by,updated_at) values(test_id,'2999-12-30','Audit test','Prueba',null,'1999-01-01');
+  reset role;
+  if ((select created_by=owner_id and updated_by=owner_id and created_at=now() and updated_at=now() from public.newsletters where id=test_id)) is not true then raise exception 'FAIL: Newsletter insert author is session user'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Newsletter insert author is session user','pass',true));
+  set local role authenticated;
+  update public.newsletters set created_by=null,updated_by=null,created_at='1999-01-01',updated_at='1999-01-01' where id=test_id;
+  reset role;
+  if ((select created_by=owner_id and updated_by=owner_id and created_at=now() and updated_at=now() from public.newsletters where id=test_id)) is not true then raise exception 'FAIL: Newsletter update preserves attribution'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Newsletter update preserves attribution','pass',true));
+  perform set_config('request.jwt.claims','{}',true);
+  set local role anon;
+  if ((select count(*)=0 from public.announcements where id=test_id)) is not true then raise exception 'FAIL: Anonymous cannot read hidden fixture announcement'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Anonymous cannot read hidden fixture announcement','pass',true));
+  if ((select count(*)=0 from public.newsletters where id=test_id)) is not true then raise exception 'FAIL: Anonymous cannot read fixture draft newsletter'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Anonymous cannot read fixture draft newsletter','pass',true));
+  denied := false;
+  begin
+    perform user_id from public.admin_users;
+  exception when insufficient_privilege then denied := true; end;
+  if (denied) is not true then raise exception 'FAIL: Anonymous cannot read memberships'; end if;
+  result := result || jsonb_build_array(jsonb_build_object('name','Anonymous cannot read memberships','pass',true));
+  reset role;
+  perform set_config('audit.results',result::text,true);
+end;
+$audit$;
+select current_setting('audit.results')::jsonb as tests;
+rollback;
