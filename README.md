@@ -16,6 +16,8 @@ The public site reads current service information, active announcements, and pub
 - Apple Maps and Google Maps directions
 - Public announcements
 - Newsletter archive
+- Bilingual privacy policy, terms of use, and contact/accessibility help
+- Footer information links opposite the Admin button
 - Private admin portal
 - Announcement create / edit / publish / hide / delete
 - Newsletter draft / edit / publish / unpublish / delete
@@ -114,6 +116,8 @@ See `ADMINISTRATORS_SETUP.md` for the production administrator-management runboo
 
 - `index.html` — homepage
 - `newsletter/index.html` — newsletter and archive at `/newsletter/`
+- `privacy/index.html`, `terms/index.html`, `contact/index.html` — bilingual website information
+- `footer.css`, `information.css` — shared footer and information-page styling
 - `style.css` — shared styling
 - `script.js` — public language and Supabase content loading
 - `admin/index.html` — admin portal at `/admin/`
@@ -126,7 +130,7 @@ See `ADMINISTRATORS_SETUP.md` for the production administrator-management runboo
 
 ## Public URLs
 
-Use `/` for the homepage, `/newsletter/` for the newsletter/archive, and `/admin/` for the admin portal. Local assets use paths from the site root so refreshing or directly opening these routes works on GitHub Pages.
+Use `/` for the homepage, `/newsletter/` for the newsletter/archive, and `/admin/` for the admin portal. Website information is at `/privacy/`, `/terms/`, and `/contact/`. Local assets use paths from the site root so refreshing or directly opening these routes works on GitHub Pages.
 
 Old `/newsletter.html` and `/admin.html` bookmarks forward to the clean routes with their query strings and fragments preserved. Direct `index.html` URLs are normalized in the address bar. The legacy HTML files are compatibility redirects, not page sources.
 
@@ -159,3 +163,11 @@ The service day and time shown publicly are managed through the admin portal and
 - Supabase Postgres
 - Supabase Auth
 - Supabase Edge Functions
+
+## Website information pages
+
+The privacy policy describes the current website only: hosting and font requests, public content delivery, administrator authentication, local preferences, and provider retention. It makes no claim about the church’s incorporation, nonprofit status, or compliance certification. Update both language versions when collection, providers, or features change; legal review remains recommended.
+
+Contact and accessibility help currently directs visitors to church leadership in person at the existing published address. No public email, telephone, mailing address, or response deadline has been inferred from Git metadata or private administrator accounts. Add an approved public remote contact method when the church supplies one.
+
+All three information pages work without the content backend and render English text without JavaScript. With JavaScript disabled, Spanish policy text is also available. Language and appearance controls use the same stored preferences and reduced-motion behavior as the rest of the public site.

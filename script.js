@@ -8,6 +8,21 @@ const translations = {
     open_navigation: "Open navigation",
     close_navigation: "Close navigation",
     back_to_top: "Back to top",
+    footer_information: "Website information and help",
+    privacy_policy: "Privacy Policy",
+    terms_of_use: "Terms of Use",
+    contact_accessibility: "Contact & Accessibility",
+    information_eyebrow: "Information & support",
+    privacy_title: "Your privacy matters.",
+    privacy_intro: "How this website handles information, the services it uses, and the choices available to you.",
+    privacy_document_title: "Privacy Policy | Ministerio Cristiano Shekinah",
+    terms_title: "Using our website.",
+    terms_intro: "A few clear guidelines for reading, sharing, and using our church website.",
+    terms_document_title: "Terms of Use | Ministerio Cristiano Shekinah",
+    contact_title: "We’re here to help.",
+    contact_intro: "Questions about the church, your privacy, or accessing this website? Here’s how to reach us and get help.",
+    contact_document_title: "Contact & Accessibility | Ministerio Cristiano Shekinah",
+    information_updated: "Last updated: October 10, 2026",
     get_directions: "Get directions ↗",
     copy_address: "Copy address",
     address_copied: "Address copied. See you soon!",
@@ -59,6 +74,21 @@ const translations = {
     open_navigation: "Abrir navegación",
     close_navigation: "Cerrar navegación",
     back_to_top: "Volver arriba",
+    footer_information: "Información y ayuda del sitio web",
+    privacy_policy: "Política de privacidad",
+    terms_of_use: "Términos de uso",
+    contact_accessibility: "Contacto y accesibilidad",
+    information_eyebrow: "Información y apoyo",
+    privacy_title: "Tu privacidad importa.",
+    privacy_intro: "Cómo maneja la información este sitio web, qué servicios utiliza y qué opciones tienes.",
+    privacy_document_title: "Política de privacidad | Ministerio Cristiano Shekinah",
+    terms_title: "Uso de nuestro sitio web.",
+    terms_intro: "Algunas pautas claras para leer, compartir y usar el sitio web de nuestra iglesia.",
+    terms_document_title: "Términos de uso | Ministerio Cristiano Shekinah",
+    contact_title: "Estamos para ayudarte.",
+    contact_intro: "¿Tienes preguntas sobre la iglesia, tu privacidad o cómo acceder a este sitio? Aquí encontrarás cómo comunicarte con nosotros y recibir ayuda.",
+    contact_document_title: "Contacto y accesibilidad | Ministerio Cristiano Shekinah",
+    information_updated: "Última actualización: 10 de octubre de 2026",
     get_directions: "Cómo llegar ↗",
     copy_address: "Copiar dirección",
     address_copied: "Dirección copiada. ¡Nos vemos pronto!",
@@ -162,9 +192,14 @@ function applyLanguage(language) {
   document.documentElement.lang = safeLanguage;
 
   document.querySelectorAll("[data-i18n]").forEach((element) => {
-    const key = element.dataset.i18n;
+    const key = element.getAttribute("data-i18n");
     const translated = translations[safeLanguage]?.[key];
     if (translated) element.textContent = translated;
+  });
+
+  // Keep complete policy text and its links available without HTML injection.
+  document.querySelectorAll("[data-language-content]").forEach((element) => {
+    element.hidden = element.dataset.languageContent !== safeLanguage;
   });
 
   document.querySelectorAll(".lang-button").forEach((button) => {
@@ -174,7 +209,7 @@ function applyLanguage(language) {
   });
 
   document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
-    const label = translations[safeLanguage][element.dataset.i18nAriaLabel];
+    const label = translations[safeLanguage][element.getAttribute("data-i18n-aria-label")];
     if (label) element.setAttribute("aria-label", label);
   });
   updateMenuLabel();
@@ -603,6 +638,7 @@ function initializePublicInteractions() {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const header = document.querySelector(".site-header");
   const backToTop = document.getElementById("backToTop");
+  const footer = document.querySelector(".footer");
   const sectionLinks = Array.from(document.querySelectorAll('.nav a[href^="#"]'));
   const sections = sectionLinks.map((link) => document.getElementById(link.hash.slice(1)));
   let scrollFrame = null;
@@ -610,7 +646,8 @@ function initializePublicInteractions() {
   function updateScrollState() {
     scrollFrame = null;
     header?.classList.toggle("is-scrolled", window.scrollY > 20);
-    if (backToTop) backToTop.hidden = window.scrollY < 520;
+    // Keep the floating control clear of the footer links and Admin button.
+    if (backToTop) backToTop.hidden = window.scrollY < 520 || Boolean(footer && footer.getBoundingClientRect().top < window.innerHeight);
     let activeIndex = 0;
     sections.forEach((section, index) => {
       if (section && section.getBoundingClientRect().top <= 180) activeIndex = index;
