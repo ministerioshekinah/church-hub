@@ -11,7 +11,7 @@ async function get(url,options={}){return fetch(url,{...options,signal:AbortSign
 async function check(name,fn){try{await fn();results.push({name,pass:true});}catch(e){results.push({name,pass:false,detail:e.message});}}
 const rest=(path,options={})=>get(api+'/rest/v1/'+path,{...options,headers:{apikey:publishableKey,...options.headers}});
 (async()=>{
- for(const path of ['/','/newsletter.html','/admin.html','/admin/']) await check('HTTPS page and CSP: '+path,async()=>{const r=await get(site+path);assert.equal(r.status,200);const html=await r.text();assert(html.includes('Content-Security-Policy'));assert(html.includes("object-src 'none'"));});
+ for(const path of ['/','/newsletter/','/admin/','/newsletter.html','/admin.html']) await check('HTTPS page and CSP: '+path,async()=>{const r=await get(site+path);assert.equal(r.status,200);const html=await r.text();assert(html.includes('Content-Security-Policy'));assert(html.includes("object-src 'none'"));});
  await check('HTTP redirects to HTTPS',async()=>{const r=await get('http://mcshekinah.org',{redirect:'manual'});assert([301,302,307,308].includes(r.status));assert(r.headers.get('location').startsWith('https://mcshekinah.org'));});
  for(const table of ['service_settings','announcements','newsletters'])await check('Public intended fields remain readable: '+table,async()=>{const r=await rest(table+'?select=id&limit=5');assert.equal(r.status,200);assert(Array.isArray(await r.json()));});
  for(const [table,query] of [['announcements','active=eq.false'],['newsletters','status=neq.published'],['newsletters','published_at=is.null']])await check('Hidden content excluded: '+table+' '+query,async()=>{const r=await rest(table+'?select=id&'+query);assert.equal(r.status,200);assert.deepEqual(await r.json(),[]);});
@@ -23,7 +23,7 @@ const rest=(path,options={})=>get(api+'/rest/v1/'+path,{...options,headers:{apik
  for(const path of ['/.env','/.git/config','/supabase/.env'])await check('Sensitive file absent: '+path,async()=>{const r=await get(site+path);assert.equal(r.status,404);});
  const auth=await get(api+'/auth/v1/settings',{headers:{apikey:publishableKey}});assert.equal(auth.status,200);const settings=await auth.json();
  if(!settings.disable_signup)findings.push({name:'Public self-signup remains enabled',action:'Disable new user signups in Supabase Auth if accounts are invitation-only. Non-admin accounts remain denied by tested RLS policies.'});
- const headers=(await get(site+'/admin.html')).headers;
+ const headers=(await get(site+'/admin/')).headers;
  for(const header of ['strict-transport-security','x-content-type-options'])if(!headers.has(header))findings.push({name:'Missing hosting header: '+header,action:'Configure an HTTPS proxy or host that supports custom response headers.'});
  if(!headers.has('x-frame-options')&&!/frame-ancestors/.test(headers.get('content-security-policy')||''))findings.push({name:'Missing header-based framing restriction',action:'Configure CSP frame-ancestors at the hosting/proxy layer; a meta tag cannot enforce this directive.'});
  const report={checkedAt:new Date().toISOString(),mode:'read-only production probes',passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,tests:results,findings};

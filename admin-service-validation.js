@@ -3,7 +3,7 @@
   This capture-phase handler runs before the legacy admin.js button handler and
   reports success only when Supabase confirms service_settings.id = 1 was updated.
 
-  The script is loaded only on admin.html after the main admin bundle starts. It
+  The script is loaded only on the admin page after the main admin bundle starts. It
   deliberately reuses admin.js's authenticated Supabase client instead of
   creating a second Auth client in the same browser tab.
 */

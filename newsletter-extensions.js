@@ -1,8 +1,8 @@
 (() => {
-  if (!document.querySelector('link[href^="newsletter-extensions.css"]')) {
+  if (!document.querySelector('link[href^="/newsletter-extensions.css"]')) {
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
-  stylesheet.href = "newsletter-extensions.css?v=1.0";
+  stylesheet.href = "/newsletter-extensions.css?v=1.0";
   document.head.appendChild(stylesheet);
   }
 
@@ -437,7 +437,7 @@
           );
           issues = (rows || []).map(databaseNewsletterToDisplayIssue);
         } else {
-          const response = await fetch("newsletters.json", { cache: "no-store" });
+          const response = await fetch("/newsletters.json", { cache: "no-store" });
           if (!response.ok) throw new Error("Static newsletter fallback failed.");
           issues = await response.json();
         }

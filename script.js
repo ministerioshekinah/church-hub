@@ -296,7 +296,7 @@ async function loadServiceSettings() {
       if (!rows?.[0]) throw new Error("The service settings row is missing.");
       cachedService = rows[0];
     } else {
-      const response = await fetch("service.json", { cache: "no-store" });
+      const response = await fetch("/service.json", { cache: "no-store" });
       if (!response.ok) throw new Error("Static service fallback failed.");
       cachedService = await response.json();
     }
@@ -386,7 +386,7 @@ async function loadAnnouncements() {
         "?select=id,tag_en,tag_es,title_en,title_es,description_en,description_es,sort_order&active=eq.true&order=sort_order.asc&limit=20"
       );
     } else {
-      const response = await fetch("announcements.json", { cache: "no-store" });
+      const response = await fetch("/announcements.json", { cache: "no-store" });
       if (!response.ok) throw new Error("Static announcement fallback failed.");
       const rows = await response.json();
       cachedAnnouncements = rows.filter((item) => item.active !== false);
@@ -451,7 +451,7 @@ async function loadNewsletters() {
       );
       issues = (rows || []).map(databaseNewsletterToDisplayIssue);
     } else {
-      const response = await fetch("newsletters.json", { cache: "no-store" });
+      const response = await fetch("/newsletters.json", { cache: "no-store" });
       if (!response.ok) throw new Error("Static newsletter fallback failed.");
       issues = await response.json();
     }
@@ -495,7 +495,7 @@ function renderNewsletterPage(issues) {
           issue[`date_${currentLanguage}`] || issue.date_en;
 
         return `
-          <a class="archive-item" href="newsletter.html?issue=${encodeURIComponent(issue.id)}">
+          <a class="archive-item" href="/newsletter/?issue=${encodeURIComponent(issue.id)}">
             <strong>${escapeHtml(title)}</strong>
             <span>${escapeHtml(date)}</span>
           </a>
