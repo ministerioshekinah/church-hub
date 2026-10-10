@@ -8,6 +8,10 @@ const translations = {
     open_navigation: "Open navigation",
     close_navigation: "Close navigation",
     back_to_top: "Back to top",
+    background_motion: "Background motion",
+    pause_background: "Pause background animation",
+    resume_background: "Resume background animation",
+    reduced_background: "Background animation is off to respect your device’s display preferences",
     footer_information: "Website information and help",
     privacy_policy: "Privacy Policy",
     terms_of_use: "Terms of Use",
@@ -74,6 +78,10 @@ const translations = {
     open_navigation: "Abrir navegación",
     close_navigation: "Cerrar navegación",
     back_to_top: "Volver arriba",
+    background_motion: "Movimiento del fondo",
+    pause_background: "Pausar la animación del fondo",
+    resume_background: "Reanudar la animación del fondo",
+    reduced_background: "La animación del fondo está desactivada para respetar las preferencias de pantalla de tu dispositivo",
     footer_information: "Información y ayuda del sitio web",
     privacy_policy: "Política de privacidad",
     terms_of_use: "Términos de uso",
@@ -214,6 +222,7 @@ function applyLanguage(language) {
   });
   updateMenuLabel();
   window.SHEKINAH_THEME?.updateLabel();
+  window.SHEKINAH_AMBIENT?.updateLabel();
   const copyStatus = document.getElementById("copyStatus");
   if (copyStatus) copyStatus.textContent = "";
 
@@ -634,6 +643,44 @@ async function initializePublicPage() {
 }
 
 // Progressive enhancements: content and ordinary links still work without them.
+function initializeAmbientBackground() {
+  const button = document.getElementById("backgroundMotion");
+  if (!button || !document.querySelector(".ambient-background")) return;
+  const preferences = [
+    window.matchMedia("(prefers-reduced-motion: reduce)"),
+    window.matchMedia("(prefers-reduced-transparency: reduce)"),
+    window.matchMedia("(forced-colors: active)")
+  ];
+  let enabled = true;
+  try { enabled = localStorage.getItem("ministerioBackgroundMotion") !== "paused"; } catch { /* Session-only preference. */ }
+  const devicePrefersStill = () => preferences.some(preference => preference.matches);
+
+  function updateLabel() {
+    const reduced = devicePrefersStill();
+    button.setAttribute("aria-checked", String(enabled && !reduced));
+    button.disabled = reduced;
+    button.title = translations[currentLanguage][reduced ? "reduced_background" : enabled ? "pause_background" : "resume_background"];
+  }
+  function syncMotion() {
+    const running = enabled && !devicePrefersStill() && !document.hidden;
+    document.documentElement.dataset.ambientMotion = running ? "running" : "paused";
+    updateLabel();
+  }
+  button.addEventListener("click", () => {
+    if (devicePrefersStill()) return;
+    enabled = !enabled;
+    try { localStorage.setItem("ministerioBackgroundMotion", enabled ? "running" : "paused"); } catch { /* Keep this session's choice. */ }
+    syncMotion();
+  });
+  document.addEventListener("visibilitychange", syncMotion);
+  window.addEventListener("pagehide", () => { document.documentElement.dataset.ambientMotion = "paused"; });
+  window.addEventListener("pageshow", syncMotion);
+  preferences.forEach(preference => preference.addEventListener("change", syncMotion));
+  window.SHEKINAH_AMBIENT = { updateLabel };
+  button.hidden = false;
+  syncMotion();
+}
+
 function initializePublicInteractions() {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const header = document.querySelector(".site-header");
@@ -745,6 +792,7 @@ function startPublicPage() {
   publicPageStarted = true;
   initializePublicPage();
   initializePublicInteractions();
+  initializeAmbientBackground();
 }
 // All deferred extensions register before the single initial content request.
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startPublicPage, { once: true });

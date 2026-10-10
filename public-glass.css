@@ -5,13 +5,109 @@
   --glass-edge: rgba(255, 255, 255, 0.85);
   --glass-shadow: 0 18px 55px rgba(47, 64, 39, 0.08), inset 0 1px 0 #fff;
   --glass-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ambient-sage: #9db77a;
+  --ambient-gold: #dfba77;
+  --ambient-mist: #a6c7a6;
 }
 
 html { scroll-padding-top: 128px; }
 body {
-  background: radial-gradient(ellipse at 95% 5%, #e0e9d3 0, transparent 37%),
-    radial-gradient(ellipse at 3% 25%, #f5e7d0 0, transparent 32%), #f7f6f0;
+  background: #f7f6f0;
   color: var(--glass-ink);
+  isolation: isolate;
+}
+
+/* A decorative layer behind the page. Only transforms animate: no video,
+   canvas, animated blur, layout changes, or per-frame JavaScript. */
+.ambient-background {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 100vh;
+  height: 100lvh;
+  z-index: -1;
+  overflow: hidden;
+  contain: strict;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.4;
+}
+.ambient-orb {
+  position: absolute;
+  width: clamp(24rem, 70vw, 58rem);
+  aspect-ratio: 1;
+  border-radius: 44% 56% 63% 37% / 54% 42% 58% 46%;
+  background: radial-gradient(ellipse at 46% 44%, currentColor 0 22%, transparent 70%);
+  animation: ambient-rise 38s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+.ambient-orb--sage { left: -16%; top: -22%; color: var(--ambient-sage); animation-delay: -12s; }
+.ambient-orb--gold { right: -19%; top: 12%; color: var(--ambient-gold); animation-name: ambient-sway; animation-duration: 46s; animation-delay: -25s; }
+.ambient-orb--mist { left: 19%; bottom: -44%; color: var(--ambient-mist); animation-name: ambient-drift; animation-duration: 42s; animation-delay: -19s; }
+[data-ambient-motion="running"] .ambient-orb { animation-play-state: running; }
+@keyframes ambient-rise {
+  from { transform: translate3d(-3%, -5%, 0) rotate(-12deg) scale(0.96, 1.08); }
+  to { transform: translate3d(21%, 28%, 0) rotate(16deg) scale(1.08, 0.95); }
+}
+@keyframes ambient-sway {
+  from { transform: translate3d(4%, 22%, 0) rotate(18deg) scale(1.08, 0.94); }
+  to { transform: translate3d(-24%, -12%, 0) rotate(-14deg) scale(0.93, 1.1); }
+}
+@keyframes ambient-drift {
+  from { transform: translate3d(-16%, 9%, 0) rotate(-8deg) scale(0.96, 1.05); }
+  to { transform: translate3d(13%, -30%, 0) rotate(20deg) scale(1.1, 0.94); }
+}
+.ambient-motion-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #e6eadf38;
+  border-radius: 14px;
+  background: #ffffff08;
+  color: #e6eadf;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.ambient-motion-toggle:hover { background: #ffffff14; }
+.ambient-motion-toggle:focus-visible { outline-color: #d3e8ba; }
+.ambient-motion-toggle:disabled { cursor: default; }
+.ambient-switch {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 18px;
+  padding: 3px;
+  border-radius: 12px;
+  background: #56634f;
+}
+.ambient-switch::before {
+  content: "";
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f6f8f0;
+  transition: transform 180ms var(--glass-ease);
+}
+.ambient-motion-toggle[aria-checked="true"] .ambient-switch { background: #91ad76; }
+.ambient-motion-toggle[aria-checked="true"] .ambient-switch::before { transform: translateX(12px); }
+@media (max-width: 680px) {
+  .ambient-orb { width: 28rem; }
+  .ambient-orb--sage { left: -17rem; top: -5rem; }
+  .ambient-orb--gold { right: -15rem; top: 25%; }
+  .ambient-orb--mist { display: none; }
+  .ambient-motion-toggle { margin-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb { animation: none !important; }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .ambient-background { display: none; }
+}
+@media print {
+  .ambient-background, .ambient-motion-toggle { display: none !important; }
 }
 button, a { -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
@@ -376,9 +472,12 @@ body, .site-header, .section-alt, .hero-card, .preview-card, .service-feature, .
   --glass-muted: #b9c5b1;
   --glass-edge: #41503b;
   --glass-shadow: 0 14px 40px #0003, inset 0 1px 0 #ffffff08;
+  --ambient-sage: #4c713b;
+  --ambient-gold: #7d5e30;
+  --ambient-mist: #346f62;
 }
 [data-theme="dark"] body {
-  background: radial-gradient(ellipse at 95% 5%, #263822 0, transparent 37%), radial-gradient(ellipse at 3% 25%, #29271b 0, transparent 32%), #121912;
+  background: #121912;
 }
 [data-theme="dark"] ::selection { background: #4c663d; color: #fff; }
 [data-theme="dark"] :where(a, button, [tabindex]):focus-visible { outline-color: #b2cf98; }
