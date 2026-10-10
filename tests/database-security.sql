@@ -1,6 +1,8 @@
 -- Run deliberately in the SQL editor; every test write is rolled back.
 -- No Auth accounts are created and no invitations are sent.
 begin;
+set local lock_timeout = '3s';
+set local statement_timeout = '20s';
 do $audit$
 declare
   owner_id uuid;
