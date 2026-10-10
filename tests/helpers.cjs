@@ -11,7 +11,7 @@ async function page(name = 'index.html', options = {}) {
   const events = document.createElement('window-events');
   const reports = {errors:[], requests:[], animations:[], scrolls:[], focused:null};
   const storage = new Map(Object.entries(options.storage || {}));
-  const location = new URL('https://mcshekinah.org/' + name);
+  const location = new URL('https://mcshekinah.org/' + name.replace(/index\.html$/, ''));
   const media = new Map();
   const browser = {document, location, innerHeight:800, scrollY:0,
     addEventListener:events.addEventListener.bind(events), dispatchEvent:events.dispatchEvent.bind(events),
@@ -33,8 +33,8 @@ async function page(name = 'index.html', options = {}) {
   const fetch=async url=>{reports.requests.push(url);if(options.unavailable)throw Error('offline');return {ok:true,json:async()=>url.includes('newsletters')?(options.issues||[]):url.includes('service')?[{id:1,service_time:'15:00'}]:(options.announcements||[])};};
   const ctx=vm.createContext({window:browser,document,Element,localStorage,navigator:{clipboard:{writeText:async()=>{}}},fetch,URL,URLSearchParams,AbortController,setTimeout,clearTimeout,console:{error:(...args)=>reports.errors.push(args),info(){}}});
   const run=code=>vm.runInContext(code,ctx);
-  if(name==='admin.html') run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));
-  else {run(read('theme.js'));run(read('supabase-config.js'));run(read('script.js'));if(name==='newsletter.html')run(read('newsletter-extensions.js'));}
+  if(name==='admin/index.html') run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));
+  else {run(read('theme.js'));run(read('supabase-config.js'));run(read('script.js'));if(name==='newsletter/index.html')run(read('newsletter-extensions.js'));}
   if(options.boot!==false) {document.dispatchEvent(new Event('DOMContentLoaded'));await new Promise(r=>setImmediate(r));}
   return {document,browser,location,reports,storage,media,Event,run};
 }

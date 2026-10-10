@@ -113,10 +113,10 @@ See `ADMINISTRATORS_SETUP.md` for the production administrator-management runboo
 ## Main files
 
 - `index.html` — homepage
-- `newsletter.html` — newsletter and archive
+- `newsletter/index.html` — newsletter and archive at `/newsletter/`
 - `style.css` — shared styling
 - `script.js` — public language and Supabase content loading
-- `admin.html` — admin portal
+- `admin/index.html` — admin portal at `/admin/`
 - `admin.js` — authentication and CMS behavior
 - `admin-service-validation.js` — verifies service row updates before reporting success
 - `administrators.js` — Owner-only administrator-management UI
@@ -124,9 +124,15 @@ See `ADMINISTRATORS_SETUP.md` for the production administrator-management runboo
 - `supabase/functions/admin-users/index.ts` — protected administrator-management Edge Function
 - `supabase/migrations/` — canonical database migrations
 
+## Public URLs
+
+Use `/` for the homepage, `/newsletter/` for the newsletter/archive, and `/admin/` for the admin portal. Local assets use paths from the site root so refreshing or directly opening these routes works on GitHub Pages.
+
+Old `/newsletter.html` and `/admin.html` bookmarks forward to the clean routes with their query strings and fragments preserved. Direct `index.html` URLs are normalized in the address bar. The legacy HTML files are compatibility redirects, not page sources.
+
 ## Verification and staged updates
 
-Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The 81 automated checks include 66 security checks and 15 interaction checks. GitHub Actions runs them for pull requests and pushes to main.
+Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main.
 
 `npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
 

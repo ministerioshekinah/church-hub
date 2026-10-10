@@ -1,3 +1,3 @@
-// Preserve Supabase invitation/recovery parameters on this same-origin redirect.
-// The destination is constant; never accept a redirect destination from the URL.
-window.location.replace("/admin.html" + window.location.search + window.location.hash);
+// Compatibility for a cached copy of the former /admin/ redirect page.
+// The full index page normalizes its address to /admin/ without another request.
+window.location.replace("/admin/index.html" + window.location.search + window.location.hash);
