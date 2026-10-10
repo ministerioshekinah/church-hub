@@ -1,0 +1,90 @@
+{
+  "method": "Production PostgreSQL role checks; all test writes rolled back",
+  "tests": [
+    {
+      "name": "Non-admin cannot see admin memberships",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot read hidden announcements",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot read unpublished newsletters",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot insert announcement",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot insert newsletter",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot update service",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot update announcements",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot delete announcements",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot update newsletters",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot delete newsletters",
+      "pass": true
+    },
+    {
+      "name": "Non-admin cannot promote own membership",
+      "pass": true
+    },
+    {
+      "name": "Owner can read own membership",
+      "pass": true
+    },
+    {
+      "name": "Announcement insert author is session user",
+      "pass": true
+    },
+    {
+      "name": "Announcement insert timestamps are server owned",
+      "pass": true
+    },
+    {
+      "name": "Announcement update preserves attribution",
+      "pass": true
+    },
+    {
+      "name": "Service audit cannot be forged",
+      "pass": true
+    },
+    {
+      "name": "Newsletter insert author is session user",
+      "pass": true
+    },
+    {
+      "name": "Newsletter update preserves attribution",
+      "pass": true
+    },
+    {
+      "name": "Anonymous cannot read hidden fixture announcement",
+      "pass": true
+    },
+    {
+      "name": "Anonymous cannot read fixture draft newsletter",
+      "pass": true
+    },
+    {
+      "name": "Anonymous cannot read memberships",
+      "pass": true
+    }
+  ],
+  "reviewDate": "2026-10-10"
+}

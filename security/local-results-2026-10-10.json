@@ -1,0 +1,331 @@
+{
+  "reviewedCommit": "7abf7b63d51574b62790a89e9514e87c42728f67",
+  "checks": [
+    {
+      "name": "Edge: unauthenticated caller",
+      "pass": true
+    },
+    {
+      "name": "Edge: ordinary authenticated user",
+      "pass": true
+    },
+    {
+      "name": "Edge: content administrator cannot manage accounts",
+      "pass": true
+    },
+    {
+      "name": "Edge: owner lookup failure fails closed",
+      "pass": true
+    },
+    {
+      "name": "Edge: GET cannot list administrators",
+      "pass": true
+    },
+    {
+      "name": "Edge: PUT cannot perform actions",
+      "pass": true
+    },
+    {
+      "name": "Edge: DELETE cannot perform actions",
+      "pass": true
+    },
+    {
+      "name": "Edge: foreign browser origin",
+      "pass": true
+    },
+    {
+      "name": "Edge: null origin",
+      "pass": true
+    },
+    {
+      "name": "Edge: lookalike site origin",
+      "pass": true
+    },
+    {
+      "name": "Edge: text body rejected",
+      "pass": true
+    },
+    {
+      "name": "Edge: JSONP content type rejected",
+      "pass": true
+    },
+    {
+      "name": "Edge: malformed JSON",
+      "pass": true
+    },
+    {
+      "name": "Edge: null body",
+      "pass": true
+    },
+    {
+      "name": "Edge: array body",
+      "pass": true
+    },
+    {
+      "name": "Edge: scalar body",
+      "pass": true
+    },
+    {
+      "name": "Edge: missing action",
+      "pass": true
+    },
+    {
+      "name": "Edge: nonstring action",
+      "pass": true
+    },
+    {
+      "name": "Edge: oversized body",
+      "pass": true
+    },
+    {
+      "name": "Edge: unknown action",
+      "pass": true
+    },
+    {
+      "name": "Edge: invalid invite address",
+      "pass": true
+    },
+    {
+      "name": "Edge: email header injection",
+      "pass": true
+    },
+    {
+      "name": "Edge: oversized invite address",
+      "pass": true
+    },
+    {
+      "name": "Edge: nonstrings cannot become email",
+      "pass": true
+    },
+    {
+      "name": "Edge: role must be allowlisted",
+      "pass": true
+    },
+    {
+      "name": "Edge: role target must be UUID",
+      "pass": true
+    },
+    {
+      "name": "Edge: remove target must be UUID",
+      "pass": true
+    },
+    {
+      "name": "Edge: self-demotion blocked",
+      "pass": true
+    },
+    {
+      "name": "Edge: self-removal blocked",
+      "pass": true
+    },
+    {
+      "name": "Edge: missing removal target",
+      "pass": true
+    },
+    {
+      "name": "Edge: successful owner list is never cached",
+      "pass": true
+    },
+    {
+      "name": "Edge: internal auth errors do not reach caller",
+      "pass": true
+    },
+    {
+      "name": "Edge: invites default to content admin even if role is injected",
+      "pass": true
+    },
+    {
+      "name": "Edge: already-authorized owner is not demoted by invite",
+      "pass": true
+    },
+    {
+      "name": "Edge: an owner may change another administrator role",
+      "pass": true
+    },
+    {
+      "name": "Edge: an owner may remove another content administrator",
+      "pass": true
+    },
+    {
+      "name": "Edge: authentication middleware required and CORS constrained",
+      "pass": true
+    },
+    {
+      "name": "Theme: first visit follows system dark appearance",
+      "pass": true
+    },
+    {
+      "name": "Theme: saved preference overrides system appearance",
+      "pass": true
+    },
+    {
+      "name": "Theme: switch persists dark then light with accessible state",
+      "pass": true
+    },
+    {
+      "name": "Theme: blocked browser storage leaves both switches functional",
+      "pass": true
+    },
+    {
+      "name": "Theme: newsletter includes the same theme control",
+      "pass": true
+    },
+    {
+      "name": "Language: English to Spanish uses short opacity/transform transition",
+      "pass": true
+    },
+    {
+      "name": "Language: Spanish to English also animates",
+      "pass": true
+    },
+    {
+      "name": "Language: rapid changes always end on the latest choice",
+      "pass": true
+    },
+    {
+      "name": "Language: reduced motion changes immediately without animation",
+      "pass": true
+    },
+    {
+      "name": "Language: no animation API still permits switching",
+      "pass": true
+    },
+    {
+      "name": "Navigation: Escape closes mobile menu and restores focus",
+      "pass": true
+    },
+    {
+      "name": "Newsletter: one initial request includes optional sections",
+      "pass": true
+    },
+    {
+      "name": "Newsletter: selection and back navigation use cache without scroll jump",
+      "pass": true
+    },
+    {
+      "name": "Newsletter: Ctrl-click retains normal link behavior",
+      "pass": true
+    },
+    {
+      "name": "Newsletter: language changes translate optional sections without refetch",
+      "pass": true
+    },
+    {
+      "name": "XSS: announcement title_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: announcement title_es",
+      "pass": true
+    },
+    {
+      "name": "XSS: announcement description_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: announcement description_es",
+      "pass": true
+    },
+    {
+      "name": "XSS: announcement tag_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: announcement tag_es",
+      "pass": true
+    },
+    {
+      "name": "XSS: service service_label_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: service time_display",
+      "pass": true
+    },
+    {
+      "name": "XSS: service special_message_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: newsletter title_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: newsletter date_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: newsletter heading_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: newsletter body_en",
+      "pass": true
+    },
+    {
+      "name": "XSS: archive issue ID remains a same-origin encoded query",
+      "pass": true
+    },
+    {
+      "name": "XSS: optional newsletter custom",
+      "pass": true
+    },
+    {
+      "name": "XSS: optional newsletter important_announcement",
+      "pass": true
+    },
+    {
+      "name": "XSS: optional newsletter __proto__",
+      "pass": true
+    },
+    {
+      "name": "XSS: optional newsletter constructor",
+      "pass": true
+    },
+    {
+      "name": "XSS: admin announcement editor list",
+      "pass": true
+    },
+    {
+      "name": "XSS: admin newsletter ID and status attributes",
+      "pass": true
+    },
+    {
+      "name": "CSP: index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "name": "CSP: newsletter.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "name": "CSP: admin.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "name": "CSP: admin/index.html blocks injected scripts, objects, base URLs",
+      "pass": true
+    },
+    {
+      "name": "Supply chain: pinned browser SDK requires verified SRI",
+      "pass": true
+    },
+    {
+      "name": "Redirect: invitation parameters cannot change the origin",
+      "pass": true
+    },
+    {
+      "name": "Privacy: admin requests never select author UUIDs or wildcard columns",
+      "pass": true
+    },
+    {
+      "name": "Availability security: backend failure never resurrects static hidden announcements",
+      "pass": true
+    },
+    {
+      "name": "Availability security: backend failure never resurrects static unpublished newsletters",
+      "pass": true
+    }
+  ],
+  "ci": "https://github.com/ministerioshekinah/church-hub/actions/runs/38082406158",
+  "browserRenderingTested": false
+}
