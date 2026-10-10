@@ -50,8 +50,8 @@ For a new project, apply the committed migrations **in order**:
 4. `supabase/migrations/202608090004_service_role_least_privilege.sql`
 5. `supabase/migrations/202608090005_public_content_query_indexes.sql`
 6. `supabase/migrations/20260817225828_add_newsletter_optional_sections.sql`
-7. `supabase/migrations/20261010195208_secure_content_audit_fields.sql`
-8. `supabase/migrations/20261010195215_restrict_content_author_columns.sql`
+7. `supabase/migrations/20261010195851_secure_content_audit_fields.sql`
+8. `supabase/migrations/20261010200704_restrict_content_author_columns.sql`
 
 Then:
 
@@ -130,7 +130,7 @@ Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The 81 automat
 
 `npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
 
-For an existing production project, apply the audit-trigger migration first, deploy the frontend with explicit column lists, and then apply the author-column restriction migration. Do not replay historical migrations. Reload an admin tab opened before the rollout so it uses the new query column lists.
+For an existing production project, apply the audit-trigger migration first, deploy the frontend with explicit column lists, and then apply the author-column restriction migration. Do not replay historical migrations. The two new filenames match the versions recorded by the controlled production deployment. Reload an admin tab opened before the rollout so it uses the new query column lists.
 
 The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
 
