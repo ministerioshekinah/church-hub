@@ -2,6 +2,18 @@ window.SHEKINAH_PUBLIC_READY = true;
 
 const translations = {
   en: {
+    skip_to_content: "Skip to main content",
+    language_selector: "Language selector",
+    primary_navigation: "Primary navigation",
+    open_navigation: "Open navigation",
+    close_navigation: "Close navigation",
+    back_to_top: "Back to top",
+    get_directions: "Get directions ↗",
+    copy_address: "Copy address",
+    address_copied: "Address copied. See you soon!",
+    copy_unavailable: "Select the address above to copy it.",
+    newsletter_empty_title: "No published newsletter yet",
+    newsletter_empty_copy: "Check back for the next Ministerio Cristiano Shekinah update.",
     nav_home: "Home",
     nav_services: "Services",
     nav_newsletter: "Newsletter",
@@ -41,6 +53,18 @@ const translations = {
     announcement_error: "We could not load announcements right now."
   },
   es: {
+    skip_to_content: "Saltar al contenido principal",
+    language_selector: "Selector de idioma",
+    primary_navigation: "Navegación principal",
+    open_navigation: "Abrir navegación",
+    close_navigation: "Cerrar navegación",
+    back_to_top: "Volver arriba",
+    get_directions: "Cómo llegar ↗",
+    copy_address: "Copiar dirección",
+    address_copied: "Dirección copiada. ¡Nos vemos pronto!",
+    copy_unavailable: "Selecciona la dirección de arriba para copiarla.",
+    newsletter_empty_title: "Aún no hay un boletín publicado",
+    newsletter_empty_copy: "Vuelve pronto para la próxima actualización de Ministerio Cristiano Shekinah.",
     nav_home: "Inicio",
     nav_services: "Servicios",
     nav_newsletter: "Boletín",
@@ -81,7 +105,9 @@ const translations = {
   }
 };
 
-const storedLanguage = localStorage.getItem("ministerioLanguage");
+// Private browsing and blocked storage must not prevent the page from loading.
+let storedLanguage = null;
+try { storedLanguage = localStorage.getItem("ministerioLanguage"); } catch { /* Use English. */ }
 let currentLanguage = storedLanguage === "es" ? "es" : "en";
 
 let cachedService = null;
@@ -132,7 +158,7 @@ async function publicSupabaseRequest(path, query = "") {
 function applyLanguage(language) {
   const safeLanguage = language === "es" ? "es" : "en";
   currentLanguage = safeLanguage;
-  localStorage.setItem("ministerioLanguage", safeLanguage);
+  try { localStorage.setItem("ministerioLanguage", safeLanguage); } catch { /* Keep this session's selection. */ }
   document.documentElement.lang = safeLanguage;
 
   document.querySelectorAll("[data-i18n]").forEach((element) => {
@@ -142,8 +168,18 @@ function applyLanguage(language) {
   });
 
   document.querySelectorAll(".lang-button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.lang === safeLanguage);
+    const active = button.dataset.lang === safeLanguage;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
   });
+
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+    const label = translations[safeLanguage][element.dataset.i18nAriaLabel];
+    if (label) element.setAttribute("aria-label", label);
+  });
+  updateMenuLabel();
+  const copyStatus = document.getElementById("copyStatus");
+  if (copyStatus) copyStatus.textContent = "";
 
   if (cachedService) renderServiceSettings(cachedService);
   if (cachedAnnouncements) renderAnnouncements(cachedAnnouncements);
@@ -160,18 +196,51 @@ document.querySelectorAll(".lang-button").forEach((button) => {
 const menuButton = document.getElementById("menuButton");
 const navMenu = document.getElementById("navMenu");
 
+function updateMenuLabel() {
+  if (!menuButton) return;
+  const open = menuButton.getAttribute("aria-expanded") === "true";
+  menuButton.setAttribute("aria-label", translations[currentLanguage][open ? "close_navigation" : "open_navigation"]);
+}
+
+function closeMenu(returnFocus = false) {
+  if (!navMenu || !menuButton) return;
+  navMenu.classList.remove("open");
+  menuButton.setAttribute("aria-expanded", "false");
+  updateMenuLabel();
+  if (returnFocus) menuButton.focus();
+}
+
 if (menuButton && navMenu) {
   menuButton.addEventListener("click", () => {
     const isOpen = navMenu.classList.toggle("open");
     menuButton.setAttribute("aria-expanded", String(isOpen));
+    updateMenuLabel();
   });
 
   navMenu.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
-      navMenu.classList.remove("open");
-      menuButton.setAttribute("aria-expanded", "false");
+      closeMenu();
+      const href = link.getAttribute("href");
+      if (href?.startsWith("#")) {
+        const target = document.getElementById(href.slice(1));
+        if (target) {
+          target.setAttribute("tabindex", "-1");
+          target.focus({ preventScroll: true });
+        }
+      }
     });
   });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && navMenu.classList.contains("open")) closeMenu(true);
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".site-header")) closeMenu();
+  });
+  document.addEventListener("focusin", (event) => {
+    if (!event.target.closest(".site-header")) closeMenu();
+  });
+  window.matchMedia("(min-width: 1101px)").addEventListener("change", () => closeMenu());
 }
 
 const year = document.getElementById("year");
@@ -377,7 +446,7 @@ function renderNewsletterPage(issues) {
 
   if (!selectedIssue) {
     latestContainer.innerHTML =
-      `<div class="newsletter-empty-public"><h2>No published newsletter yet</h2><p>Check back for the next Ministerio Cristiano Shekinah update.</p></div>`;
+      `<div class="newsletter-empty-public"><h2>${escapeHtml(translations[currentLanguage].newsletter_empty_title)}</h2><p>${escapeHtml(translations[currentLanguage].newsletter_empty_copy)}</p></div>`;
     archiveContainer.innerHTML = `<p>—</p>`;
     return;
   }
@@ -497,4 +566,130 @@ async function initializePublicPage() {
   }
 }
 
+// Progressive enhancements: content and ordinary links still work without them.
+function initializePublicInteractions() {
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const header = document.querySelector(".site-header");
+  const backToTop = document.getElementById("backToTop");
+  const sectionLinks = Array.from(document.querySelectorAll('.nav a[href^="#"]'));
+  const sections = sectionLinks.map((link) => document.getElementById(link.hash.slice(1)));
+  let scrollFrame = null;
+
+  function updateScrollState() {
+    scrollFrame = null;
+    header?.classList.toggle("is-scrolled", window.scrollY > 20);
+    if (backToTop) backToTop.hidden = window.scrollY < 520;
+    let activeIndex = 0;
+    sections.forEach((section, index) => {
+      if (section && section.getBoundingClientRect().top <= 180) activeIndex = index;
+    });
+    sectionLinks.forEach((link, index) => {
+      if (index === activeIndex) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+  }
+
+  function scheduleScrollUpdate() {
+    if (scrollFrame === null) scrollFrame = window.requestAnimationFrame(updateScrollState);
+  }
+  window.addEventListener("scroll", scheduleScrollUpdate, { passive: true });
+  window.addEventListener("resize", scheduleScrollUpdate, { passive: true });
+  updateScrollState();
+
+  backToTop?.addEventListener("click", () => {
+    document.querySelector(".brand")?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
+  });
+
+  const copyButton = document.getElementById("copyAddress");
+  const address = document.getElementById("visitAddress");
+  const copyStatus = document.getElementById("copyStatus");
+  if (copyButton && address && copyStatus) {
+    copyButton.hidden = false;
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(address.textContent.replace(/\s+/g, " ").trim());
+        copyStatus.textContent = translations[currentLanguage].address_copied;
+      } catch {
+        // Clipboard permissions vary on mobile; make the visible address selectable.
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(address);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        copyStatus.textContent = translations[currentLanguage].copy_unavailable;
+      }
+    });
+  }
+
+  const archive = document.getElementById("newsletterArchive");
+  archive?.addEventListener("click", (event) => {
+    const link = event.target.closest("a.archive-item");
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const requestedId = new URL(link.href).searchParams.get("issue");
+    if (!cachedNewsletterIssues?.some((issue) => issue.id === requestedId)) return;
+    try {
+      window.history.pushState(null, "", link.href);
+    } catch {
+      return; // Keep normal navigation if the browser blocks the History API.
+    }
+    event.preventDefault();
+    renderNewsletterPage(cachedNewsletterIssues);
+    const article = document.getElementById("latestNewsletter");
+    article?.focus({ preventScroll: true });
+    article?.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+  });
+  window.addEventListener("popstate", () => {
+    if (archive && cachedNewsletterIssues) renderNewsletterPage(cachedNewsletterIssues);
+  });
+
+  // Animate once on entry, without ever hiding content in the stylesheet.
+  if ("IntersectionObserver" in window && typeof Element.prototype.animate === "function") {
+    const animations = new Set();
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        observer.unobserve(entry.target);
+        if (reducedMotion.matches) return;
+        const animation = entry.target.animate(
+          [{ opacity: 0.5, transform: "translateY(18px)" }, { opacity: 1, transform: "none" }],
+          { duration: 650, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+        );
+        animations.add(animation);
+        animation.onfinish = () => animations.delete(animation);
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll(".hero-grid > div, .service-feature, .newsletter-preview-grid > div, #announcementList, .visit-grid > div").forEach((element) => observer.observe(element));
+    reducedMotion.addEventListener("change", () => {
+      if (reducedMotion.matches) {
+        animations.forEach((animation) => animation.cancel());
+        animations.clear();
+      }
+    });
+  }
+
+  const heroCard = document.querySelector(".hero-card");
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+  if (heroCard) {
+    let lightFrame = null;
+    heroCard.addEventListener("pointermove", (event) => {
+      if (reducedMotion.matches || !finePointer.matches) return;
+      if (lightFrame !== null) window.cancelAnimationFrame(lightFrame);
+      lightFrame = window.requestAnimationFrame(() => {
+        const rect = heroCard.getBoundingClientRect();
+        heroCard.style.setProperty("--light-x", `${((event.clientX - rect.left) / rect.width) * 100}%`);
+        heroCard.style.setProperty("--light-y", `${((event.clientY - rect.top) / rect.height) * 100}%`);
+        lightFrame = null;
+      });
+    });
+    heroCard.addEventListener("pointerleave", () => {
+      if (lightFrame !== null) window.cancelAnimationFrame(lightFrame);
+      lightFrame = null;
+      heroCard.style.removeProperty("--light-x");
+      heroCard.style.removeProperty("--light-y");
+    });
+  }
+}
+
 initializePublicPage();
+initializePublicInteractions();
