@@ -1,0 +1,4 @@
+[functions.admin-users]
+# @supabase/server auth:user verifies the session JWT (including modern signing keys).
+# Supabase's legacy gateway check is intentionally bypassed, per the SDK documentation.
+verify_jwt = false

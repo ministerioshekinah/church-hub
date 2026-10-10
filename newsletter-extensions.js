@@ -1,8 +1,10 @@
 (() => {
+  if (!document.querySelector('link[href^="newsletter-extensions.css"]')) {
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
   stylesheet.href = "newsletter-extensions.css?v=1.0";
   document.head.appendChild(stylesheet);
+  }
 
   const SECTION_TYPES = {
     ministry_spotlight: {
@@ -28,14 +30,14 @@
   };
 
   function makeSection(type) {
-    const defaults = SECTION_TYPES[type] || SECTION_TYPES.custom;
+    const defaults = Object.hasOwn(SECTION_TYPES, type) ? SECTION_TYPES[type] : SECTION_TYPES.custom;
     const randomPart =
       window.crypto?.randomUUID?.() ||
       `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     return {
       id: `section-${randomPart}`,
-      type: SECTION_TYPES[type] ? type : "custom",
+      type: Object.hasOwn(SECTION_TYPES, type) ? type : "custom",
       title_en: defaults.title_en,
       title_es: defaults.title_es,
       body_en: "",
@@ -47,10 +49,10 @@
     if (!Array.isArray(value)) return [];
 
     return value
-      .filter((section) => section && typeof section === "object")
+      .filter((section) => section && typeof section === "object" && !Array.isArray(section))
       .map((section) => ({
         id: String(section.id || `section-${Date.now()}-${Math.random().toString(16).slice(2)}`),
-        type: SECTION_TYPES[section.type] ? section.type : "custom",
+        type: Object.hasOwn(SECTION_TYPES, section.type) ? section.type : "custom",
         title_en: String(section.title_en || ""),
         title_es: String(section.title_es || ""),
         body_en: String(section.body_en || ""),
@@ -60,7 +62,7 @@
 
   function optionalHeading(section, language) {
     const isSpanish = language === "es";
-    const fallback = SECTION_TYPES[section.type] || SECTION_TYPES.custom;
+    const fallback = Object.hasOwn(SECTION_TYPES, section.type) ? SECTION_TYPES[section.type] : SECTION_TYPES.custom;
     return (
       section[isSpanish ? "title_es" : "title_en"] ||
       section.title_en ||
@@ -144,7 +146,7 @@
 
       list.innerHTML = optionalSections
         .map((section, index) => {
-          const typeInfo = SECTION_TYPES[section.type] || SECTION_TYPES.custom;
+          const typeInfo = Object.hasOwn(SECTION_TYPES, section.type) ? SECTION_TYPES[section.type] : SECTION_TYPES.custom;
           return `
             <article class="optional-section-card" data-optional-id="${escapeAdminHtml(section.id)}" data-optional-type="${escapeAdminHtml(section.type)}">
               <div class="optional-section-card-heading">
@@ -309,9 +311,9 @@
         community_en: data.community_en,
         community_es: data.community_es,
         optional_sections: sections,
-        updated_at: new Date().toISOString(),
-        updated_by: authenticatedAdmin.id,
-        created_by: existing?.created_by || authenticatedAdmin.id,
+
+
+
         published_at:
           status === "published"
             ? existing?.published_at || new Date().toISOString()
@@ -321,7 +323,7 @@
       const { data: saved, error } = await supabaseClient
         .from("newsletters")
         .upsert(payload, { onConflict: "id" })
-        .select()
+        .select("id,status")
         .single();
 
       if (error) {
@@ -450,7 +452,7 @@
       }
     };
 
-    loadNewsletters();
+    // The page bootstrap performs the one initial request after this extension registers.
   }
 
   if (document.body.classList.contains("admin-body")) {

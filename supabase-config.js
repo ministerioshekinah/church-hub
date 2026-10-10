@@ -12,7 +12,7 @@ window.SHEKINAH_SUPABASE = {
 /* Admin-only extensions. They contain no secret credentials. */
 if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
   [
-    "admin-service-validation.js?v=1.0",
+    "admin-service-validation.js?v=2.0",
     "administrators.js?v=0.9"
   ].forEach((src) => {
     const script = document.createElement("script");
@@ -28,10 +28,10 @@ if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
   while adding optional Ministry Spotlight, celebrations, important notice,
   and custom sections.
 */
-if (/\/(?:admin|newsletter)(?:\/|\.html)?$/.test(window.location.pathname)) {
+if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
   window.addEventListener("DOMContentLoaded", () => {
     const script = document.createElement("script");
-    script.src = "newsletter-extensions.js?v=1.0";
+    script.src = "newsletter-extensions.js?v=2.0";
     script.async = false;
     document.body.appendChild(script);
   });

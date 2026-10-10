@@ -2,26 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests" />
   <title>Admin | Ministerio Cristiano Shekinah</title>
+  <script src="/admin-redirect.js?v=1.0" defer></script>
 </head>
-<body>
-  <script>
-    fetch("/admin.html", { cache: "no-cache" })
-      .then((response) => {
-        if (!response.ok) throw new Error("Could not load the admin portal.");
-        return response.text();
-      })
-      .then((html) => {
-        html = html.replace("<head>", '<head>\n  <base href="/">');
-        document.open();
-        document.write(html);
-        document.close();
-      })
-      .catch(() => {
-        document.body.innerHTML = "<p>Unable to load the admin portal. Please try again.</p>";
-      });
-  </script>
-</body>
+<body><p>Opening the admin portal… <a href="/admin.html">Continue to sign in</a>.</p></body>
 </html>
