@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-src 'none'; script-src-attr 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Terms of Use for Ministerio Cristiano Shekinah in Los Angeles." />
@@ -10,16 +10,20 @@
   <script src="/theme.js?v=1.0"></script>
   <link rel="canonical" href="https://mcshekinah.org/terms/" />
   <script src="/clean-urls.js?v=1.2"></script>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ministerio Cristiano Shekinah" />
+  <meta property="og:title" content="Terms of Use | Ministerio Cristiano Shekinah" />
+  <meta property="og:description" content="Terms of Use for Ministerio Cristiano Shekinah in Los Angeles." />
+  <meta property="og:url" content="https://mcshekinah.org/terms/" />
   <title data-i18n="terms_document_title">Terms of Use | Ministerio Cristiano Shekinah</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=8.0" />
-  <link rel="stylesheet" href="/public-glass.css?v=3.0" />
-  <link rel="stylesheet" href="/footer.css?v=1.0" />
-  <link rel="stylesheet" href="/information.css?v=1.0" />
-  <script src="/script.js?v=14.0" defer></script>
-  <noscript><style>.information-content[hidden] { display: block !important; margin-top: 48px; padding-top: 32px; border-top: 1px solid; }</style></noscript>
+  <link rel="stylesheet" href="/style.css?v=9.0" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.0" />
+  <link rel="stylesheet" href="/footer.css?v=2.0" />
+  <link rel="stylesheet" href="/information.css?v=2.0" />
+  <script src="/script.js?v=15.0" defer></script>
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/print.css?v=1.0" media="print" />
 </head>
 <body class="information-page" data-page="terms">
   <div class="ambient-background" aria-hidden="true">
@@ -74,6 +78,10 @@
     </section>
     <div class="information-body">
       <div class="container information-shell">
+        <details class="information-contents" id="informationContentsWrap" hidden>
+          <summary data-i18n="on_this_page">On this page</summary>
+          <nav id="informationContents" aria-label="On this page" data-i18n-aria-label="on_this_page"></nav>
+        </details>
         <div class="information-card">
           <article class="information-content" data-language-content="en" lang="en" aria-label="Terms of Use">
             <section>

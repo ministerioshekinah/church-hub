@@ -19,6 +19,7 @@ const signOutButton = document.getElementById("signOutButton");
 
 let supabaseClient = null;
 let authenticatedAdmin = null;
+let adminSessionVersion = 0;
 let adminAnnouncements = [];
 let selectedAnnouncementIndex = null;
 
@@ -35,15 +36,35 @@ function configIsReady() {
 }
 
 function showLogin() {
+  ++adminSessionVersion;
   authenticatedAdmin = null;
+  window.SHEKINAH_OWNER?.clear();
+  adminAnnouncements = [];
+  adminNewsletters = [];
+  selectedAnnouncementIndex = null;
+  selectedNewsletterId = null;
+  selectedNewsletterIsNew = false;
+  dashboard.querySelectorAll("input, textarea").forEach(field => { field.value = ""; });
+  resetAnnouncementEditor();
+  resetNewsletterEditor();
+  renderAdminAnnouncementList();
+  window.SHEKINAH_NEWSLETTER_EDITOR?.clear();
+  updateServicePreview();
+  updateNewsletterPreview();
+  ["serviceDraftStatus", "announcementDraftStatus", "draftStatus", "announcementIdLabel"].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = "";
+  });
   loginView.classList.remove("hidden");
   dashboard.classList.remove("visible");
 }
 
 async function showDashboard(user) {
+  ++adminSessionVersion;
   authenticatedAdmin = user;
   loginView.classList.add("hidden");
   dashboard.classList.add("visible");
+  window.SHEKINAH_OWNER?.refresh();
 
   await Promise.all([
     loadServiceEditor(),
@@ -82,8 +103,10 @@ async function verifyAdmin(userId) {
 
 async function restoreAuthenticatedAdmin() {
   if (!supabaseClient) return;
+  const generation = adminSessionVersion;
 
   const { data, error } = await supabaseClient.auth.getUser();
+  if (generation !== adminSessionVersion) return;
 
   if (error || !data?.user) {
     showLogin();
@@ -91,6 +114,7 @@ async function restoreAuthenticatedAdmin() {
   }
 
   const allowed = await verifyAdmin(data.user.id);
+  if (generation !== adminSessionVersion) return;
 
   if (!allowed) {
     await supabaseClient.auth.signOut();
@@ -138,6 +162,8 @@ passwordToggle.addEventListener("click", () => {
   const showing = passwordInput.type === "text";
   passwordInput.type = showing ? "password" : "text";
   passwordToggle.textContent = showing ? "Show" : "Hide";
+  passwordToggle.setAttribute("aria-pressed", String(!showing));
+  passwordToggle.setAttribute("aria-label", showing ? "Show password" : "Hide password");
 });
 
 loginForm.addEventListener("submit", async (event) => {
@@ -149,6 +175,7 @@ loginForm.addEventListener("submit", async (event) => {
   }
 
   setLoginBusy(true);
+  const generation = ++adminSessionVersion;
   adminMessage.textContent = "";
 
   try {
@@ -156,6 +183,7 @@ loginForm.addEventListener("submit", async (event) => {
       email: emailInput.value.trim(),
       password: passwordInput.value
     });
+    if (generation !== adminSessionVersion) return;
 
     passwordInput.value = "";
 
@@ -167,6 +195,7 @@ loginForm.addEventListener("submit", async (event) => {
 
     const { data: verified, error: verifyError } =
       await supabaseClient.auth.getUser();
+    if (generation !== adminSessionVersion) return;
 
     if (verifyError || !verified?.user) {
       await supabaseClient.auth.signOut();
@@ -175,6 +204,7 @@ loginForm.addEventListener("submit", async (event) => {
     }
 
     const allowed = await verifyAdmin(verified.user.id);
+    if (generation !== adminSessionVersion) return;
 
     if (!allowed) {
       await supabaseClient.auth.signOut();
@@ -194,30 +224,70 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 signOutButton.addEventListener("click", async () => {
-  if (supabaseClient) await supabaseClient.auth.signOut();
-  showLogin();
-  adminMessage.textContent = "Signed out securely.";
+  setButtonBusy(signOutButton, true, "Signing out…", "Sign Out");
+  const status = document.getElementById("dashboardStatus");
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+    }
+    showLogin();
+    passwordInput.value = "";
+    passwordInput.type = "password";
+    passwordToggle.textContent = "Show";
+    passwordToggle.setAttribute("aria-pressed", "false");
+    passwordToggle.setAttribute("aria-label", "Show password");
+    adminMessage.textContent = "Signed out securely.";
+    if (status) status.textContent = "";
+    emailInput.focus();
+  } catch (error) {
+    console.error("Sign-out failed:", error);
+    if (status) status.textContent = "Sign-out could not be completed. Check your connection and try again.";
+  } finally {
+    setButtonBusy(signOutButton, false, "Signing out…", "Sign Out");
+  }
 });
 
 // ------------------------------------------------------------
 // Admin section tabs
 // ------------------------------------------------------------
-document.querySelectorAll(".admin-content-tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
+function syncAdminTabs() {
+  const nav = document.querySelector(".admin-content-tabs");
+  nav?.setAttribute("role", "tablist");
+  document.querySelectorAll(".admin-content-tab").forEach(tab => {
     const section = tab.dataset.adminSection;
-
-    document.querySelectorAll(".admin-content-tab").forEach((item) => {
-      item.classList.toggle("active", item === tab);
-    });
-
-    document.querySelectorAll(".admin-content-section").forEach((panel) => {
-      panel.classList.toggle(
-        "active",
-        panel.dataset.adminPanel === section
-      );
-    });
+    const panel = document.querySelector(`[data-admin-panel="${section}"]`);
+    if (!panel) return;
+    tab.id ||= `admin-tab-${section}`;
+    panel.id ||= `admin-panel-${section}`;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-controls", panel.id);
+    const active = tab.classList.contains("active") && !tab.hidden;
+    tab.setAttribute("aria-selected", String(active));
+    tab.setAttribute("tabindex", active ? "0" : "-1");
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", tab.id);
   });
+}
+function selectAdminSection(tab) {
+  if (!tab || tab.hidden) return;
+  document.querySelectorAll(".admin-content-tab").forEach(item => item.classList.toggle("active", item === tab));
+  document.querySelectorAll(".admin-content-section").forEach(panel => panel.classList.toggle("active", panel.dataset.adminPanel === tab.dataset.adminSection));
+  syncAdminTabs();
+}
+const adminTabList = document.querySelector(".admin-content-tabs");
+adminTabList?.addEventListener("click", event => selectAdminSection(event.target.closest(".admin-content-tab")));
+adminTabList?.addEventListener("keydown", event => {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  const tabs = Array.from(adminTabList.querySelectorAll(".admin-content-tab")).filter(tab => !tab.hidden);
+  const index = tabs.indexOf(event.target);
+  if (index < 0) return;
+  event.preventDefault();
+  const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[nextIndex].focus();
+  tabs[nextIndex].click();
 });
+syncAdminTabs();
 
 // ------------------------------------------------------------
 // SERVICE — save directly to live service_settings row
@@ -287,11 +357,13 @@ function updateServicePreview() {
 }
 
 async function loadServiceEditor() {
+  const generation = adminSessionVersion;
   const { data, error } = await supabaseClient
     .from("service_settings")
     .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address")
     .eq("id", 1)
     .maybeSingle();
+  if (generation !== adminSessionVersion) return;
 
   if (error) {
     console.error(error);
@@ -324,6 +396,7 @@ document.getElementById("saveServiceButton").addEventListener(
   "click",
   async () => {
     if (!authenticatedAdmin) return;
+    const generation = adminSessionVersion;
 
     const button = document.getElementById("saveServiceButton");
     const status = document.getElementById("serviceDraftStatus");
@@ -349,6 +422,7 @@ document.getElementById("saveServiceButton").addEventListener(
       .eq("id", 1);
 
     setButtonBusy(button, false, "Saving…", "Save Service");
+    if (generation !== adminSessionVersion) return;
 
     if (error) {
       console.error(error);
@@ -367,11 +441,13 @@ document.getElementById("saveServiceButton").addEventListener(
 let announcementFilter = "all";
 
 async function loadAnnouncementEditor() {
+  const generation = adminSessionVersion;
   const { data, error } = await supabaseClient
     .from("announcements")
     .select("id,active,tag_en,tag_es,title_en,title_es,description_en,description_es,sort_order,created_at,updated_at")
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
+  if (generation !== adminSessionVersion) return;
 
   if (error) {
     console.error(error);
@@ -546,6 +622,8 @@ function announcementFormPayload(activeOverride = null) {
 
 async function saveAnnouncement(activeOverride = null) {
   if (!authenticatedAdmin || selectedAnnouncementIndex === null) return null;
+  const generation = adminSessionVersion;
+  const selectedIndex = selectedAnnouncementIndex;
 
   const status = document.getElementById("announcementDraftStatus");
   const payload = announcementFormPayload(activeOverride);
@@ -558,8 +636,9 @@ async function saveAnnouncement(activeOverride = null) {
   const { data, error } = await supabaseClient
     .from("announcements")
     .upsert(payload, { onConflict: "id" })
-    .select("id")
+    .select("id,active")
     .single();
+  if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
@@ -567,9 +646,10 @@ async function saveAnnouncement(activeOverride = null) {
     return null;
   }
 
-  adminAnnouncements[selectedAnnouncementIndex] = { ...payload, ...data };
-  selectAnnouncement(selectedAnnouncementIndex);
-  return data;
+  const saved = { ...payload, ...data };
+  adminAnnouncements[selectedIndex] = saved;
+  selectAnnouncement(selectedIndex);
+  return saved;
 }
 
 document.getElementById("saveAnnouncementButton").addEventListener("click", async () => {
@@ -626,6 +706,7 @@ document
 
 document.getElementById("deleteAnnouncementButton").addEventListener("click", async () => {
   if (!authenticatedAdmin || selectedAnnouncementIndex === null) return;
+  const generation = adminSessionVersion;
 
   const item = adminAnnouncements[selectedAnnouncementIndex];
 
@@ -646,6 +727,7 @@ document.getElementById("deleteAnnouncementButton").addEventListener("click", as
     .from("announcements")
     .delete()
     .eq("id", item.id);
+  if (generation !== adminSessionVersion) return;
 
   if (error) {
     document.getElementById("announcementDraftStatus").textContent =
@@ -673,10 +755,12 @@ let selectedNewsletterIsNew = false;
 let newsletterFilter = "all";
 
 async function loadNewsletterEditor() {
+  const generation = adminSessionVersion;
   const { data, error } = await supabaseClient
     .from("newsletters")
     .select("id,issue_date,status,title_en,title_es,gathering_en,gathering_es,scripture_en,scripture_es,community_en,community_es,optional_sections,published_at,created_at,updated_at")
     .order("issue_date", { ascending: false });
+  if (generation !== adminSessionVersion) return;
 
   if (error) {
     console.error(error);
@@ -943,6 +1027,7 @@ function validateNewsletterForm() {
 
 async function persistNewsletter(targetStatus = null) {
   if (!authenticatedAdmin) return null;
+  const generation = adminSessionVersion;
 
   const data = validateNewsletterForm();
   if (!data) return null;
@@ -988,6 +1073,7 @@ async function persistNewsletter(targetStatus = null) {
     .upsert(payload, { onConflict: "id" })
     .select("id,status")
     .single();
+  if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
@@ -999,6 +1085,7 @@ async function persistNewsletter(targetStatus = null) {
   selectedNewsletterId = saved.id;
   selectedNewsletterIsNew = false;
   await loadNewsletterEditor();
+  if (generation !== adminSessionVersion) return null;
   selectNewsletter(saved.id);
   return saved;
 }
@@ -1081,6 +1168,8 @@ document
   });
 
 document.getElementById("deleteNewsletterButton").addEventListener("click", async () => {
+  if (!authenticatedAdmin) return;
+  const generation = adminSessionVersion;
   if (selectedNewsletterIsNew) {
     resetNewsletterEditor();
     return;
@@ -1099,6 +1188,7 @@ document.getElementById("deleteNewsletterButton").addEventListener("click", asyn
     .from("newsletters")
     .delete()
     .eq("id", selectedNewsletterId);
+  if (generation !== adminSessionVersion) return;
 
   if (error) {
     document.getElementById("draftStatus").textContent =

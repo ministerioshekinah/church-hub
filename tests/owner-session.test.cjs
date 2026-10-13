@@ -1,0 +1,168 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {page, click, read} = require('./helpers.cjs');
+const settle = () => new Promise(resolve => setImmediate(resolve));
+
+async function ownerPage(role = 'owner') {
+  const p = await page('admin/index.html');
+  p.run(`
+    authenticatedAdmin={id:'test-owner'};
+    supabaseClient={
+      auth:{getUser:async()=>({data:{user:{id:'test-owner'}}})},
+      from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{role:${JSON.stringify(role)}}})})})}),
+      functions:{invoke:async()=>({data:{admins:[{id:'test-owner',email:'owner@example.test',role:'owner'}]}})}
+    };
+  `);
+  p.run(read('administrators.js'));
+  await settle();
+  return p;
+}
+
+test('Owner session: verified owner controls use the primary authenticated client', async () => {
+  const p = await ownerPage();
+  assert.equal(p.document.getElementById('administratorsTab').hidden, false);
+  assert(!read('administrators.js').includes('createClient('));
+  click(p, p.document.getElementById('administratorsTab')); await settle();
+  assert.match(p.document.getElementById('administratorList').textContent, /owner@example.test/);
+  assert.equal(p.document.getElementById('administratorsTab').getAttribute('aria-selected'), 'true');
+});
+
+test('Owner session: content admins do not receive owner controls', async () => {
+  const p = await ownerPage('admin');
+  assert.equal(p.document.getElementById('administratorsTab').hidden, true);
+  assert.equal(p.document.getElementById('administratorsPanel').hidden, true);
+});
+
+test('Owner session: signing out clears private list content and selected owner state', async () => {
+  const p = await ownerPage();
+  click(p, p.document.getElementById('administratorsTab')); await settle();
+  p.run('showLogin()');
+  assert.equal(p.document.getElementById('administratorList').textContent, '');
+  assert.equal(p.document.getElementById('administratorsTab').hidden, true);
+  assert.equal(p.document.querySelector('[role="tab"][aria-selected="true"]').dataset.adminSection, 'service');
+});
+
+test('Owner session: delayed role verification cannot restore access after sign-out', async () => {
+  const p = await ownerPage('admin');
+  p.run('let releaseMembership; supabaseClient.from=()=>({select:()=>({eq:()=>({maybeSingle:()=>new Promise(resolve=>{releaseMembership=resolve;})})})}); window.SHEKINAH_OWNER.refresh();');
+  await settle();
+  p.run('showLogin(); releaseMembership({data:{role:"owner"}});');
+  await settle();
+  assert.equal(p.document.getElementById('administratorsTab').hidden, true);
+});
+
+test('Owner session: a late list response cannot expose administrator emails after sign-out', async () => {
+  const p = await ownerPage();
+  p.run('let releaseList; supabaseClient.functions.invoke=()=>new Promise(resolve=>{releaseList=resolve;});');
+  click(p, p.document.getElementById('administratorsTab'));
+  p.run('showLogin(); releaseList({data:{admins:[{id:"test-owner",email:"late@example.test",role:"owner"}]}});');
+  await settle();
+  assert.equal(p.document.getElementById('administratorList').textContent, '');
+  assert.equal(p.document.getElementById('administratorListStatus').textContent, '');
+});
+
+test('Owner session: returning owner can refresh controls after a new sign-in', async () => {
+  const p = await ownerPage();
+  p.run('showLogin(); authenticatedAdmin={id:"test-owner"}; window.SHEKINAH_OWNER.refresh();');
+  await settle();
+  assert.equal(p.document.getElementById('administratorsTab').hidden, false);
+  assert.equal(p.document.getElementById('administratorList').textContent, '');
+});
+
+test('Admin session: signing out clears draft fields, previews, and in-memory content', async () => {
+  const p=await page('admin/index.html');
+  p.run('adminNewsletters=[{id:"private",title_en:"Private title",status:"draft"}]; adminAnnouncements=[{id:"hidden",title_en:"Hidden message",active:false}]; document.getElementById("titleEn").value="Private draft text"; document.getElementById("previewTitle").textContent="Private draft text"; showLogin();');
+  assert.equal(p.document.getElementById('titleEn').value,'');
+  assert(!p.document.getElementById('previewTitle').textContent.includes('Private draft text'));
+  assert.equal(p.run('adminNewsletters.length+adminAnnouncements.length'),0);
+  assert(!p.document.getElementById('adminNewsletterList').textContent.includes('Private title'));
+});
+
+test('Admin session: a late content response cannot refill the editor after sign-out', async () => {
+  const p=await page('admin/index.html');
+  p.run('let releaseContent; supabaseClient={from:()=>({select:()=>({order:()=>new Promise(resolve=>{releaseContent=resolve;})})})}; loadNewsletterEditor(); showLogin(); releaseContent({data:[{id:"private",title_en:"Delayed private draft",status:"draft"}]});');
+  await settle();
+  assert.equal(p.run('adminNewsletters.length'),0);
+  assert(!p.document.getElementById('adminNewsletterList').textContent.includes('Delayed private draft'));
+});
+
+test('Admin session: a delayed session restore cannot reopen a signed-out dashboard', async () => {
+  const p=await page('admin/index.html');
+  p.run('let releaseUser; supabaseClient={auth:{getUser:()=>new Promise(resolve=>{releaseUser=resolve;})}}; restoreAuthenticatedAdmin(); showLogin(); releaseUser({data:{user:{id:"former-owner"}}});');
+  await settle();
+  assert.equal(p.document.getElementById('adminDashboard').classList.contains('visible'),false);
+  assert.equal(p.run('authenticatedAdmin'),null);
+});
+
+test('Admin session: pending announcement save cannot restore private form content after sign-out', async () => {
+  const p=await page('admin/index.html');
+  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'private',active:false,title_en:'Hidden',title_es:'Oculto'}]; selectAnnouncement(0);
+    let releaseSave; supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(resolve=>{releaseSave=resolve;})})})})};
+    let saveResult; saveAnnouncement().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',active:false}});`);
+  await settle();
+  assert.equal(p.run('saveResult'),null);
+  assert.equal(p.run('adminAnnouncements.length'),0);
+  assert.equal(p.document.getElementById('announcementTitleEn').value,'');
+});
+
+test('Admin session: pending newsletter save cannot restore a signed-out editor', async () => {
+  for(const extended of [false,true]) {
+    const p=await page('admin/index.html');
+    if(extended) p.run(read('newsletter-extensions.js'));
+    p.run(`authenticatedAdmin={id:'admin'}; selectedNewsletterId='private';
+      validateNewsletterForm=()=>({issue_date:'2026-10-13',title_en:'Private',title_es:'Privado'});
+      let releaseSave; supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(resolve=>{releaseSave=resolve;})})})})};
+      let saveResult; persistNewsletter().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',status:'draft'}});`);
+    await settle();
+    assert.equal(p.run('saveResult'),null);
+    assert.equal(p.run('selectedNewsletterId'),null);
+    assert.equal(p.run('adminNewsletters.length'),0);
+  }
+});
+
+test('Admin publishing: saving a live announcement retains the correct visible status', async () => {
+  const p=await page('admin/index.html');
+  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'live',active:true,title_en:'Live',title_es:'Publicado'}]; selectAnnouncement(0);
+    supabaseClient={from:()=>({upsert:()=>({select:()=>({single:async()=>({data:{id:'live',active:true}})})})})};`);
+  click(p,p.document.getElementById('saveAnnouncementButton')); await settle();
+  assert.match(p.document.getElementById('announcementDraftStatus').textContent,/Changes are live/);
+});
+
+async function servicePage() {
+  const p=await page('admin/index.html');
+  const button=p.document.getElementById('saveServiceButton');
+  button.replaceWith(button.cloneNode(true));
+  p.run(`authenticatedAdmin={id:'admin'};
+    let serviceWrites=0;
+    supabaseClient={auth:{getUser:async()=>({data:{user:{id:'admin'}}})},from:()=>({update:()=>{++serviceWrites;return {eq:()=>({select:()=>({maybeSingle:async()=>({data:{id:1}})})})};}})};`);
+  p.run(read('admin-service-validation.js'));
+  return p;
+}
+
+test('Admin publishing: service validation rejects an empty or impossible time before writing', async () => {
+  for(const value of ['', '24:00', '12:61']) {
+    const p=await servicePage();
+    p.document.getElementById('serviceTimeInput').value=value;
+    click(p,p.document.getElementById('saveServiceButton')); await settle();
+    assert.equal(p.run('serviceWrites'),0);
+    assert.match(p.document.getElementById('serviceDraftStatus').textContent,/valid service time/);
+    assert.equal(p.document.getElementById('saveServiceButton').disabled,false);
+  }
+});
+
+test('Admin publishing: service succeeds only after the intended row is returned', async () => {
+  const p=await servicePage();
+  p.document.getElementById('serviceTimeInput').value='15:00';
+  click(p,p.document.getElementById('saveServiceButton')); await settle();
+  assert.equal(p.run('serviceWrites'),1);
+  assert.match(p.document.getElementById('serviceDraftStatus').textContent,/Published/);
+});
+
+test('Admin session: service verification cannot publish after sign-out during identity check', async () => {
+  const p=await servicePage();
+  p.run('let releaseServiceUser; supabaseClient.auth.getUser=()=>new Promise(resolve=>{releaseServiceUser=resolve;});');
+  click(p,p.document.getElementById('saveServiceButton'));
+  p.run('showLogin(); releaseServiceUser({data:{user:{id:"admin"}}});'); await settle();
+  assert.equal(p.run('serviceWrites'),0);
+  assert.equal(p.document.getElementById('serviceDraftStatus').textContent,'');
+});

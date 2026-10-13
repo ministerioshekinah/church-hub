@@ -14,13 +14,13 @@
   if (!button || !status) return;
 
   function formatServiceTime(timeValue) {
-    if (!timeValue) return "3:00 PM";
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(timeValue || "")) {
+      throw new Error("Choose a valid service time before publishing.");
+    }
 
     const [hoursString, minutesString] = timeValue.split(":");
     const hours24 = Number(hoursString);
     const minutes = Number(minutesString || "0");
-
-    if (Number.isNaN(hours24) || Number.isNaN(minutes)) return timeValue;
 
     const period = hours24 >= 12 ? "PM" : "AM";
     const hours12 = hours24 % 12 || 12;
@@ -32,6 +32,7 @@
     async (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();
+      const generation = adminSessionVersion;
 
       button.disabled = true;
       button.textContent = "Saving…";
@@ -43,6 +44,7 @@
         }
 
         const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+        if (generation !== adminSessionVersion) return;
         const user = userData?.user;
 
         if (userError || !user || authenticatedAdmin?.id !== user.id) {
@@ -67,6 +69,7 @@
           .eq("id", 1)
           .select("id")
           .maybeSingle();
+        if (generation !== adminSessionVersion) return;
 
         if (error) throw error;
         if (savedService?.id !== 1) {
@@ -76,6 +79,7 @@
         status.textContent =
           "Published. The live website now uses these service settings.";
       } catch (error) {
+        if (generation !== adminSessionVersion) return;
         console.error("Service publish verification failed:", error);
         status.textContent = `Could not publish service changes: ${
           error instanceof Error ? error.message : "unknown error"
