@@ -1,5 +1,9 @@
 /* Shared by public pages and the administrator sign-in page. */
 .footer .footer-row { padding-right: 0; }
+.footer { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+.footer-row > p:first-child { max-width: 42ch; line-height: 1.7; }
+.footer-policy-links a { transition: color 180ms ease; }
+.footer-policy-links a:hover { color: #fff; }
 .footer-bottom {
   display: flex;
   align-items: flex-start;

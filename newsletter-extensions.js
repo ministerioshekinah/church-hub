@@ -2,7 +2,7 @@
   if (!document.querySelector('link[href^="/newsletter-extensions.css"]')) {
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
-  stylesheet.href = "/newsletter-extensions.css?v=1.0";
+  stylesheet.href = "/newsletter-extensions.css?v=2.0";
   document.head.appendChild(stylesheet);
   }
 
@@ -273,6 +273,7 @@
 
     persistNewsletter = async function (targetStatus = null) {
       if (!authenticatedAdmin) return null;
+      const generation = adminSessionVersion;
 
       const data = validateNewsletterForm();
       if (!data) return null;
@@ -325,6 +326,7 @@
         .upsert(payload, { onConflict: "id" })
         .select("id,status")
         .single();
+      if (generation !== adminSessionVersion) return null;
 
       if (error) {
         console.error(error);
@@ -336,10 +338,14 @@
       selectedNewsletterId = saved.id;
       selectedNewsletterIsNew = false;
       await loadNewsletterEditor();
+      if (generation !== adminSessionVersion) return null;
       selectNewsletter(saved.id);
       return saved;
     };
 
+    window.SHEKINAH_NEWSLETTER_EDITOR = {
+      clear() { optionalSections = []; renderEditor(); renderPreview(); }
+    };
     renderEditor();
     renderPreview();
   }
@@ -420,36 +426,6 @@
           )
           .join("")}
       `;
-    };
-
-    loadNewsletters = async function () {
-      const latestContainer = document.getElementById("latestNewsletter");
-      const archiveContainer = document.getElementById("newsletterArchive");
-      if (!latestContainer || !archiveContainer) return;
-
-      try {
-        let issues;
-
-        if (publicConfigReady()) {
-          const rows = await publicSupabaseRequest(
-            "newsletters",
-            "?select=id,issue_date,title_en,title_es,gathering_en,gathering_es,scripture_en,scripture_es,community_en,community_es,optional_sections,published_at&status=eq.published&published_at=not.is.null&order=issue_date.desc&limit=100"
-          );
-          issues = (rows || []).map(databaseNewsletterToDisplayIssue);
-        } else {
-          const response = await fetch("/newsletters.json", { cache: "no-store" });
-          if (!response.ok) throw new Error("Static newsletter fallback failed.");
-          issues = await response.json();
-        }
-
-        cachedNewsletterIssues = issues;
-        renderNewsletterPage(issues);
-      } catch (error) {
-        console.error("Unable to load extended newsletters:", error);
-        latestContainer.innerHTML =
-          `<p>${escapeHtml(translations[currentLanguage].newsletter_error)}</p>`;
-        archiveContainer.innerHTML = "";
-      }
     };
 
     // The page bootstrap performs the one initial request after this extension registers.

@@ -32,7 +32,7 @@
 }
 .information-content[hidden] { display: none; }
 .information-content section + section { margin-top: 32px; padding-top: 30px; border-top: 1px solid var(--glass-edge); }
-.information-content h2 { margin-bottom: 14px; font-family: "Inter", sans-serif; font-size: 1.12rem; line-height: 1.5; font-weight: 600; letter-spacing: -0.02em; }
+.information-content h2 { margin-bottom: 14px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 1.12rem; line-height: 1.5; font-weight: 600; letter-spacing: -0.02em; }
 .information-content p,
 .information-content li,
 .information-content address { font-size: 0.95rem; line-height: 1.85; color: var(--glass-muted); }
@@ -44,6 +44,16 @@
 .information-content address { margin: 20px 0; font-style: normal; }
 .information-content .hero-actions { margin-top: 20px; }
 .information-note { padding: 18px 20px; border-left: 3px solid #7f9869; border-radius: 0 14px 14px 0; background: #e5eddb80; }
+.information-contents { margin: 0 0 18px; border: 1px solid var(--glass-edge); border-radius: 22px; background: #ffffff9c; box-shadow: inset 0 1px 0 #fff; }
+.information-contents summary { min-height: 54px; padding: 16px 22px; cursor: pointer; color: var(--glass-ink); font-size: .9rem; font-weight: 600; }
+.information-contents nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 20px; padding: 0 22px 20px; }
+.information-contents a { display: flex; align-items: center; min-height: 44px; color: var(--glass-muted); font-size: .83rem; text-decoration: none; text-underline-offset: 5px; }
+.information-contents a:hover { text-decoration: underline; }
+.information-content h2[id] { scroll-margin-top: 130px; }
+.information-tabs a { border-radius: 999px; box-shadow: inset 0 1px 0 #ffffffbb; transition: background-color 180ms ease; }
+.information-card { background: linear-gradient(135deg, #fffffff0, #fafbf5eb); }
+[data-theme="dark"] .information-contents { background: #22301ee6; box-shadow: inset 0 1px 0 #ffffff0c; }
+[data-theme="dark"] .information-tabs a { box-shadow: inset 0 1px 0 #ffffff0c; }
 [data-theme="dark"] .information-card { background: #202c1e; }
 [data-theme="dark"] .information-tabs a { background: #ffffff08; }
 [data-theme="dark"] .information-tabs a[aria-current="page"] { background: #374b2e; border-color: #6a805b; }
@@ -52,6 +62,7 @@
   .information-hero { padding-top: 46px; }
   .information-card { border-radius: 22px; }
   .information-body { padding-bottom: 48px; }
+  .information-contents nav { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
   .information-page .site-header,

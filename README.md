@@ -17,14 +17,19 @@ The public site reads current service information, active announcements, and pub
 - Apple Maps and Google Maps directions
 - Public announcements
 - Newsletter archive
+- Searchable bilingual archive, issue sharing, printable newsletters, and content retry controls
 - Bilingual privacy policy, terms of use, and contact/accessibility help
 - Footer information links opposite the Admin button
 - Private admin portal
+- Coordinated light/dark admin workspace with keyboard tabs and sign-out cleanup
 - Announcement create / edit / publish / hide / delete
 - Newsletter draft / edit / publish / unpublish / delete
 - Owner / Admin roles
 - Owner-only administrator management
 - Protected Supabase Edge Function for administrator invitations and role changes
+- Bilingual recovery page, local fonts, favicon, and public sitemap
+
+See [the October 13 refinement and security review](security/REVIEW-2026-10-13.md) for the change map, verification evidence, and remaining security work.
 
 ## Security model
 
