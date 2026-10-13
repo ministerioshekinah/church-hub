@@ -289,6 +289,18 @@ adminTabList?.addEventListener("keydown", event => {
 });
 syncAdminTabs();
 
+function syncEditorLanguageControls() {
+  document.querySelectorAll(".editor-language-tabs").forEach(group => {
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", group.querySelector(".announcement-lang-tab") ? "Announcement content language" : "Newsletter content language");
+    group.querySelectorAll(".editor-tab").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.classList.contains("active")));
+      button.setAttribute("lang", button.dataset.editorLang || button.dataset.announcementLang);
+    });
+  });
+}
+syncEditorLanguageControls();
+
 // ------------------------------------------------------------
 // SERVICE — save directly to live service_settings row
 // ------------------------------------------------------------
@@ -591,6 +603,7 @@ document.querySelectorAll(".announcement-lang-tab").forEach((tab) => {
         panel.dataset.announcementPanel === lang
       );
     });
+    syncEditorLanguageControls();
   });
 });
 
@@ -902,6 +915,7 @@ document.querySelectorAll("[data-editor-lang]").forEach((tab) => {
       );
     });
 
+    syncEditorLanguageControls();
     updateNewsletterPreview();
   });
 });
