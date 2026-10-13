@@ -2,6 +2,8 @@
 
 Status on October 10, 2026: **the live site still lacks these headers**. The configuration in this change has not been deployed to Cloudflare. Committing or merging these files does not change GitHub Pages response headers. Findings F04–F06 in the security recheck remain open until live verification passes.
 
+October 13 maintenance: brought this draft forward to the published Liquid Glass release and expanded asset coverage for the four new stylesheets. The local coverage test checks current page references so future styles/scripts cannot silently be omitted. No Cloudflare/DNS changes were made, and production headers were not rechecked because live website access was declined in this session.
+
 ## Current hosting and required access
 
 The website is served by GitHub Pages, with `CNAME` set to `mcshekinah.org`. GitHub Pages does not expose custom HTTP response-header configuration. An HTML meta tag or a repository `_headers` file cannot supply these missing protections on this host.
@@ -48,7 +50,7 @@ npm run security:headers
 npm run security:headers -- --long-term
 ```
 
-This command performs read-only GET requests, checks all eight page/legacy entry URLs and all fourteen first-party JavaScript/CSS resources, checks a 404 response, and verifies the `www` and HTTP redirects. On HTTPS responses it requires all four configured headers. It also checks MIME types so `nosniff` does not silently break scripts or styles. It exits nonzero when any requested protection is missing or any request fails; it does not treat meta or Report-Only CSP as enforcement.
+This command performs read-only GET requests, checks all eight page/legacy entry URLs and all eighteen first-party JavaScript/CSS resources, checks a 404 response, and verifies the `www` and HTTP redirects. On HTTPS responses it requires all four configured headers. It also checks MIME types so `nosniff` does not silently break scripts or styles. It exits nonzero when any requested protection is missing or any request fails; it does not treat meta or Report-Only CSP as enforcement.
 
 Detailed results are written to the ignored `security/local-results/hosting-headers.json`. The standard local test suite includes negative cases for the verifier. Passing the local unit tests does **not** mean the live headers are active.
 

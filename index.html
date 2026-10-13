@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://nhzxlsjwsvyimozubbho.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self' https://nhzxlsjwsvyimozubbho.supabase.co; img-src 'self' data:; object-src 'none'; frame-src 'none'; script-src-attr 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Ministerio Cristiano Shekinah — worship, community updates, and church newsletter in Los Angeles." />
@@ -10,20 +10,30 @@
   <script src="/theme.js?v=1.0"></script>
   <link rel="canonical" href="https://mcshekinah.org/" />
   <script src="/clean-urls.js?v=1.2"></script>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ministerio Cristiano Shekinah" />
+  <meta property="og:title" content="Ministerio Cristiano Shekinah" />
+  <meta property="og:description" content="Ministerio Cristiano Shekinah — worship, community updates, and church newsletter in Los Angeles." />
+  <meta property="og:url" content="https://mcshekinah.org/" />
   <title>Ministerio Cristiano Shekinah</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://nhzxlsjwsvyimozubbho.supabase.co" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css?v=8.0" />
-  <link rel="stylesheet" href="/public-glass.css?v=2.0" />
-  <script src="/supabase-config.js?v=10.0" defer></script>
-  <script src="/script.js?v=13.0" defer></script>
-  <link rel="stylesheet" href="/footer.css?v=1.0" />
+  <link rel="stylesheet" href="/style.css?v=9.0" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.0" />
+  <script src="/supabase-config.js?v=11.0" defer></script>
+  <script src="/script.js?v=15.0" defer></script>
+  <link rel="stylesheet" href="/footer.css?v=2.0" />
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/print.css?v=1.0" media="print" />
 </head>
 <body data-page="home">
+  <div class="ambient-background" aria-hidden="true">
+    <span class="ambient-orb ambient-orb--sage"></span>
+    <span class="ambient-orb ambient-orb--gold"></span>
+    <span class="ambient-orb ambient-orb--mist"></span>
+  </div>
   <a class="skip-link" href="#main-content" data-i18n="skip_to_content">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
@@ -69,9 +79,10 @@
           </p>
 
           <div class="hero-actions">
-            <a class="button button-primary" href="#services" data-i18n="plan_visit">Plan a Visit</a>
+            <a class="button button-primary" href="#visit" data-i18n="plan_visit">Plan a Visit</a>
             <a class="button button-secondary" href="/newsletter/" data-i18n="read_newsletter">Read Newsletter</a>
           </div>
+          <p class="hero-location"><span aria-hidden="true" class="location-dot"></span><span data-i18n="home_location">A church community in Los Angeles</span></p>
         </div>
 
         <div class="hero-card">
@@ -116,13 +127,14 @@
           </p>
         </div>
 
-        <div class="preview-card">
-          <span class="tag" data-i18n="latest_issue">Latest Issue</span>
-          <h3 data-i18n="this_week_at">This Week at Ministerio Cristiano Shekinah</h3>
+        <div class="preview-card" aria-live="polite">
+          <span class="tag" id="homepageNewsletterBadge" data-i18n="latest_issue">Latest Issue</span>
+          <h3 id="homepageNewsletterTitle">Church Newsletter</h3>
+          <p class="preview-date" id="homepageNewsletterDate"></p>
           <p data-i18n="newsletter_preview_details">
             Sunday service, scripture, announcements, and community updates in one place.
           </p>
-          <a class="text-link" href="/newsletter/" data-i18n="open_newsletter">Open Newsletter →</a>
+          <a class="text-link" id="homepageNewsletterLink" href="/newsletter/" data-i18n="open_newsletter">Open Newsletter →</a>
         </div>
       </div>
     </section>
@@ -132,11 +144,12 @@
         <p class="eyebrow" data-i18n="church_updates">Church updates</p>
         <h2 class="section-title" data-i18n="announcements">Announcements</h2>
 
-        <div class="cards two" id="announcementList">
+        <div class="cards two" id="announcementList" aria-live="polite" aria-busy="true">
           <article class="announcement-card loading-card">
             <p data-i18n="loading_announcements">Loading announcements…</p>
           </article>
         </div>
+        <button class="button button-secondary retry-button" id="announcementsRetry" type="button" data-i18n="retry" hidden>Try again</button>
       </div>
     </section>
 
@@ -180,6 +193,7 @@
           <h3 data-i18n="service_begins">Service begins at</h3>
           <p class="big-time" id="visitServiceTime">3:00 PM</p>
           <p id="specialServiceMessage" data-i18n="welcome_message">We look forward to welcoming you.</p>
+          <button class="button button-secondary retry-button" id="serviceRetry" type="button" data-i18n="retry" hidden>Try again</button>
         </div>
       </div>
     </section>
@@ -194,6 +208,10 @@
       <div class="footer-row">
         <p>© <span id="year">2026</span> Ministerio Cristiano Shekinah</p>
         <p>Los Angeles, California</p>
+        <button class="ambient-motion-toggle" id="backgroundMotion" type="button" role="switch" aria-checked="false" hidden>
+          <span data-i18n="background_motion">Background motion</span>
+          <span class="ambient-switch" aria-hidden="true"></span>
+        </button>
       </div>
       <div class="footer-bottom">
         <nav class="footer-policy-links" aria-label="Website information and help" data-i18n-aria-label="footer_information">

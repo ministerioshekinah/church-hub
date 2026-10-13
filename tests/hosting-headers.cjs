@@ -2,6 +2,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const origin = 'https://mcshekinah.org';
+const assets = ['style.css', 'public-glass.css', 'footer.css', 'information.css', 'newsletter-extensions.css',
+  'admin-glass.css', 'administrators.css', 'no-script.css', 'print.css',
+  'theme.js', 'clean-urls.js', 'script.js', 'supabase-config.js', 'admin.js', 'admin-service-validation.js',
+  'administrators.js', 'newsletter-extensions.js', 'admin-redirect.js'];
 
 function inspectHeaders(headers, minimumHsts = 300) {
   const issues = [];
@@ -31,9 +35,6 @@ function inspectHeaders(headers, minimumHsts = 300) {
 async function main() {
   const minimumHsts = process.argv.includes('--long-term') ? 31536000 : 300;
   const pages = ['/', '/newsletter/', '/admin/', '/privacy/', '/terms/', '/contact/', '/newsletter.html', '/admin.html'];
-  const assets = ['style.css', 'public-glass.css', 'footer.css', 'information.css', 'newsletter-extensions.css',
-    'theme.js', 'clean-urls.js', 'script.js', 'supabase-config.js', 'admin.js', 'admin-service-validation.js',
-    'administrators.js', 'newsletter-extensions.js', 'admin-redirect.js'];
   const targets = [
     ...pages.map(route => ({ url: origin + route, status: 200, mime: /^text\/html$/i })),
     ...assets.map(asset => ({ url: origin + '/' + asset, status: 200,
@@ -82,5 +83,5 @@ async function main() {
   if (report.failed) process.exitCode = 1;
 }
 
-module.exports = { inspectHeaders };
+module.exports = { inspectHeaders, assets };
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });

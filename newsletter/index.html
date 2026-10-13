@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://nhzxlsjwsvyimozubbho.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self' https://nhzxlsjwsvyimozubbho.supabase.co; img-src 'self' data:; object-src 'none'; frame-src 'none'; script-src-attr 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Ministerio Cristiano Shekinah church newsletter and archive." />
@@ -10,19 +10,29 @@
   <script src="/theme.js?v=1.0"></script>
   <link rel="canonical" href="https://mcshekinah.org/newsletter/" />
   <script src="/clean-urls.js?v=1.2"></script>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ministerio Cristiano Shekinah" />
+  <meta property="og:title" content="Newsletter | Ministerio Cristiano Shekinah" />
+  <meta property="og:description" content="Ministerio Cristiano Shekinah church newsletter and archive." />
+  <meta property="og:url" content="https://mcshekinah.org/newsletter/" />
   <title>Newsletter | Ministerio Cristiano Shekinah</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://nhzxlsjwsvyimozubbho.supabase.co" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css?v=8.0" />
-  <link rel="stylesheet" href="/newsletter-extensions.css?v=1.0" />
-  <link rel="stylesheet" href="/public-glass.css?v=2.0" />
-  <link rel="stylesheet" href="/footer.css?v=1.0" />
+  <link rel="stylesheet" href="/style.css?v=9.0" />
+  <link rel="stylesheet" href="/newsletter-extensions.css?v=2.0" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.0" />
+  <link rel="stylesheet" href="/footer.css?v=2.0" />
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/print.css?v=1.0" media="print" />
 </head>
 <body data-page="newsletter">
+  <div class="ambient-background" aria-hidden="true">
+    <span class="ambient-orb ambient-orb--sage"></span>
+    <span class="ambient-orb ambient-orb--gold"></span>
+    <span class="ambient-orb ambient-orb--mist"></span>
+  </div>
   <a class="skip-link" href="#main-content" data-i18n="skip_to_content">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
@@ -69,17 +79,32 @@
     <section class="section newsletter-page-section">
       <div class="container newsletter-page-grid">
         <div>
-          <p class="eyebrow" data-i18n="latest_issue">Latest Issue</p>
-          <article class="full-newsletter" id="latestNewsletter" tabindex="-1">
+          <div class="newsletter-heading-row">
+            <p class="eyebrow" id="newsletterIssueLabel" data-i18n="latest_issue">Latest Issue</p>
+            <div class="newsletter-tools" id="newsletterTools" role="group" aria-label="Newsletter tools" data-i18n-aria-label="newsletter_tools" hidden>
+              <button class="utility-button" id="copyNewsletterLink" type="button" data-i18n="copy_issue_link">Copy issue link</button>
+              <button class="utility-button" id="printNewsletter" type="button" data-i18n="print_issue">Print newsletter</button>
+            </div>
+          </div>
+          <p class="tool-status" id="newsletterToolStatus" role="status" aria-live="polite"></p>
+          <p class="selection-notice" id="newsletterSelectionNotice" role="status" hidden></p>
+          <article class="full-newsletter" id="latestNewsletter" tabindex="-1" aria-busy="true">
             <p data-i18n="loading_newsletter">Loading newsletter…</p>
           </article>
+          <button class="button button-secondary retry-button" id="newsletterRetry" type="button" data-i18n="retry" hidden>Try again</button>
         </div>
 
         <aside>
-          <p class="eyebrow" data-i18n="previous_issues">Previous Issues</p>
+          <p class="eyebrow" data-i18n="browse_issues">Browse issues</p>
+          <div class="archive-search-wrap" id="archiveSearchWrap" hidden>
+            <label for="archiveSearch" data-i18n="search_issues">Search issues</label>
+            <input type="search" id="archiveSearch" maxlength="120" autocomplete="off" />
+          </div>
+          <p class="archive-count" id="archiveCount" role="status" aria-live="polite"></p>
           <div class="archive-list" id="newsletterArchive">
             <p data-i18n="loading_archive">Loading archive…</p>
           </div>
+          <button class="utility-button archive-more" id="showMoreIssues" type="button" aria-controls="newsletterArchive" data-i18n="show_more_issues" hidden>Show more issues</button>
         </aside>
       </div>
     </section>
@@ -94,6 +119,10 @@
       <div class="footer-row">
         <p>© <span id="year">2026</span> Ministerio Cristiano Shekinah</p>
         <p>Los Angeles, California</p>
+        <button class="ambient-motion-toggle" id="backgroundMotion" type="button" role="switch" aria-checked="false" hidden>
+          <span data-i18n="background_motion">Background motion</span>
+          <span class="ambient-switch" aria-hidden="true"></span>
+        </button>
       </div>
       <div class="footer-bottom">
         <nav class="footer-policy-links" aria-label="Website information and help" data-i18n-aria-label="footer_information">
@@ -106,8 +135,8 @@
     </div>
   </footer>
 
-  <script src="/supabase-config.js?v=10.0"></script>
-  <script src="/script.js?v=13.0"></script>
-  <script src="/newsletter-extensions.js?v=3.0"></script>
+  <script src="/supabase-config.js?v=11.0"></script>
+  <script src="/script.js?v=15.0"></script>
+  <script src="/newsletter-extensions.js?v=4.0"></script>
 </body>
 </html>

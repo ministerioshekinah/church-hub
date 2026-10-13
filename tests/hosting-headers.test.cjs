@@ -1,6 +1,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { inspectHeaders } = require('./hosting-headers.cjs');
+const { inspectHeaders, assets } = require('./hosting-headers.cjs');
+const { read } = require('./helpers.cjs');
+const { parseHTML } = require('linkedom');
+
+test('hosting checks cover first-party scripts and styles referenced by current pages', () => {
+  for (const page of ['index.html', 'newsletter/index.html', 'admin/index.html', 'privacy/index.html', 'terms/index.html', 'contact/index.html', '404.html']) {
+    const { document } = parseHTML(read(page));
+    for (const element of document.querySelectorAll('script[src],link[rel="stylesheet"]')) {
+      const url = element.getAttribute('src') || element.getAttribute('href');
+      if (!url.startsWith('/')) continue;
+      assert(assets.includes(url.slice(1).split('?')[0]), `${page}: hosting check omits ${url}`);
+    }
+  }
+});
 
 function protectedHeaders() {
   return new Headers({

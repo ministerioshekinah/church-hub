@@ -1,0 +1,25 @@
+/* Reading copies should use the page, not reproduce the navigation chrome. */
+body { background: white !important; color: #111 !important; }
+.site-header, .ambient-background, .footer, .back-to-top, .skip-link,
+.newsletter-tools, .tool-status, .newsletter-page-grid > aside,
+.retry-button, .information-contents, .information-tabs { display: none !important; }
+.container { width: 100%; max-width: none; }
+.newsletter-hero { padding: 0 0 16px; }
+.newsletter-page-section, .information-hero, .information-body { padding-block: 0; }
+.newsletter-page-grid { display: block; }
+.full-newsletter, .information-card {
+  background: white !important;
+  color: #111 !important;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.full-newsletter :is(p, h2, h3, span), .page-intro, .eyebrow { color: #111 !important; }
+.newsletter-section { border-color: #bbb !important; }
+.newsletter-important-banner { background: #f3f3f3 !important; border-color: #bbb !important; }
+.newsletter-important-banner :is(p, h3, span) { color: #111 !important; }
+h1, h2, h3 { break-after: avoid; }
+p { orphans: 3; widows: 3; }
+.newsletter-section { break-inside: auto; }
+a { text-decoration: none; }
+@page { margin: 18mm; }

@@ -35,6 +35,20 @@ for(const file of ['index.html','newsletter/index.html','admin/index.html','news
  const {parseHTML}=require('linkedom');const {document}=parseHTML(read(file));const csp=document.querySelector('meta[http-equiv="Content-Security-Policy"]').content;const script=csp.match(/script-src ([^;]+)/)[1];assert(!script.includes('unsafe-inline'));assert(!script.includes('unsafe-eval'));assert(csp.includes("object-src 'none'"));assert(csp.includes("base-uri 'none'"));assert(csp.includes('upgrade-insecure-requests'));for(const el of document.querySelectorAll('script')){assert(el.hasAttribute('src'));assert.equal(el.textContent.trim(),'');}
 });
 test('Supply chain: pinned browser SDK requires verified SRI',()=>{const {parseHTML}=require('linkedom');const {document}=parseHTML(read('admin/index.html'));const el=document.querySelector('script[src*="cdn.jsdelivr.net"]');assert(el.src.includes('@2.112.2/'));assert.equal(el.getAttribute('integrity'),'sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd');assert.equal(el.getAttribute('crossorigin'),'anonymous');});
+test('Supply chain: runtime audit covers the exact browser and Edge Function package pins',()=>{
+ const manifest=JSON.parse(read('security/runtime-dependencies/package.json'));
+ const lock=JSON.parse(read('security/runtime-dependencies/package-lock.json'));
+ const versions=manifest.dependencies;
+ assert.equal(manifest.private,true);
+ assert.deepEqual(lock.packages[''].dependencies,versions);
+ for(const [name,version] of Object.entries(versions)){
+  assert.match(version,/^\d+\.\d+\.\d+$/);
+  assert.equal(lock.packages['node_modules/'+name].version,version);
+ }
+ assert(read('admin/index.html').includes('@supabase/supabase-js@'+versions['@supabase/supabase-js']+'/'));
+ assert(read('supabase/functions/admin-users/index.ts').includes('npm:@supabase/server@'+versions['@supabase/server']+'"'));
+ assert(read('.github/workflows/frontend-checks.yml').includes('npm audit --prefix security/runtime-dependencies --audit-level=high'));
+});
 test('Redirect: invitation parameters cannot change the origin',()=>{const vm=require('node:vm');let target;vm.runInNewContext(read('admin-redirect.js'),{window:{location:{search:'?next=https://evil.example',hash:'#access_token=test',replace:v=>target=v}}});assert.equal(new URL(target,'https://mcshekinah.org').origin,'https://mcshekinah.org');assert(target.startsWith('/admin/index.html?'));assert(target.endsWith('#access_token=test'));});
 test('Privacy: admin requests never select author UUIDs or wildcard columns',()=>{for(const file of ['admin.js','newsletter-extensions.js','admin-service-validation.js']){const source=read(file);assert(!/\.select\(\s*["']\*["']/.test(source));assert(!/\b(?:created_by|updated_by|updated_at)\s*:/.test(source));}});
 test('Availability security: backend failure never resurrects static hidden announcements',async()=>{const p=await page('index.html',{unavailable:true});assert(p.reports.requests.length>0);assert(p.reports.requests.every(url=>url.startsWith('https://nhzxlsjwsvyimozubbho.supabase.co/rest/v1/')));assert(p.document.getElementById('announcementList').textContent.includes('could not load'));});

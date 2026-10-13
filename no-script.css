@@ -1,0 +1,23 @@
+/* Keep both full policy translations readable when JavaScript is unavailable. */
+.information-content[hidden] {
+  display: block !important;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid;
+}
+.language-toggle, .theme-toggle, .menu-button { display: none !important; }
+@media (max-width: 1100px) {
+  .site-header .nav {
+    position: static;
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding: 8px;
+    box-shadow: none;
+  }
+}

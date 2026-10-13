@@ -12,18 +12,24 @@ The public site reads current service information, active announcements, and pub
 
 - English / Spanish public website with reduced-motion-aware language transitions
 - Light / dark appearance, saved per browser, with a system-theme default
+- Slow lava-lamp background in matching light/dark colors, with a saved footer motion switch
 - Live service day and time
 - Apple Maps and Google Maps directions
 - Public announcements
 - Newsletter archive
+- Searchable bilingual archive, issue sharing, printable newsletters, and content retry controls
 - Bilingual privacy policy, terms of use, and contact/accessibility help
 - Footer information links opposite the Admin button
 - Private admin portal
+- Coordinated light/dark admin workspace with keyboard tabs and sign-out cleanup
 - Announcement create / edit / publish / hide / delete
 - Newsletter draft / edit / publish / unpublish / delete
 - Owner / Admin roles
 - Owner-only administrator management
 - Protected Supabase Edge Function for administrator invitations and role changes
+- Bilingual recovery page, local fonts, favicon, and public sitemap
+
+See [the October 13 refinement and security review](security/REVIEW-2026-10-13.md) for the change map, verification evidence, and remaining security work.
 
 ## Security model
 
@@ -136,7 +142,7 @@ Old `/newsletter.html` and `/admin.html` bookmarks forward to the clean routes w
 
 ## Verification and staged updates
 
-Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main.
+Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main, and audits both the development dependencies and the pinned browser/Edge Function packages in `security/runtime-dependencies/`.
 
 `npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
 
@@ -144,9 +150,9 @@ For an existing production project, apply the audit-trigger migration first, dep
 
 The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
 
-See [the latest 120-test security recheck](security/RECHECK-2026-10-10.md) for current results and remaining account/hosting work, and [the earlier audit record](security/AUDIT-2026-10-10.md) for the hardening changes. `npm run security:test` runs the security-only local suite.
+See [the October 13 review](security/REVIEW-2026-10-13.md) for current results and remaining account/hosting work. The [October 10 security recheck](security/RECHECK-2026-10-10.md) and [earlier audit record](security/AUDIT-2026-10-10.md) retain the historical checks. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
 
-The [hosting-header configuration and activation steps](security/HOSTING-HEADERS.md) are prepared for a Cloudflare proxy in front of GitHub Pages. They are **not active** merely because these files exist. `npm run security:headers` verifies actual delivery and intentionally fails until the hosting configuration is deployed. The header findings remain open pending account/DNS access and live verification.
+The [hosting-header configuration and activation steps](security/HOSTING-HEADERS.md) are prepared for a Cloudflare proxy in front of GitHub Pages. They are **not active** merely because these files exist. `npm run security:headers` verifies actual delivery and intentionally fails until the hosting configuration is deployed. The header findings remain open pending account/DNS access and permitted live verification.
 
 ## Church information
 
@@ -173,3 +179,9 @@ The privacy policy describes the current website only: hosting and font requests
 Contact and accessibility help currently directs visitors to church leadership in person at the existing published address. No public email, telephone, mailing address, or response deadline has been inferred from Git metadata or private administrator accounts. Add an approved public remote contact method when the church supplies one.
 
 All three information pages work without the content backend and render English text without JavaScript. With JavaScript disabled, Spanish policy text is also available. Language and appearance controls use the same stored preferences and reduced-motion behavior as the rest of the public site.
+
+## Background motion
+
+The five public pages share a decorative background in `public-glass.css`. Three bounded gradient shapes move using CSS transforms; small screens display two. The layer cannot receive pointer or keyboard input and is hidden from assistive technology. There is no video, canvas, animation dependency, animated blur, or JavaScript render loop.
+
+The bilingual **Background motion** switch in the footer saves a local preference. Motion pauses when the document is hidden or enters the back-forward cache, and resumes only when the visitor's preference permits it. Reduced-motion, reduced-transparency, and forced-color settings override the animation. Without JavaScript the background stays still; print hides it. Privacy and accessibility copy describes the control and preference storage in both languages.

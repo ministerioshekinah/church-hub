@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-src 'none'; script-src-attr 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Contact &amp; Accessibility for Ministerio Cristiano Shekinah in Los Angeles." />
@@ -10,18 +10,27 @@
   <script src="/theme.js?v=1.0"></script>
   <link rel="canonical" href="https://mcshekinah.org/contact/" />
   <script src="/clean-urls.js?v=1.2"></script>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ministerio Cristiano Shekinah" />
+  <meta property="og:title" content="Contact &amp; Accessibility | Ministerio Cristiano Shekinah" />
+  <meta property="og:description" content="Contact &amp; Accessibility for Ministerio Cristiano Shekinah in Los Angeles." />
+  <meta property="og:url" content="https://mcshekinah.org/contact/" />
   <title data-i18n="contact_document_title">Contact &amp; Accessibility | Ministerio Cristiano Shekinah</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=8.0" />
-  <link rel="stylesheet" href="/public-glass.css?v=2.0" />
-  <link rel="stylesheet" href="/footer.css?v=1.0" />
-  <link rel="stylesheet" href="/information.css?v=1.0" />
-  <script src="/script.js?v=13.0" defer></script>
-  <noscript><style>.information-content[hidden] { display: block !important; margin-top: 48px; padding-top: 32px; border-top: 1px solid; }</style></noscript>
+  <link rel="stylesheet" href="/style.css?v=9.0" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.0" />
+  <link rel="stylesheet" href="/footer.css?v=2.0" />
+  <link rel="stylesheet" href="/information.css?v=2.0" />
+  <script src="/script.js?v=15.0" defer></script>
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/print.css?v=1.0" media="print" />
 </head>
 <body class="information-page" data-page="contact">
+  <div class="ambient-background" aria-hidden="true">
+    <span class="ambient-orb ambient-orb--sage"></span>
+    <span class="ambient-orb ambient-orb--gold"></span>
+    <span class="ambient-orb ambient-orb--mist"></span>
+  </div>
   <a class="skip-link" href="#main-content" data-i18n="skip_to_content">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
@@ -69,6 +78,10 @@
     </section>
     <div class="information-body">
       <div class="container information-shell">
+        <details class="information-contents" id="informationContentsWrap" hidden>
+          <summary data-i18n="on_this_page">On this page</summary>
+          <nav id="informationContents" aria-label="On this page" data-i18n-aria-label="on_this_page"></nav>
+        </details>
         <div class="information-card">
           <article class="information-content" data-language-content="en" lang="en" aria-label="Contact &amp; Accessibility">
             <section>
@@ -83,7 +96,7 @@
 </section>
 <section>
   <h2>Help accessing the website</h2>
-  <p>We want church information to be easy to access. The website includes English and Spanish text, light and dark appearance choices, keyboard navigation, a skip-to-content link, and animations that respect your device’s reduced-motion preference. You can also use your browser’s zoom controls to enlarge text.</p>
+  <p>We want church information to be easy to access. The website includes English and Spanish text, light and dark appearance choices, keyboard navigation, a skip-to-content link, and animations that respect your device’s reduced-motion preference. You can pause the background animation with the Background motion switch in the footer. You can also use your browser’s zoom controls to enlarge text.</p>
   <p>Accessibility is an ongoing effort, and some content or external services may still present barriers. If a page is difficult to use or you need information in another format, please tell a church leader so we can discuss how to help.</p>
   <ul>
     <li>Share the page address and what you were trying to do.</li>
@@ -111,7 +124,7 @@
 </section>
 <section>
   <h2>Ayuda para acceder al sitio</h2>
-  <p>Queremos que la información de la iglesia sea fácil de consultar. El sitio incluye texto en inglés y español, modos claro y oscuro, navegación con teclado, un enlace para saltar al contenido y animaciones que respetan la preferencia de movimiento reducido de tu dispositivo. También puedes ampliar el texto con los controles de zoom del navegador.</p>
+  <p>Queremos que la información de la iglesia sea fácil de consultar. El sitio incluye texto en inglés y español, modos claro y oscuro, navegación con teclado, un enlace para saltar al contenido y animaciones que respetan la preferencia de movimiento reducido de tu dispositivo. Puedes pausar la animación del fondo con el interruptor Movimiento del fondo en el pie de página. También puedes ampliar el texto con los controles de zoom del navegador.</p>
   <p>La accesibilidad es un esfuerzo continuo, y algunos contenidos o servicios externos aún pueden presentar barreras. Si una página es difícil de usar o necesitas información en otro formato, cuéntaselo a un líder de la iglesia para que podamos hablar sobre cómo ayudarte.</p>
   <ul>
     <li>Comparte la dirección de la página y lo que intentabas hacer.</li>
@@ -138,6 +151,10 @@
       <div class="footer-row">
         <p>© <span id="year">2026</span> Ministerio Cristiano Shekinah</p>
         <p>Los Angeles, California</p>
+        <button class="ambient-motion-toggle" id="backgroundMotion" type="button" role="switch" aria-checked="false" hidden>
+          <span data-i18n="background_motion">Background motion</span>
+          <span class="ambient-switch" aria-hidden="true"></span>
+        </button>
       </div>
       <div class="footer-bottom">
         <nav class="footer-policy-links" aria-label="Website information and help" data-i18n-aria-label="footer_information">

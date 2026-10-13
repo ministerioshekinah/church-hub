@@ -4,38 +4,7 @@
   let ownerClient = null;
   let currentUser = null;
   let adminRows = [];
-
-  function injectStyles() {
-    if (document.getElementById("administratorManagementStyles")) return;
-
-    const style = document.createElement("style");
-    style.id = "administratorManagementStyles";
-    style.textContent = `
-      .owner-only-tab[hidden], .owner-only-panel[hidden] { display: none !important; }
-      .administrator-layout { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(0, 1.28fr); gap: 24px; align-items: start; }
-      .administrator-card { background: #fffdf8; border: 1px solid rgba(31,41,51,.08); border-radius: 24px; padding: 24px; }
-      .administrator-card h3 { margin: 0 0 8px; font-family: "Playfair Display", serif; font-size: 1.55rem; }
-      .administrator-card p { color: #59636d; }
-      .administrator-form { display: grid; gap: 14px; margin-top: 18px; }
-      .administrator-form label { display: grid; gap: 7px; font-size: .86rem; font-weight: 700; color: #43505c; }
-      .administrator-form input { width: 100%; border: 1px solid #cbd2d9; border-radius: 12px; padding: 12px 13px; background: white; font: inherit; }
-      .administrator-list { display: grid; gap: 12px; margin-top: 18px; }
-      .administrator-item { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 17px 18px; border: 1px solid rgba(31,41,51,.09); border-radius: 18px; background: #fffdf8; }
-      .administrator-identity { min-width: 0; }
-      .administrator-identity strong { display: block; overflow-wrap: anywhere; }
-      .administrator-meta { margin-top: 4px; color: #7b8490; font-size: .8rem; }
-      .administrator-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-      .administrator-actions select { border: 1px solid #cbd2d9; border-radius: 999px; padding: 8px 30px 8px 12px; background: white; font: inherit; font-weight: 700; }
-      .administrator-actions select:disabled { opacity: .65; cursor: not-allowed; }
-      .administrator-role { display: inline-flex; width: fit-content; margin-top: 7px; border-radius: 999px; padding: 5px 9px; background: #ecefe2; color: #43512f; font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-      .administrator-role.owner { background: #e5edc3; color: #304017; }
-      .administrator-status { min-height: 22px; margin-top: 13px; color: #6b705c; font-size: .84rem; font-weight: 700; }
-      .administrator-empty { padding: 22px; border: 1px dashed rgba(31,41,51,.16); border-radius: 18px; color: #78828c; text-align: center; }
-      .administrator-warning { padding: 14px 16px; border-radius: 14px; background: #f5efe5; color: #725f42; font-size: .85rem; }
-      @media (max-width: 800px) { .administrator-layout { grid-template-columns: 1fr; } .administrator-item { align-items: flex-start; flex-direction: column; } .administrator-actions { width: 100%; justify-content: flex-start; } }
-    `;
-    document.head.appendChild(style);
-  }
+  let ownerGeneration = 0;
 
   function injectInterface() {
     const nav = document.querySelector(".admin-content-tabs");
@@ -96,21 +65,15 @@
     if (backendNote) dashboard.insertBefore(panel, backendNote);
     else dashboard.appendChild(panel);
 
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".admin-content-tab").forEach((item) => {
-        item.classList.toggle("active", item === tab);
-      });
-      document.querySelectorAll(".admin-content-section").forEach((item) => {
-        item.classList.toggle("active", item === panel);
-      });
-      loadAdministrators();
-    });
+    tab.addEventListener("click", loadAdministrators);
+    if (typeof syncAdminTabs === "function") syncAdminTabs();
 
     document.getElementById("refreshAdministratorsButton").addEventListener("click", loadAdministrators);
     document.getElementById("inviteAdministratorForm").addEventListener("submit", inviteAdministrator);
   }
 
   async function invokeAdminFunction(body) {
+    if (!ownerClient || !currentUser || authenticatedAdmin?.id !== currentUser.id) throw new Error("Please verify your Owner session again.");
     const { data, error } = await ownerClient.functions.invoke(FUNCTION_NAME, { body });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
@@ -121,14 +84,21 @@
     const list = document.getElementById("administratorList");
     const status = document.getElementById("administratorListStatus");
     if (!list || !status) return;
+    if (!ownerClient || !currentUser || authenticatedAdmin?.id !== currentUser.id) {
+      clearOwnerInterface();
+      return;
+    }
+    const generation = ownerGeneration;
 
     status.textContent = "Loading administrators…";
     try {
       const data = await invokeAdminFunction({ action: "list" });
+      if (generation !== ownerGeneration) return;
       adminRows = data?.admins || [];
       status.textContent = `${adminRows.length} ${adminRows.length === 1 ? "administrator" : "administrators"}`;
       renderAdministrators();
     } catch (error) {
+      if (generation !== ownerGeneration) return;
       console.error("Administrator list failed:", error);
       list.innerHTML = "";
       status.textContent = "Administrator management is not available yet. Deploy the admin-users Edge Function after applying the role migration.";
@@ -179,12 +149,15 @@
         ? "Your own Owner role cannot be changed from this page."
         : "Change administrator role";
       select.addEventListener("change", async () => {
+        const generation = ownerGeneration;
         const previousRole = admin.role;
         select.disabled = true;
         try {
           await invokeAdminFunction({ action: "set-role", userId: admin.id, role: select.value });
+          if (generation !== ownerGeneration) return;
           await loadAdministrators();
         } catch (error) {
+          if (generation !== ownerGeneration) return;
           console.error(error);
           select.value = previousRole;
           window.alert(error.message || "Could not change this administrator's role.");
@@ -200,12 +173,15 @@
       remove.disabled = isCurrentUser;
       remove.title = isCurrentUser ? "You cannot remove your own Owner access here." : "Remove administrator access";
       remove.addEventListener("click", async () => {
+        const generation = ownerGeneration;
         if (!window.confirm(`Remove administrator access for ${admin.email || "this account"}?`)) return;
         remove.disabled = true;
         try {
           await invokeAdminFunction({ action: "remove", userId: admin.id });
+          if (generation !== ownerGeneration) return;
           await loadAdministrators();
         } catch (error) {
+          if (generation !== ownerGeneration) return;
           console.error(error);
           window.alert(error.message || "Could not remove this administrator.");
           remove.disabled = false;
@@ -220,6 +196,7 @@
 
   async function inviteAdministrator(event) {
     event.preventDefault();
+    const generation = ownerGeneration;
     const emailInput = document.getElementById("newAdministratorEmail");
     const status = document.getElementById("administratorInviteStatus");
     const button = event.currentTarget.querySelector('button[type="submit"]');
@@ -232,6 +209,7 @@
 
     try {
       const result = await invokeAdminFunction({ action: "invite", email });
+      if (generation !== ownerGeneration) return;
       emailInput.value = "";
       if (result?.alreadyAuthorized) {
         status.textContent = `That account already has ${result.role === "owner" ? "Owner" : "Admin"} access.`;
@@ -242,6 +220,7 @@
       }
       await loadAdministrators();
     } catch (error) {
+      if (generation !== ownerGeneration) return;
       console.error(error);
       status.textContent = error.message || "Could not add this administrator.";
     } finally {
@@ -250,36 +229,57 @@
     }
   }
 
-  async function initializeOwnerManagement() {
-    injectStyles();
-    injectInterface();
-
-    if (!window.supabase || !window.SHEKINAH_SUPABASE) return;
-    ownerClient = window.supabase.createClient(
-      window.SHEKINAH_SUPABASE.url,
-      window.SHEKINAH_SUPABASE.publishableKey,
-      { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
-    );
-
-    const { data: userData } = await ownerClient.auth.getUser();
-    currentUser = userData?.user || null;
-    if (!currentUser) return;
-
-    const { data: membership, error } = await ownerClient
-      .from("admin_users")
-      .select("user_id, role")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
-
-    if (error) {
-      console.info("Owner role is not configured yet.");
-      return;
+  function clearOwnerInterface() {
+    ++ownerGeneration;
+    currentUser = null;
+    ownerClient = null;
+    adminRows = [];
+    const tab = document.getElementById("administratorsTab");
+    const panel = document.getElementById("administratorsPanel");
+    if (tab) tab.hidden = true;
+    if (panel) panel.hidden = true;
+    document.getElementById("administratorList")?.replaceChildren();
+    ["administratorListStatus", "administratorInviteStatus"].forEach(id => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = "";
+    });
+    const email = document.getElementById("newAdministratorEmail");
+    if (email) email.value = "";
+    if (tab?.classList.contains("active") && typeof selectAdminSection === "function") {
+      selectAdminSection(document.querySelector('[data-admin-section="service"]'));
     }
+    if (typeof syncAdminTabs === "function") syncAdminTabs();
+  }
 
-    if (membership?.role !== "owner") return;
+  async function refreshOwnerAccess() {
+    clearOwnerInterface();
+    const generation = ownerGeneration;
+    if (typeof supabaseClient === "undefined" || !supabaseClient || !authenticatedAdmin) return;
+    ownerClient = supabaseClient;
+    try {
+      const { data, error: userError } = await ownerClient.auth.getUser();
+      if (generation !== ownerGeneration || userError || !data?.user || authenticatedAdmin?.id !== data.user.id) return;
+      const verifiedUser = data.user;
+      const { data: membership, error } = await ownerClient
+        .from("admin_users")
+        .select("user_id, role")
+        .eq("user_id", verifiedUser.id)
+        .maybeSingle();
+      if (generation !== ownerGeneration || error || membership?.role !== "owner" || authenticatedAdmin?.id !== verifiedUser.id) return;
+      currentUser = verifiedUser;
+      document.getElementById("administratorsTab").hidden = false;
+      document.getElementById("administratorsPanel").hidden = false;
+      if (typeof syncAdminTabs === "function") syncAdminTabs();
+    } catch (error) {
+      // The owner interface stays hidden if verification is unavailable.
+      console.error("Owner verification failed:", error);
+    }
+  }
 
-    document.getElementById("administratorsTab").hidden = false;
-    document.getElementById("administratorsPanel").hidden = false;
+  function initializeOwnerManagement() {
+    injectInterface();
+    window.SHEKINAH_OWNER = { clear: clearOwnerInterface, refresh: refreshOwnerAccess };
+    refreshOwnerAccess();
   }
 
   if (document.readyState === "loading") {
