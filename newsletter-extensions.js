@@ -2,7 +2,7 @@
   if (!document.querySelector('link[href^="/newsletter-extensions.css"]')) {
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
-  stylesheet.href = "/newsletter-extensions.css?v=2.0";
+  stylesheet.href = "/newsletter-extensions.css?v=2.1";
   document.head.appendChild(stylesheet);
   }
 

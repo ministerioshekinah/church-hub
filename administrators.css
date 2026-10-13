@@ -2,7 +2,7 @@
 .owner-only-tab[hidden], .owner-only-panel[hidden] { display: none !important; }
       .administrator-layout { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(0, 1.28fr); gap: 24px; align-items: start; }
       .administrator-card { background: #fffdf8; border: 1px solid rgba(31,41,51,.08); border-radius: 24px; padding: 24px; }
-      .administrator-card h3 { margin: 0 0 8px; font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-size: 1.55rem; }
+      .administrator-card h3 { margin: 0 0 8px; font-family: "Playfair Display", serif; font-size: 1.55rem; }
       .administrator-card p { color: #59636d; }
       .administrator-form { display: grid; gap: 14px; margin-top: 18px; }
       .administrator-form label { display: grid; gap: 7px; font-size: .86rem; font-weight: 700; color: #43505c; }
