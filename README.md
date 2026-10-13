@@ -142,7 +142,7 @@ Old `/newsletter.html` and `/admin.html` bookmarks forward to the clean routes w
 
 ## Verification and staged updates
 
-Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main.
+Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main, and audits both the development dependencies and the pinned browser/Edge Function packages in `security/runtime-dependencies/`.
 
 `npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
 
@@ -150,7 +150,7 @@ For an existing production project, apply the audit-trigger migration first, dep
 
 The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
 
-See [the latest 120-test security recheck](security/RECHECK-2026-10-10.md) for current results and remaining account/hosting work, and [the earlier audit record](security/AUDIT-2026-10-10.md) for the hardening changes. `npm run security:test` runs the security-only local suite.
+See [the October 13 review](security/REVIEW-2026-10-13.md) for current results and remaining account/hosting work. The [October 10 security recheck](security/RECHECK-2026-10-10.md) and [earlier audit record](security/AUDIT-2026-10-10.md) retain the historical checks. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
 
 ## Church information
 

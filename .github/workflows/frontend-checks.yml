@@ -27,3 +27,5 @@ jobs:
           for file in *.js; do node --check "$file"; done
       - run: npm test
       - run: npm audit --audit-level=high
+      - name: Audit pinned browser and Edge Function dependencies
+        run: npm audit --prefix security/runtime-dependencies --audit-level=high
