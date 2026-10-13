@@ -115,5 +115,5 @@
 }
 @media (forced-colors: active) {
   .admin-body :is(.button, .admin-card, .admin-topbar, .admin-content-tabs, .management-list-item) { border: 1px solid ButtonText; }
-  .admin-content-tab.active { outline: 2px solid Highlight; }
+  .admin-content-tab.active, .admin-body .editor-tab.active { outline: 2px solid Highlight; }
 }

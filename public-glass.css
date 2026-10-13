@@ -480,7 +480,7 @@ body, .site-header, .section-alt, .hero-card, .preview-card, .service-feature, .
   background: #121912;
 }
 [data-theme="dark"] ::selection { background: #4c663d; color: #fff; }
-[data-theme="dark"] :where(a, button, [tabindex]):focus-visible { outline-color: #b2cf98; }
+[data-theme="dark"] :where(a, button, summary, [tabindex]):focus-visible { outline-color: #b2cf98; }
 [data-theme="dark"] .site-header { background: #1c281dea; box-shadow: 0 8px 30px #0003, inset 0 1px 0 #ffffff0d; }
 [data-theme="dark"] .brand-mark { background: linear-gradient(145deg, #405136, #283b23); border-color: #596a4d; box-shadow: inset 0 1px 0 #ffffff17; }
 [data-theme="dark"] .nav a, [data-theme="dark"] .lang-button, [data-theme="dark"] .menu-button { color: #dce6d4; }
