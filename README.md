@@ -27,7 +27,7 @@ The public site reads current service information, active announcements, and pub
 - Owner / Admin roles
 - Owner-only administrator management
 - Protected Supabase Edge Function for administrator invitations and role changes
-- Bilingual recovery page, local fonts, favicon, and public sitemap
+- Bilingual recovery page, Inter and Playfair Display typography, favicon, and public sitemap
 
 See [the October 13 refinement and security review](security/REVIEW-2026-10-13.md) for the change map, verification evidence, and remaining security work.
 

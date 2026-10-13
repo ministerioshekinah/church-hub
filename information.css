@@ -32,7 +32,7 @@
 }
 .information-content[hidden] { display: none; }
 .information-content section + section { margin-top: 32px; padding-top: 30px; border-top: 1px solid var(--glass-edge); }
-.information-content h2 { margin-bottom: 14px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 1.12rem; line-height: 1.5; font-weight: 600; letter-spacing: -0.02em; }
+.information-content h2 { margin-bottom: 14px; font-family: "Inter", sans-serif; font-size: 1.12rem; line-height: 1.5; font-weight: 600; letter-spacing: -0.02em; }
 .information-content p,
 .information-content li,
 .information-content address { font-size: 0.95rem; line-height: 1.85; color: var(--glass-muted); }
