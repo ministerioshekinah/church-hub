@@ -261,3 +261,29 @@ test('Public loading: malformed API response fails closed with a recovery contro
   assert.match(p.document.getElementById('latestNewsletter').textContent,/could not load/);
   assert.equal(p.document.getElementById('newsletterRetry').hidden,false);
 });
+
+test('Archive: revealing the final items moves keyboard focus into the new content', async () => {
+  const many=Array.from({length:8},(_,i)=>({...issues[0],id:'issue-'+i}));
+  const p=await page('newsletter/index.html',{issues:many});
+  p.run('Element.prototype.focus=function(options){window.archiveFocus=this;window.archiveFocusOptions=options;}');
+  click(p,p.document.getElementById('showMoreIssues'));
+  assert.equal(p.document.getElementById('showMoreIssues').hidden,true);
+  assert.equal(p.browser.archiveFocus,p.document.querySelectorAll('.archive-item')[6]);
+  assert.equal(p.browser.archiveFocusOptions.preventScroll,true);
+  assert.equal(p.reports.scrolls.length,0);
+});
+
+test('Admin: content language buttons announce their selected state independently', async () => {
+  const p=await page('admin/index.html');
+  const announcementSpanish=p.document.querySelector('[data-announcement-lang="es"]');
+  const newsletterSpanish=p.document.querySelector('[data-editor-lang="es"]');
+  click(p,announcementSpanish);
+  assert.equal(announcementSpanish.getAttribute('aria-pressed'),'true');
+  assert.equal(newsletterSpanish.getAttribute('aria-pressed'),'false');
+  click(p,newsletterSpanish);
+  assert.equal(newsletterSpanish.getAttribute('aria-pressed'),'true');
+  for(const group of p.document.querySelectorAll('.editor-language-tabs')) {
+    assert.equal(group.getAttribute('role'),'group');
+    assert.equal(group.querySelectorAll('[aria-pressed="true"]').length,1);
+  }
+});

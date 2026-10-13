@@ -927,8 +927,11 @@ function initializePublicInteractions() {
     if (cachedNewsletterIssues) renderNewsletterArchive(cachedNewsletterIssues, document.getElementById("latestNewsletter")?.dataset.issueId);
   });
   document.getElementById("showMoreIssues")?.addEventListener("click", () => {
+    const firstNewIndex = document.querySelectorAll("#newsletterArchive .archive-item").length;
     archiveVisibleLimit += 6;
     if (cachedNewsletterIssues) renderNewsletterArchive(cachedNewsletterIssues, document.getElementById("latestNewsletter")?.dataset.issueId);
+    // Keep keyboard focus in the newly revealed content, even when the button hides.
+    document.querySelectorAll("#newsletterArchive .archive-item")[firstNewIndex]?.focus({ preventScroll: true });
   });
   document.getElementById("printNewsletter")?.addEventListener("click", () => window.print());
   document.getElementById("copyNewsletterLink")?.addEventListener("click", async () => {
