@@ -152,6 +152,8 @@ The Edge Function uses `@supabase/server` with `auth: "user"` to verify session 
 
 See [the October 13 review](security/REVIEW-2026-10-13.md) for current results and remaining account/hosting work. The [October 10 security recheck](security/RECHECK-2026-10-10.md) and [earlier audit record](security/AUDIT-2026-10-10.md) retain the historical checks. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
 
+The [hosting-header configuration and activation steps](security/HOSTING-HEADERS.md) are prepared for a Cloudflare proxy in front of GitHub Pages. They are **not active** merely because these files exist. `npm run security:headers` verifies actual delivery and intentionally fails until the hosting configuration is deployed. The header findings remain open pending account/DNS access and permitted live verification.
+
 ## Church information
 
 **Ministerio Cristiano Shekinah**  
