@@ -545,6 +545,8 @@ body, .site-header, .section-alt, .hero-card, .preview-card, .service-feature, .
 body { -webkit-font-smoothing: antialiased; }
 main, .hero-grid > *, .newsletter-preview-grid > *, .visit-grid > *,
 .newsletter-page-grid > * { min-width: 0; }
+/* Enlarged text and long words must stay within narrow reading surfaces. */
+main { overflow-wrap: anywhere; }
 .brand, .brand-copy { min-width: 0; }
 .brand-copy strong { overflow-wrap: anywhere; }
 main :is(section[id], [id][tabindex="-1"]) { scroll-margin-top: 126px; }

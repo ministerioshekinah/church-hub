@@ -88,6 +88,17 @@ async function check(name,fn) {
       await page.evaluate(axe.source);const violations=await page.evaluate(async()=>{const r=await axe.run('#newsletterToolStatus',{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}});return r.violations.map(v=>v.id)});assert.deepEqual(violations,[]);
     });
   });
+  await check('Enlarged public text: bilingual pages reflow without horizontal overflow',async()=>{
+    for(const width of [320,768])for(const lang of ['en','es'])for(const theme of ['light','dark'])await journey({viewport:{width,height:900},lang,theme},async({page,context,goto})=>{
+      await context.route('**/__large-text.css',route=>route.fulfill({contentType:'text/css',body:'html{font-size:200%!important}'}));
+      for(const route of ['/','/newsletter/','/privacy/','/terms/','/contact/']){
+        await goto(route);await page.evaluate(url=>{const link=document.createElement('link');link.rel='stylesheet';link.href=url;document.head.append(link)},site.url+'/__large-text.css');
+        await page.waitForFunction(()=>getComputedStyle(document.documentElement).fontSize==='32px');
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${route} ${width}px ${lang} ${theme} enlarged text must reflow`);
+        const menu=page.locator('#menuButton');if(await menu.isVisible()){await menu.click();const last=page.locator('#navMenu a').last();await last.focus();await last.scrollIntoViewIfNeeded();assert(await last.evaluate(e=>{const r=e.getBoundingClientRect();return r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight}));}
+      }
+    });
+  });
   await check('Sharing completion cannot announce a different selected issue',()=>journey({},async({page,goto})=>{
     await goto('/newsletter/');await page.evaluate(()=>{navigator.clipboard.writeText=()=>new Promise(resolve=>{window.finishCopy=resolve})});
     await page.locator('#copyNewsletterLink').click();await page.locator('.archive-item').first().click();
@@ -447,7 +458,11 @@ async function check(name,fn) {
     await page.locator('.admin-back-link').click();await page.waitForURL(site.url+'/');assert.deepEqual(dialogs,['beforeunload']);
   }));
   await check('Unsaved content: reverted edits and language or theme controls do not warn',()=>journey({},async p=>{
-    await login(p);const {page}=p;const original=await page.locator('#serviceLabelEn').inputValue();
+    p.state.delay=250;await login(p);const {page}=p;
+    // Dashboard visibility precedes its data reads. Restoring a pre-load blank
+    // value is a real edit, so take the baseline only once the field is ready.
+    await page.waitForFunction(()=>!document.querySelector('#serviceLabelEn').disabled);
+    const original=await page.locator('#serviceLabelEn').inputValue();
     await page.locator('#serviceLabelEn').fill('Temporary edit');await page.locator('#serviceLabelEn').fill(original);
     await page.locator('#themeToggle').click();await page.locator('[data-admin-section="newsletter"]').click();await page.locator('[data-newsletter-id="test-issue-0"]').click();
     await page.locator('[data-editor-lang="es"]').click();
