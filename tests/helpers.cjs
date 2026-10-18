@@ -14,7 +14,7 @@ async function page(name = 'index.html', options = {}) {
   const location = new URL('https://mcshekinah.org/' + name.replace(/index\.html$/, ''));
   const media = new Map();
   const browser = {document, location, innerHeight:800, scrollY:0,
-    addEventListener:events.addEventListener.bind(events), dispatchEvent:events.dispatchEvent.bind(events),
+    addEventListener:events.addEventListener.bind(events), removeEventListener:events.removeEventListener.bind(events), dispatchEvent:events.dispatchEvent.bind(events),
     requestAnimationFrame:cb=>setTimeout(cb,0), cancelAnimationFrame:clearTimeout,
     scrollTo:opts=>{reports.scrolls.push(opts);browser.scrollY=opts.top;},
     print:()=>{reports.prints++;},

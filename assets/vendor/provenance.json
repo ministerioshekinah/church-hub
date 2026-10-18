@@ -1,0 +1,88 @@
+{
+  "package": "@supabase/supabase-js",
+  "version": "2.112.2",
+  "file": "supabase-2.112.2.js",
+  "source_url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.js",
+  "npm_tarball": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.112.2.tgz",
+  "npm_tarball_integrity": "sha512-UyI1epU9B4X51HvNpkmlwTdF20fEcz2vyvrcDKVzFN4jZN41f5iQRqsiIQjAY5OVJD6ljqA/1g9JQeOTvFHpkA==",
+  "bytes": 211412,
+  "sha256": "04b957f2563a40dcb02b1d9d6f7a7a23973bf8ebe4c1435be5feaf24bff91134",
+  "integrity": "sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd",
+  "checked_at": "2026-10-18T19:12:44.506444+00:00",
+  "verification": "Byte-identical to the previously pinned CDN response, npm package archive, and npm-installed UMD artifact.",
+  "licenses": [
+    {
+      "name": "@supabase/auth-js",
+      "version": "2.112.2",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@supabase/functions-js",
+      "version": "2.112.2",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@supabase/phoenix",
+      "version": "0.4.5",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "@supabase/postgrest-js",
+      "version": "2.112.2",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@supabase/realtime-js",
+      "version": "2.112.2",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@supabase/storage-js",
+      "version": "2.112.2",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "version": "2.112.2",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "iceberg-js",
+      "version": "0.8.1",
+      "license": "MIT",
+      "notice_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "tslib",
+      "version": "2.8.1",
+      "license": "0BSD",
+      "notice_files": [
+        "LICENSE.txt",
+        "CopyrightNotice.txt"
+      ]
+    }
+  ]
+}

@@ -104,7 +104,10 @@ async function createPage(browser,site,options={}) {
       const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS'};
       const reply=(body,status=200)=>route.fulfill({status,headers,contentType:'application/json',body:JSON.stringify(body)});
       if(req.method()==='OPTIONS')return reply({});
-      if(url.pathname==='/auth/v1/token')return reply({access_token:jwt,refresh_token:'test-refresh',expires_in:3600,token_type:'bearer',user});
+      if(url.pathname==='/auth/v1/token') {
+        if(state.signInError)return reply({code:'invalid_credentials',message:'Invalid login credentials'},400);
+        return reply({access_token:jwt,refresh_token:'test-refresh',expires_in:3600,token_type:'bearer',user});
+      }
       if(url.pathname==='/auth/v1/user')return reply(user);
       if(url.pathname==='/auth/v1/logout')return route.fulfill({status:204,headers});
       if(url.pathname==='/functions/v1/admin-users') {

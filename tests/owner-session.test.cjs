@@ -150,6 +150,19 @@ test('Admin session: a delayed session restore cannot reopen a signed-out dashbo
   assert.equal(p.run('authenticatedAdmin'),null);
 });
 
+test('Admin sign-in: an old completion cannot leave logout locked or unlock a newer attempt', async () => {
+  const p=await page('admin/index.html');
+  p.run(`let pendingLogins=[];supabaseClient={auth:{signInWithPassword:()=>new Promise(resolve=>pendingLogins.push(resolve))}};`);
+  const submit=()=>p.document.getElementById('adminLoginForm').dispatchEvent(new p.Event('submit',{bubbles:true,cancelable:true}));
+  submit();assert.equal(p.document.getElementById('adminEmail').disabled,true);
+  p.run('showLogin()');assert.equal(p.document.getElementById('adminEmail').disabled,false);
+  submit();submit();assert.equal(p.run('pendingLogins.length'),2);
+  p.run(`pendingLogins[0]({error:{message:'old request'}})`);await settle();
+  assert.equal(p.document.getElementById('adminEmail').disabled,true);
+  p.run(`pendingLogins[1]({error:{message:'current request'}})`);await settle();
+  assert.equal(p.document.getElementById('adminEmail').disabled,false);
+});
+
 test('Admin session: pending announcement save cannot restore private form content after sign-out', async () => {
   const p=await page('admin/index.html');
   p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'private',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false,title_en:'Hidden',title_es:'Oculto'}]; selectAnnouncement(0);

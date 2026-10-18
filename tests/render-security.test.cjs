@@ -34,7 +34,21 @@ test('XSS: admin newsletter ID and status attributes',async()=>{
 for(const file of ['index.html','newsletter/index.html','admin/index.html','newsletter.html','admin.html','privacy/index.html','terms/index.html','contact/index.html'])test('CSP: '+file+' blocks injected scripts, objects, base URLs',async()=>{
  const {parseHTML}=require('linkedom');const {document}=parseHTML(read(file));const csp=document.querySelector('meta[http-equiv="Content-Security-Policy"]').content;const script=csp.match(/script-src ([^;]+)/)[1];assert(!script.includes('unsafe-inline'));assert(!script.includes('unsafe-eval'));assert(csp.includes("object-src 'none'"));assert(csp.includes("base-uri 'none'"));assert(csp.includes('upgrade-insecure-requests'));for(const el of document.querySelectorAll('script')){assert(el.hasAttribute('src'));assert.equal(el.textContent.trim(),'');}
 });
-test('Supply chain: pinned browser SDK requires verified SRI',()=>{const {parseHTML}=require('linkedom');const {document}=parseHTML(read('admin/index.html'));const el=document.querySelector('script[src*="cdn.jsdelivr.net"]');assert(el.src.includes('@2.112.2/'));assert.equal(el.getAttribute('integrity'),'sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd');assert.equal(el.getAttribute('crossorigin'),'anonymous');});
+test('Supply chain: the local SDK matches its pinned upstream bytes, SRI, version, and notices',()=>{
+ const {parseHTML}=require('linkedom');const {document}=parseHTML(read('admin/index.html'));
+ const provenance=JSON.parse(read('assets/vendor/provenance.json'));
+ const el=document.querySelector('script[src*="/assets/vendor/supabase-"]');
+ assert.equal(el.src,'/assets/vendor/'+provenance.file);
+ const bytes=Buffer.from(read('assets/vendor/'+provenance.file));
+ const crypto=require('node:crypto');
+ assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),provenance.sha256);
+ assert.equal('sha384-'+crypto.createHash('sha384').update(bytes).digest('base64'),el.getAttribute('integrity'));
+ assert.equal(el.getAttribute('integrity'),'sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd');
+ assert.equal(el.getAttribute('crossorigin'),'anonymous');
+ const notices=read('assets/vendor/THIRD_PARTY_NOTICES.txt');
+ for(const dependency of provenance.licenses)assert(notices.includes(dependency.name+' '+dependency.version));
+ assert(document.querySelector('meta[http-equiv="Content-Security-Policy"]').content.includes("script-src 'self';"));
+});
 test('Supply chain: runtime audit covers the exact browser and Edge Function package pins',()=>{
  const manifest=JSON.parse(read('security/runtime-dependencies/package.json'));
  const lock=JSON.parse(read('security/runtime-dependencies/package-lock.json'));
@@ -45,7 +59,8 @@ test('Supply chain: runtime audit covers the exact browser and Edge Function pac
   assert.match(version,/^\d+\.\d+\.\d+$/);
   assert.equal(lock.packages['node_modules/'+name].version,version);
  }
- assert(read('admin/index.html').includes('@supabase/supabase-js@'+versions['@supabase/supabase-js']+'/'));
+ assert.equal(JSON.parse(read('assets/vendor/provenance.json')).version,versions['@supabase/supabase-js']);
+ assert(read('admin/index.html').includes('/assets/vendor/supabase-'+versions['@supabase/supabase-js']+'.js'));
  assert(read('supabase/functions/admin-users/index.ts').includes('npm:@supabase/server@'+versions['@supabase/server']+'"'));
  assert(read('.github/workflows/frontend-checks.yml').includes('npm audit --prefix security/runtime-dependencies --audit-level=high'));
 });
