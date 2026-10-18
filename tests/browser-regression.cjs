@@ -17,7 +17,12 @@ async function check(name,fn) {
   if(!['chromium','firefox','webkit'].includes(engine))throw Error('BROWSER_ENGINE must be chromium, firefox, or webkit');
   const browser=await browserEngines[engine].launch({headless:true,
     ...(engine==='chromium'?{executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox','--disable-dev-shm-usage']}: {})});
-  async function journey(options,fn){const p=await createPage(browser,site,options);try{await fn(p);assert.deepEqual(p.state.errors,[]);}finally{await p.close();}}
+  async function journey(options,fn){
+    const p=await createPage(browser,site,options);
+    try{await fn(p);assert.deepEqual(p.state.errors,[]);}
+    catch(error){error.message+='\nBrowser diagnostics: '+JSON.stringify({pageErrors:p.state.errors,failedRequests:p.state.failedRequests.slice(-8),consoleErrors:p.state.consoleErrors.slice(-8)});throw error;}
+    finally{await p.close();}
+  }
   await check('Mobile navigation: keyboard, Escape, and section focus',()=>journey({},async({page,goto})=>{
     await goto();const menu=page.locator('#menuButton');await menu.focus();await page.keyboard.press('Enter');
     await page.locator('#navMenu a').first().focus();await page.keyboard.press('Escape');

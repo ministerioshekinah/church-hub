@@ -148,6 +148,8 @@ For rendered browser checks, run `npx playwright install --with-deps chromium` o
 
 `CHROMIUM_EXECUTABLE_PATH` can select an existing Chromium binary. `SHEKINAH_TEST_SDK_PATH` can supply an offline copy of the exact pinned SDK; its SHA-384 must still match. The JSON report defaults to the ignored `security/local-results/browser-regression.json`; `BROWSER_REPORT_PATH` changes that destination.
 
+The browser fixture also requires OpenSSL. It generates an ephemeral localhost certificate, removes the temporary key files, and serves HTTPS so the production CSP's upgrade rules behave consistently across engines. The test context trusts that loopback certificate; it does not validate the production certificate. CSP and SDK integrity checks remain enabled.
+
 `npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
 
 For an existing production project, apply the audit-trigger migration first, deploy the frontend with explicit column lists, and then apply the author-column restriction migration. Do not replay historical migrations. The two new filenames match the versions recorded by the controlled production deployment. Reload an admin tab opened before the rollout so it uses the new query column lists.

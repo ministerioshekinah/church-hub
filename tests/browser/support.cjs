@@ -1,7 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const http = require('node:http');
+const https = require('node:https');
 const crypto = require('node:crypto');
+const os = require('node:os');
+const {execFileSync} = require('node:child_process');
 
 const sdkURL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.js';
 let sdkPromise;
@@ -22,7 +24,16 @@ async function sdk() {
 }
 
 async function startSite(root = path.resolve(__dirname, '../..')) {
-  const server = http.createServer((req,res) => {
+  // Match production HTTPS: engines differ in how the real CSP upgrades
+  // loopback requests. An HTTP-only fixture can leave site assets unloaded.
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'shekinah-test-tls-'));
+  let tls;
+  try {
+    const key=path.join(temporary,'key.pem'),cert=path.join(temporary,'cert.pem');
+    execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',key,'-out',cert,'-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1'],{stdio:'ignore'});
+    tls={key:fs.readFileSync(key),cert:fs.readFileSync(cert)};
+  } finally {fs.rmSync(temporary,{recursive:true,force:true});}
+  const server = https.createServer(tls,(req,res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {res.writeHead(405);res.end();return;}
     let pathname;
     try {pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);}
@@ -40,7 +51,7 @@ async function startSite(root = path.resolve(__dirname, '../..')) {
     res.end(req.method==='HEAD'?undefined:fs.readFileSync(file));
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-  return {url:'http://127.0.0.1:'+server.address().port,close:()=>new Promise(resolve=>server.close(resolve))};
+  return {url:'https://127.0.0.1:'+server.address().port,close:()=>new Promise(resolve=>server.close(resolve))};
 }
 
 function contentFixture() {
@@ -53,8 +64,10 @@ function contentFixture() {
 }
 
 async function createPage(browser,site,options={}) {
-  const context=await browser.newContext({viewport:options.viewport||{width:390,height:844},reducedMotion:options.motion?'no-preference':'reduce',colorScheme:options.theme||'light',javaScriptEnabled:options.javascript!==false});
-  const state={data:contentFixture(),requests:[],errors:[],offline:false,delay:0};
+  // This trust exception is only for the ephemeral loopback certificate.
+  // All nonlocal browser requests are intercepted below; CSP stays intact.
+  const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:options.viewport||{width:390,height:844},reducedMotion:options.motion?'no-preference':'reduce',colorScheme:options.theme||'light',javaScriptEnabled:options.javascript!==false});
+  const state={data:contentFixture(),requests:[],errors:[],failedRequests:[],consoleErrors:[],offline:false,delay:0};
   const user={id:'11111111-1111-4111-8111-111111111111',aud:'authenticated',role:'authenticated',email:'admin@example.test',app_metadata:{provider:'email'},user_metadata:{}};
   state.data.admin_users[0].role=options.owner?'owner':'admin';
   state.adminDirectory=[{id:user.id,email:user.email,role:options.owner?'owner':'admin'},
@@ -148,7 +161,11 @@ async function createPage(browser,site,options={}) {
     return route.abort();
   });
   const page=await context.newPage();
+  page.setDefaultTimeout(10000);
+  page.setDefaultNavigationTimeout(30000);
   page.on('pageerror',error=>state.errors.push(error.message));
+  page.on('requestfailed',request=>state.failedRequests.push({url:request.url(),error:request.failure()?.errorText}));
+  page.on('console',message=>{if(message.type()==='error')state.consoleErrors.push(message.text());});
   page.on('dialog',dialog=>dialog.accept());
   return {page,state,context,close:()=>context.close(),async goto(route='/'){await page.goto(site.url+route,{waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);}};
 }
