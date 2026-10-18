@@ -58,10 +58,10 @@ The public archive currently requests the newest 100 published issues. Before th
 ## Release and rollback
 
 1. Review PR #21, its audit report, latest head and all required checks. No merge or deployment is authorized by this document.
-2. After explicit approval, deploy the reviewed static branch using the normal process. No database migration accompanies it.
+2. After explicit approval, deploy the reviewed static branch using the normal process. The proposed administrator-removal migration and Edge Function guard require their own approved staging and backend release; publishing the static website does not activate them.
 3. Verify English/Spanish navigation, light/dark appearance, clean URLs, local fonts/SDK, sign-in, publication, version conflicts and cross-tab sign-out. Check the site from a fresh browser context to avoid old asset caches.
 4. Repeat the bounded direct TLS probe from a suitable environment: `npm run security:transport`. It makes six serial handshakes against the apex/www hosts. It does not scan ports, enumerate all ciphers or validate all worldwide edges.
-5. Roll back frontend changes through a reviewed revert. A future database upgrade or authentication enforcement release needs its own recovery plan; reverting frontend files alone cannot undo those operations.
+5. Roll back frontend changes through a reviewed revert. Coordinate any separately approved database/Edge rollback; do not automatically restore the defective revocation trigger. Database upgrades and authentication enforcement also need their own recovery plans; reverting frontend files cannot undo those operations.
 
 ## References
 
