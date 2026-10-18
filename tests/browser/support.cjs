@@ -131,7 +131,7 @@ async function createPage(browser,site,options={}) {
           row.role=action.role;return reply({ok:true,admin:row});
         }
         if(action.action==='remove') {
-          state.adminDirectory=state.adminDirectory.filter(row=>row.id!==action.userId);
+          if(!state.suppressRemoval)state.adminDirectory=state.adminDirectory.filter(row=>row.id!==action.userId);
           return reply({ok:true});
         }
         return reply({error:'Unsupported fixture action.'},400);

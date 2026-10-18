@@ -100,6 +100,7 @@
       adminRows = data?.admins || [];
       status.textContent = `${adminRows.length} ${adminRows.length === 1 ? "administrator" : "administrators"}`;
       renderAdministrators();
+      return adminRows;
     } catch (error) {
       if (generation !== ownerGeneration || version !== listVersion) return;
       console.error("Administrator list failed:", error);
@@ -186,7 +187,14 @@
         try {
           await invokeAdminFunction({ action: "remove", userId: admin.id });
           if (generation !== ownerGeneration) return;
-          await loadAdministrators();
+          const remaining = await loadAdministrators();
+          if (generation !== ownerGeneration) return;
+          // Also detect a legacy backend's successful-but-suppressed DELETE.
+          // An authoritative refresh must no longer show the removed account.
+          if (remaining?.some(row => row.id === admin.id)) {
+            document.getElementById("administratorListStatus").textContent =
+              "Removal could not be confirmed. This account still appears in the access list.";
+          }
           restoreAdministratorFocus(admin.id, "button", hadFocus, generation);
         } catch (error) {
           if (generation !== ownerGeneration) return;

@@ -13,7 +13,7 @@ window.SHEKINAH_SUPABASE = {
 if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
   [
     "/admin-service-validation.js?v=3.1",
-    "/administrators.js?v=1.2"
+    "/administrators.js?v=1.3"
   ].forEach((src) => {
     const script = document.createElement("script");
     script.src = src;

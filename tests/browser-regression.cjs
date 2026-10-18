@@ -324,6 +324,16 @@ async function check(name,fn) {
     assert(await page.locator('#refreshAdministratorsButton').isEnabled());state.listError=null;await page.locator('#refreshAdministratorsButton').click();await page.locator('.administrator-item').first().waitFor();
     assert.equal(await page.locator('.administrator-item').count(),2);assert.match(await page.locator('#administratorListStatus').innerText(),/2 administrators/);
   }));
+  await check('Owner removal: a legacy false-success response is detected and a confirmed retry recovers',()=>journey({owner:true},async p=>{
+    await login(p);const {page,state}=p;await page.locator('#administratorsTab').click();
+    const target=page.locator('.administrator-item').filter({hasText:'editor@example.test'});await target.waitFor();
+    state.suppressRemoval=true;state.delay=100;await target.locator('button').focus();await page.keyboard.press('Enter');
+    await page.waitForFunction(()=>document.querySelector('#administratorListStatus').textContent.startsWith('Removal could not be confirmed.'));
+    assert.equal(state.adminDirectory.length,2);assert(await target.locator('button').isEnabled());assert(await target.locator('button').evaluate(e=>e===document.activeElement));
+    state.suppressRemoval=false;await page.keyboard.press('Enter');await target.waitFor({state:'hidden'});
+    assert.equal(state.adminDirectory.length,1);assert.equal(await page.locator('#administratorListStatus').innerText(),'1 administrator');
+    assert(await page.locator('#refreshAdministratorsButton').evaluate(e=>e===document.activeElement));
+  }));
   await check('Owner invitation failure: email is retained, retry succeeds, and sign-out clears the list',()=>journey({owner:true},async p=>{
     await login(p);const {page,state}=p;await page.locator('#administratorsTab').click();
     await page.locator('.administrator-item').first().waitFor();state.functionError='Local fixture failure';
@@ -494,7 +504,7 @@ async function check(name,fn) {
       await page.locator(editor.item).focus();await page.keyboard.press('Enter');
       assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement),'Selection must enter the editor');
       const box=await page.locator(editor.heading).boundingBox();assert(box.y>=0&&box.y+box.height<=900,'Editor heading must be visible');
-      await page.keyboard.press('Tab');assert(await page.locator(editor.next).evaluate(e=>e===document.activeElement),'Tab must continue into the editor');
+      await page.keyboard.press('Tab');assert(await page.locator(editor.next).evaluate(e=>e===document.activeElement),'Tab must continue into the editor: '+JSON.stringify(await page.evaluate(()=>({id:document.activeElement.id,tag:document.activeElement.tagName,html:document.activeElement.outerHTML.slice(0,350)}))));
       await page.locator(editor.create).focus();await page.keyboard.press('Enter');assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement));
       await page.locator(editor.field).fill('Keep this draft');
       page.removeAllListeners('dialog');page.on('dialog',dialog=>dialog.dismiss());
