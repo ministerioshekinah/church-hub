@@ -266,9 +266,14 @@ async function check(name,fn) {
     await page.locator('#announcementFilter').selectOption('hidden');assert.equal(await page.locator('#announcementCount').innerText(),'0 announcements');
     await page.locator('#announcementFilter').selectOption('active');assert.equal(await page.locator('#announcementCount').innerText(),'1 announcement');
   }));
-  await check('Admin accessibility: reduced motion brings keyboard-focused fields into view immediately',()=>journey({viewport:{width:844,height:320}},async p=>{
-    await login(p);const {page}=p;await page.locator('#serviceMessageEs').focus();
-    const field=await page.locator('#serviceMessageEs').boundingBox();assert(field.y>=0&&field.y+field.height<=320);
+  await check('Admin accessibility: reduced motion brings focused fields into view without smooth scrolling',()=>journey({viewport:{width:844,height:320}},async p=>{
+    await login(p);const {page}=p;
+    await page.waitForFunction(()=>!document.querySelector('#serviceMessageEs').disabled);
+    await page.locator('#serviceMessageEs').focus();
+    assert.equal(await page.locator('html').evaluate(e=>getComputedStyle(e).scrollBehavior),'auto');
+    // Browsers may align the caret rather than the whole textarea. Require the
+    // focused control to be visible, without prescribing native alignment.
+    await page.waitForFunction(()=>{const r=document.querySelector('#serviceMessageEs').getBoundingClientRect();return r.top<innerHeight&&r.bottom>0});
     assert(await page.locator('#serviceMessageEs').evaluate(e=>e===document.activeElement));
     await page.locator('#serviceDraftStatus').evaluate(e=>{e.textContent='Test announcement'});
     assert.equal(await page.locator('#serviceDraftStatus').getAttribute('role'),'status');

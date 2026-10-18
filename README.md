@@ -195,3 +195,5 @@ The bilingual **Background motion** switch in the footer saves a local preferenc
 ## Original typography
 
 Inter (400/500/600/700) and Playfair Display (600/700) remain unchanged. `assets/fonts/fonts.css` preserves the original Google Fonts face declarations and glyph subsets, referencing locally hosted copies of the same WOFF2 bytes. The two Latin files are preloaded; other subsets load only when needed. `assets/fonts/provenance.json` records source URLs, byte counts, and SHA-256 hashes. Both upstream SIL Open Font Licenses are included. Updating fonts is a deliberate design change: retain the original families and weights unless the owner explicitly approves otherwise.
+
+Administrator layout rules live in `admin-layout.css`, loaded only by `/admin/` immediately after the shared `style.css` and before the administrator extensions. Keep that order when changing styles. Public pages retain shared button/status treatments without downloading the editor layouts.
