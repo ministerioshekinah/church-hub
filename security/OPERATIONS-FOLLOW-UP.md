@@ -1,6 +1,16 @@
 # Operational follow-up after the engineering sprint
 
-Prepared from the October 18, 2026 inspection. This is a review plan, not an activated configuration or migration. PR #21 changes the website branch only. Production accounts, data, database configuration, hosting, DNS and paid services remain unchanged.
+Prepared from the October 18, 2026 inspection. This is a review plan, not an activated configuration or migration. PR #21 contains frontend improvements and a proposed administrator-removal database/Edge repair. Production accounts, data, database configuration, hosting, DNS and paid services remain unchanged.
+
+## High priority: administrator removal can silently fail
+
+The live catalog confirms that `protect_last_owner` uses `private.prevent_last_owner_loss()` with the same body as migration `202608090003_security_hardening.sql`. For a DELETE of an ordinary content administrator, the function reaches `RETURN NEW`. PostgreSQL supplies NULL for NEW during DELETE, so this BEFORE trigger suppresses the deletion without a database error. The existing Edge handler checks only the error and can return `{ok:true}` even though membership remains. This is a verified code-level revocation defect, not evidence that an account has been compromised. No production removal was attempted.
+
+The exact catalog-read function reproduced zero deleted rows and a retained content administrator in an isolated PostgreSQL WASM database. The proposed `20261018202726_fix_admin_removal_trigger.sql` returns OLD for that DELETE path while preserving the existing Owner checks, advisory transaction lock, empty search path and restricted function privileges. The Edge handler also requires the requested user ID in DELETE RETURNING; a suppressed deletion produces HTTP 409 instead of success.
+
+Ten database tests execute real trigger semantics, including removal, final-Owner protection, multirow atomicity, repeat application and integration with the actual Edge handler. They run on PGlite 0.5.10 / PostgreSQL 18.6, with fictional IDs and no network. Production is PostgreSQL 17.6; native staging concurrency and the complete deployed middleware remain separate acceptance gates. The original trigger's DELETE semantics are also documented in [PostgreSQL 17 trigger guidance](https://www.postgresql.org/docs/17/plpgsql-trigger.html).
+
+Apply only after explicit release approval: back up and review the trigger, run the migration and handler in an approved staging environment, verify that an ordinary administrator can be removed and that the last Owner cannot be removed or demoted, then coordinate the production migration and Edge Function deployment. Confirm that revoked membership is absent and protected content requests are denied. Deploying the handler guard first is safe: it surfaces the existing failed removal until the migration is applied. Merging this website PR does not deploy the database or Edge Function. Do not remove real accounts merely to test this repair.
 
 ## Decisions and acceptance evidence
 
@@ -19,7 +29,7 @@ The portal currently has password sign-in and invitation sending, but no in-port
 
 Treat this as an onboarding/recovery gap to complete alongside MFA, not as evidence of an authentication bypass. A follow-up should cover a new invite, an existing approved account, expired/reused links, cancellation, a fresh password sign-in after signing out, and recovery. Do not send test invitations or password-reset messages without explicit authorization. Use fictitious accounts in an approved staging environment first.
 
-For MFA, preserve the existing membership boundary and public read policies. Review every relevant INSERT/UPDATE/DELETE policy and the Owner Edge Function together; an additional permissive policy must not accidentally leave an alternate password-only write path. Enforce assurance from verified server-side claims, not a form value or a frontend-only toggle. Build and verify enrollment, challenge and recovery before enforcement so the current owner is not locked out. A separately reviewed backend change and deployment are required; this PR contains neither.
+For MFA, preserve the existing membership boundary and public read policies. Review every relevant INSERT/UPDATE/DELETE policy and the Owner Edge Function together; an additional permissive policy must not accidentally leave an alternate password-only write path. Enforce assurance from verified server-side claims, not a form value or a frontend-only toggle. Build and verify enrollment, challenge and recovery before enforcement so the current owner is not locked out. A separately reviewed MFA backend change and deployment are required; the administrator-removal proposal in this PR does not add MFA.
 
 The Owner function currently reads only the first 1,000 Auth users when mapping membership to email addresses and locating an existing invitee. With the presently small authorized group this was not an observed production failure. If public registration remains available and the Auth population grows, add bounded pagination or a purpose-specific lookup before that limit is reached. Do not treat the fixture directory as a production user inventory.
 
