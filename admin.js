@@ -433,7 +433,12 @@ function updateServicePreview() {
 }
 
 async function loadServiceEditor() {
+  await runEditorAction("service", document.getElementById("saveServiceButton"), document.getElementById("serviceDraftStatus"), "Loading…", fetchServiceEditor);
+}
+
+async function fetchServiceEditor() {
   const generation = adminSessionVersion;
+  serviceVersion = null;
   const { data, error } = await supabaseClient
     .from("service_settings")
     .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address,updated_at")
@@ -521,6 +526,10 @@ document.getElementById("saveServiceButton").addEventListener("click", saveServi
 let announcementFilter = "all";
 
 async function loadAnnouncementEditor() {
+  await runEditorAction("announcements", document.getElementById("addAnnouncementButton"), document.getElementById("announcementDraftStatus"), "Loading…", fetchAnnouncementEditor);
+}
+
+async function fetchAnnouncementEditor() {
   const generation = adminSessionVersion;
   const { data, error } = await supabaseClient
     .from("announcements")
@@ -533,6 +542,7 @@ async function loadAnnouncementEditor() {
     console.error(error);
     adminAnnouncements = [];
     renderAdminAnnouncementList();
+    document.getElementById("adminAnnouncementList").textContent = "Announcements could not be loaded. Reload this page to try again.";
     return;
   }
 
@@ -848,6 +858,10 @@ let newsletterFilter = "all";
 let newsletterSelectionVersion = 0;
 
 async function loadNewsletterEditor() {
+  await runEditorAction("newsletter", document.getElementById("newNewsletterButton"), document.getElementById("draftStatus"), "Loading…", fetchNewsletterEditor);
+}
+
+async function fetchNewsletterEditor() {
   const generation = adminSessionVersion;
   const { data, error } = await supabaseClient
     .from("newsletters")
@@ -859,6 +873,7 @@ async function loadNewsletterEditor() {
     console.error(error);
     adminNewsletters = [];
     renderAdminNewsletterList();
+    document.getElementById("adminNewsletterList").textContent = "Newsletters could not be loaded. Reload this page to try again.";
     return;
   }
 

@@ -245,6 +245,17 @@ async function check(name,fn) {
     await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent&&document.querySelector('[data-admin-panel="announcements"]').getAttribute('aria-busy')==='false');
     assert.equal(state.data.announcements.length,0);assert.match(await page.locator('#announcementDraftStatus').innerText(),/Could not save/);
   }));
+  for (const editor of [
+    {section:'service',control:'#serviceLabelEn',ready:'#serviceTimeInput'},
+    {section:'announcements',control:'#addAnnouncementButton',ready:'[data-announcement-index="0"]'},
+    {section:'newsletter',control:'#newNewsletterButton',ready:'[data-newsletter-id="test-issue-0"]'}
+  ]) await check(`Editor loading: ${editor.section} cannot accept a draft that the initial response would erase`,()=>journey({},async p=>{
+    p.state.delay=600;await login(p);const {page}=p;
+    assert(await page.locator(editor.control).isDisabled());
+    await page.locator(`[data-admin-section="${editor.section}"]`).click();
+    await page.waitForFunction(section=>document.querySelector(`[data-admin-panel="${section}"]`).getAttribute('aria-busy')!=='true',editor.section);
+    assert(await page.locator(editor.control).isEnabled());assert(await page.locator(editor.ready).isVisible());
+  }));
   await check('Admin accessibility: increased text spacing keeps the narrow announcement filter usable',()=>journey({viewport:{width:320,height:900}},async p=>{
     await p.context.route('**/__text-spacing.css',route=>route.fulfill({contentType:'text/css',body:'*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}p{margin-bottom:2em!important}'}));
     await login(p);const {page}=p;await page.locator('[data-admin-section="announcements"]').click();
