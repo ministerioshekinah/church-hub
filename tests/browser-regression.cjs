@@ -1,0 +1,175 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {chromium}=require('playwright');
+const axe=require('axe-core');
+const {startSite,createPage}=require('./browser/support.cjs');
+const results=[];
+async function check(name,fn) {
+  if(process.env.BROWSER_TEST_FILTER&&!new RegExp(process.env.BROWSER_TEST_FILTER).test(name))return;
+  const start=Date.now();
+  try {await fn();results.push({name,pass:true,durationMs:Date.now()-start});console.log('PASS',name);}
+  catch(error){results.push({name,pass:false,error:error.stack});console.error('FAIL',name,error.message);}
+}
+(async()=>{
+  const site=await startSite();
+  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox','--disable-dev-shm-usage']});
+  async function journey(options,fn){const p=await createPage(browser,site,options);try{await fn(p);assert.deepEqual(p.state.errors,[]);}finally{await p.close();}}
+  await check('Mobile navigation: keyboard, Escape, and section focus',()=>journey({},async({page,goto})=>{
+    await goto();const menu=page.locator('#menuButton');await menu.focus();await page.keyboard.press('Enter');
+    await page.locator('#navMenu a').first().focus();await page.keyboard.press('Escape');
+    assert.equal(await menu.getAttribute('aria-expanded'),'false');assert(await menu.evaluate(e=>e===document.activeElement));
+    await menu.click();await page.locator('#navMenu a[href="#visit"]').click();
+    assert(await page.locator('#visit').evaluate(e=>e===document.activeElement));assert.equal(await menu.getAttribute('aria-expanded'),'false');
+  }));
+  await check('Landscape navigation: final link remains reachable inside the viewport',()=>journey({viewport:{width:844,height:320}},async({page,goto})=>{
+    await goto();await page.locator('#menuButton').click();
+    const nav=page.locator('#navMenu');const box=await nav.boundingBox();assert(box.y+box.height<=320);
+    const first=nav.locator('a').first();assert((await first.boundingBox()).y>=box.y,'First link must not overflow above the scrollable menu');
+    const last=nav.locator('a').last();await last.scrollIntoViewIfNeeded();const linkBox=await last.boundingBox();assert(linkBox.y+linkBox.height<=320);
+    await last.click();assert.equal(await page.locator('#menuButton').getAttribute('aria-expanded'),'false');
+  }));
+  await check('Language and theme: preferences persist across real navigation without refetching on translation',()=>journey({motion:true},async({page,state,goto})=>{
+    await goto();const before=state.requests.filter(r=>r.url.includes('/rest/v1/')).length;
+    await page.locator('[data-lang="es"]').click();await page.waitForFunction(()=>document.documentElement.lang==='es');
+    assert.equal(state.requests.filter(r=>r.url.includes('/rest/v1/')).length,before);
+    await page.locator('#themeToggle').click();await page.locator('.hero-actions a[href="/newsletter/"]').click();
+    await page.waitForFunction(()=>document.querySelector('#latestNewsletter')?.dataset.issueId);
+    assert.equal(await page.locator('html').getAttribute('lang'),'es');assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+    assert.match(await page.locator('#latestNewsletter').innerText(),/Boletín/);
+  }));
+  await check('Rapid language changes finish with visible, correctly translated content',()=>journey({motion:true},async({page,goto})=>{
+    await goto();await page.locator('[data-lang="es"]').click();await page.locator('[data-lang="en"]').click();await page.locator('[data-lang="es"]').click();
+    await page.waitForFunction(()=>document.documentElement.lang==='es'&&getComputedStyle(document.querySelector('main')).opacity==='1');
+    assert.match(await page.locator('h1').innerText(),/Un lugar/);assert.equal(await page.locator('[data-lang="es"]').getAttribute('aria-pressed'),'true');
+  }));
+  await check('Blocked browser storage preserves theme and bilingual controls',()=>journey({blockStorage:true},async({page,goto})=>{
+    await goto();await page.locator('[data-lang="es"]').click();await page.locator('#themeToggle').click();
+    assert.equal(await page.locator('html').getAttribute('lang'),'es');assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+  }));
+  await check('Reduced motion pauses the decorative background',()=>journey({},async({page,goto})=>{
+    await goto();assert.equal(await page.locator('html').getAttribute('data-ambient-motion'),'paused');
+    assert(await page.locator('#backgroundMotion').isDisabled());
+    assert.equal(await page.locator('.ambient-orb').first().evaluate(e=>getComputedStyle(e).animationName),'none');
+  }));
+  await check('Archive: bilingual search, history, share, print, and incremental disclosure',()=>journey({},async({page,goto})=>{
+    await goto('/newsletter/');await page.locator('#archiveSearch').fill('celebracion');assert.equal(await page.locator('.archive-item').count(),1);
+    await page.locator('.archive-item').click();assert.match(page.url(),/issue=test-issue-1/);assert.match(await page.locator('#latestNewsletter h2').innerText(),/Celebration/);
+    await page.goBack();assert.match(await page.locator('#latestNewsletter h2').innerText(),/Community issue 1/);
+    await page.locator('#archiveSearch').fill('');await page.locator('#showMoreIssues').click();assert.equal(await page.locator('.archive-item').count(),8);
+    assert(await page.locator('.archive-item').nth(6).evaluate(e=>e===document.activeElement));
+    await page.locator('#copyNewsletterLink').click();assert.match(await page.evaluate(()=>window.__testClipboard[0]),/\/newsletter\/\?issue=test-issue-0$/);
+    await page.locator('#printNewsletter').click();assert.equal(await page.evaluate(()=>window.__testPrints),1);
+  }));
+  await check('Missing issue and untrusted CMS text remain harmless text',()=>journey({},async({page,state,goto})=>{
+    const payload='<img src=x onerror="window.__unsafe=true">';state.data.newsletters[0].title_en=payload;
+    await goto('/newsletter/?issue=%3Cscript%3Ebad%3C/script%3E');
+    assert(await page.locator('#newsletterSelectionNotice').isVisible());assert.equal(await page.locator('#latestNewsletter h2').innerText(),payload);
+    assert.equal(await page.locator('#latestNewsletter img').count(),0);assert.equal(await page.evaluate(()=>window.__unsafe),undefined);
+  }));
+  await check('Policy deep links follow the visible language',()=>journey({lang:'es'},async({page,goto})=>{
+    await goto('/privacy/#section-en-3');assert.match(page.url(),/#section-es-3$/);
+    assert(await page.locator('#section-es-3').isVisible());await page.locator('[data-lang="en"]').click();assert.match(page.url(),/#section-en-3$/);
+  }));
+  await check('Clean routes preserve queries and fragments across legacy and directory aliases',()=>journey({},async({page,goto})=>{
+    for(const [route,canonical] of [['/index.html','/'],['/newsletter.html','/newsletter/'],['/admin.html','/admin/'],['/newsletter/index.html','/newsletter/'],['/admin/index.html','/admin/'],['/privacy/index.html','/privacy/'],['/terms/index.html','/terms/'],['/contact/index.html','/contact/'],['/newsletter','/newsletter/'],['/admin','/admin/']]){
+      await goto(route+'?source=browser#anchor');const url=new URL(page.url());assert.equal(url.pathname,canonical);assert.equal(url.search,'?source=browser');assert.equal(url.hash,'#anchor');
+    }
+  }));
+  await check('Without JavaScript: policy translations and mobile navigation remain readable',()=>journey({javascript:false},async({page,goto})=>{
+    await goto('/privacy/');assert(await page.locator('[data-language-content="en"]').isVisible());assert(await page.locator('[data-language-content="es"]').isVisible());
+    assert(await page.locator('#navMenu').isVisible());assert.equal(await page.locator('#menuButton').isVisible(),false);
+  }));
+  await check('Original fonts load locally; the public page makes no font-provider requests',()=>journey({},async({page,state,goto})=>{
+    await goto();const loaded=await page.evaluate(()=>[...document.fonts].filter(f=>f.status==='loaded').map(f=>f.family));
+    assert(loaded.some(f=>f.includes('Inter')));assert(loaded.some(f=>f.includes('Playfair Display')));
+    assert(!state.requests.some(r=>/fonts\.(googleapis|gstatic)\.com/.test(r.url)));
+  }));
+  await check('CSP blocks inline scripts and foreign scripts in the real browser',()=>journey({},async({page,goto})=>{
+    await goto();await page.evaluate(()=>{
+      window.__violations=[];document.addEventListener('securitypolicyviolation',e=>window.__violations.push(e.effectiveDirective));
+      const inline=document.createElement('script');inline.textContent='window.__unsafe=true';document.body.append(inline);
+      const external=document.createElement('script');external.src='https://example.invalid/untrusted.js';document.body.append(external);
+    });
+    await page.waitForFunction(()=>window.__violations.length>=2);assert.equal(await page.evaluate(()=>window.__unsafe),undefined);
+  }));
+  await check('Public pages: both languages/themes pass automated WCAG checks and fit mobile/desktop',async()=>{
+    for(const width of [390,1440])for(const theme of ['light','dark'])for(const lang of ['en','es']) {
+      await journey({viewport:{width,height:900},theme,lang},async({page,goto})=>{
+        for(const route of ['/','/newsletter/','/privacy/','/terms/','/contact/']) {
+          await goto(route);assert.equal(await page.locator('html').getAttribute('lang'),lang);
+          assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),route+' horizontal overflow');
+          await page.evaluate(axe.source);const failures=await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))});
+          assert.deepEqual(failures,[],`${route} ${width} ${theme} ${lang}`);
+        }
+      });
+    }
+  });
+  async function login(p){await p.goto('/admin/');await p.page.locator('#adminEmail').fill('admin@example.test');await p.page.locator('#adminPassword').fill('fixture-password');await p.page.locator('#adminLoginForm button[type="submit"]').click();await p.page.locator('#adminDashboard').waitFor({state:'visible'});}
+  await check('Service publishing: primary validation works when the compatibility script fails to load',()=>journey({},async p=>{
+    await p.context.route('**/admin-service-validation.js?*',route=>route.abort());
+    await login(p);const {page,state}=p;
+    await page.locator('#serviceTimeInput').fill('');await page.locator('#saveServiceButton').click();
+    assert.match(await page.locator('#serviceDraftStatus').innerText(),/valid service time/);
+    assert(!state.requests.some(r=>r.method==='PATCH'));
+    await page.locator('#serviceTimeInput').fill('15:30');state.delay=100;
+    await page.locator('#saveServiceButton').click();assert(await page.locator('#serviceTimeInput').isDisabled());
+    await page.waitForFunction(()=>document.querySelector('#serviceDraftStatus').textContent.startsWith('Published.'));
+    assert.equal(state.data.service_settings[0].service_time,'15:30');assert(!(await page.locator('#serviceTimeInput').isDisabled()));
+  }));
+  await check('Admin: sign-in, keyboard tabs, bilingual editor, save, and private-data cleanup',()=>journey({theme:'dark',viewport:{width:1440,height:900}},async p=>{
+    await login(p);const {page,state}=p;await page.locator('[data-admin-section="service"]').focus();await page.keyboard.press('ArrowRight');
+    assert.equal(await page.locator('[data-admin-section="announcements"]').getAttribute('aria-selected'),'true');
+    await page.locator('[data-announcement-index="0"]').click();await page.locator('#announcementTitleEn').fill('Updated locally');
+    await page.evaluate(axe.source);
+    assert.deepEqual(await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>v.id)}),[],'Authenticated dark announcement editor must have readable tags');
+    await page.locator('.announcement-lang-tab[data-announcement-lang="es"]').click();await page.locator('#announcementTitleEs').fill('Actualizado localmente');
+    await page.locator('#saveAnnouncementButton').click();await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent.startsWith('Saved.'));
+    assert.equal(state.data.announcements[0].title_es,'Actualizado localmente');
+    await page.locator('#signOutButton').click();await page.locator('#adminLoginView').waitFor({state:'visible'});
+    assert.equal(await page.locator('#announcementTitleEn').inputValue(),'');assert.equal(await page.locator('#adminDashboard').isVisible(),false);
+  }));
+  await check('Admin newsletter: optional bilingual sections survive the shared save and publication path',()=>journey({viewport:{width:1440,height:900}},async p=>{
+    await login(p);const {page,state}=p;await page.locator('[data-admin-section="newsletter"]').click();
+    await page.locator('[data-newsletter-id="test-issue-0"]').click();await page.locator('[data-add-optional="custom"]').click();
+    await page.locator('[data-field="title_en"]').fill('Fixture extra');await page.locator('[data-field="title_es"]').fill('Sección de prueba');
+    await page.locator('[data-field="body_en"]').fill('Local test only.');await page.locator('[data-field="body_es"]').fill('Solo prueba local.');
+    await page.locator('#publishButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.startsWith('Published.'));
+    assert.equal(state.data.newsletters[0].optional_sections[0].body_es,'Solo prueba local.');
+    assert.equal(await page.locator('[data-field="body_es"]').inputValue(),'Solo prueba local.');
+  }));
+  await check('Announcement lifecycle: create, save, publish, hide, and confirmed deletion',()=>journey({},async p=>{
+    await login(p);const {page,state}=p;await page.locator('[data-admin-section="announcements"]').click();
+    await page.locator('#addAnnouncementButton').click();const id=await page.locator('#announcementId').inputValue();
+    await page.locator('#announcementTitleEn').fill('Local lifecycle test');await page.locator('#saveAnnouncementButton').click();
+    await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent.startsWith('Saved as hidden.'));
+    assert.equal(state.data.announcements.find(r=>r.id===id).active,false);
+    await page.locator('#toggleAnnouncementVisibilityButton').click();await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent.startsWith('Published.'));
+    assert.equal(state.data.announcements.find(r=>r.id===id).active,true);
+    await page.locator('#toggleAnnouncementVisibilityButton').click();await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent.startsWith('Hidden.'));
+    await page.locator('#deleteAnnouncementButton').click();await page.locator('#announcementEditorForm').waitFor({state:'hidden'});
+    assert(!state.data.announcements.some(r=>r.id===id));assert(await page.locator('#addAnnouncementButton').evaluate(e=>e===document.activeElement));
+  }));
+  await check('Newsletter lifecycle: draft, publish, unpublish, and confirmed deletion',()=>journey({},async p=>{
+    await login(p);const {page,state}=p;await page.locator('[data-admin-section="newsletter"]').click();
+    assert.equal(await page.locator('#newsletterEditorForm').isVisible(),false,'Unselected editor must be hidden');await page.locator('#newNewsletterButton').click();
+    await page.locator('#issueDate').fill('2026-10-25');await page.locator('#saveNewsletterButton').click();
+    await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.startsWith('Saved privately'));
+    assert.equal(state.data.newsletters.find(r=>r.id==='2026-10-25').status,'draft');
+    await page.locator('#publishButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.startsWith('Published.'));
+    assert.equal(state.data.newsletters.find(r=>r.id==='2026-10-25').status,'published');
+    await page.locator('#unpublishNewsletterButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.startsWith('Unpublished.'));
+    const issue=state.data.newsletters.find(r=>r.id==='2026-10-25');assert.equal(issue.status,'ready');assert.equal(issue.published_at,null);
+    await page.locator('#deleteNewsletterButton').click();await page.locator('#newsletterEditorForm').waitFor({state:'hidden'});
+    assert(!state.data.newsletters.some(r=>r.id==='2026-10-25'));assert(await page.locator('#newNewsletterButton').evaluate(e=>e===document.activeElement));
+  }));
+  await check('Cross-tab sign-out clears the other tab’s private editor',()=>journey({},async p=>{
+    await login(p);const other=await p.context.newPage();await other.goto(site.url+'/admin/',{waitUntil:'networkidle'});await other.locator('#adminDashboard').waitFor({state:'visible'});
+    await other.locator('[data-admin-section="newsletter"]').click();await other.locator('[data-newsletter-id="test-issue-0"]').click();
+    await other.locator('#titleEn').fill('Private unsaved fixture');await p.page.locator('#signOutButton').click();
+    await other.locator('#adminLoginView').waitFor({state:'visible'});assert.equal(await other.locator('#titleEn').inputValue(),'');
+  }));
+  const report={checkedAt:new Date().toISOString(),browser:browser.version(),mode:'local site and entirely mocked backend; no production writes',filter:process.env.BROWSER_TEST_FILTER||null,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
+  const output=process.env.BROWSER_REPORT_PATH||path.resolve(__dirname,'../security/local-results/browser-regression.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
+  await browser.close();await site.close();console.log(`${report.passed}/${results.length} browser journeys passed`);if(report.failed)process.exitCode=1;
+})().catch(error=>{console.error(error);process.exit(1)});

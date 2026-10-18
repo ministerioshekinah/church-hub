@@ -27,7 +27,7 @@ const translations = {
     contact_intro: "Questions about the church, your privacy, or accessing this website? Here’s how to reach us and get help.",
     contact_document_title: "Contact & Accessibility | Ministerio Cristiano Shekinah",
     information_updated: "Last updated: October 10, 2026",
-    privacy_updated: "Last updated: October 13, 2026",
+    privacy_updated: "Last updated: October 18, 2026",
     get_directions: "Get directions ↗",
     copy_address: "Copy address",
     address_copied: "Address copied. See you soon!",
@@ -124,7 +124,7 @@ const translations = {
     contact_intro: "¿Tienes preguntas sobre la iglesia, tu privacidad o cómo acceder a este sitio? Aquí encontrarás cómo comunicarte con nosotros y recibir ayuda.",
     contact_document_title: "Contacto y accesibilidad | Ministerio Cristiano Shekinah",
     information_updated: "Última actualización: 10 de octubre de 2026",
-    privacy_updated: "Última actualización: 13 de octubre de 2026",
+    privacy_updated: "Última actualización: 18 de octubre de 2026",
     get_directions: "Cómo llegar ↗",
     copy_address: "Copiar dirección",
     address_copied: "Dirección copiada. ¡Nos vemos pronto!",
@@ -783,6 +783,18 @@ function renderInformationContents() {
   contents.replaceChildren(links);
   const wrap = document.getElementById("informationContentsWrap");
   if (wrap) wrap.hidden = false;
+  // Shared policy links must still land on a visible heading when the visitor
+  // has saved the other language or changes language while reading a section.
+  const section = /^#section-(?:en|es)-(\d+)$/.exec(window.location.hash);
+  if (section) {
+    const heading = document.getElementById(`section-${currentLanguage}-${section[1]}`);
+    if (heading && window.location.hash !== `#${heading.id}`) {
+      try {
+        window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search + `#${heading.id}`);
+        heading.scrollIntoView({ block: "start", behavior: "auto" });
+      } catch { /* The policy remains readable when history changes are blocked. */ }
+    }
+  }
 }
 
 function databaseNewsletterToDisplayIssue(row) {

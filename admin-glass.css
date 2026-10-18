@@ -81,7 +81,7 @@
 [data-theme="dark"] .admin-body .theme-sun { display: none; }
 [data-theme="dark"] .admin-body .theme-moon { display: block; }
 [data-theme="dark"] .admin-body .button-primary { background: linear-gradient(145deg, #d3e4bd, #b4cd98); color: #203218; border-color: #c7dcb0; }
-[data-theme="dark"] .admin-body :is(.status-pill, .administrator-role) { background: #3a4c2f; color: #e1efd5; }
+[data-theme="dark"] .admin-body :is(.status-pill, .tag, .administrator-role) { background: #3a4c2f; color: #e1efd5; }
 [data-theme="dark"] .admin-body .danger-button { background: #4c2b23; border-color: #915e4e; color: #ffd7c9; }
 .admin-body button:disabled { opacity: .6; cursor: default; }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

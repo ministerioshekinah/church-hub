@@ -30,6 +30,9 @@
   button.addEventListener(
     "click",
     async (event) => {
+      // Current bundles own validation and editor locking. Retain this handler
+      // only for compatibility with a cached older admin.js.
+      if (typeof saveServiceChanges === "function") return;
       event.preventDefault();
       event.stopImmediatePropagation();
       const generation = adminSessionVersion;

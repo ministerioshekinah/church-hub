@@ -204,18 +204,18 @@ test('Admin: successful sign-out clears and conceals the password', async () => 
   assert.equal(p.reports.focused, 'adminEmail');
 });
 
-test('CSP: pages allow the original font provider, no inline styles or handlers, and no nested frames', () => {
+test('CSP: pages use local original fonts, no inline styles or handlers, and no nested frames', () => {
   for(const file of ['index.html','newsletter/index.html','admin/index.html','privacy/index.html','terms/index.html','contact/index.html','404.html']) {
     const {document} = parseHTML(read(file));
     const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]').content;
-    assert.match(csp, /style-src 'self' https:\/\/fonts\.googleapis\.com;/);
-    assert.match(csp, /font-src 'self' https:\/\/fonts\.gstatic\.com;/);
+    assert.match(csp, /style-src 'self';/);
+    assert.match(csp, /font-src 'self';/);
     assert(!csp.includes("'unsafe-inline'"));
     assert.match(csp, /frame-src 'none';/);
     assert.match(csp, /script-src-attr 'none';/);
     assert.equal(document.querySelectorAll('style,[style]').length, 0);
-    const fontStylesheet = document.querySelector('link[rel="stylesheet"][href^="https://fonts.googleapis.com/"]');
-    assert.equal(fontStylesheet.href, 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+    assert(document.querySelector('link[rel="stylesheet"][href^="/assets/fonts/fonts.css"]'));
+    assert.equal(document.querySelectorAll('link[href^="https://fonts."]').length, 0);
   }
   assert(!read('administrators.js').includes('createElement("style")'));
 });

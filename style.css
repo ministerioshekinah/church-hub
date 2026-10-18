@@ -1066,7 +1066,8 @@ h1 {
   text-align: center;
 }
 
-.announcement-editor-form.hidden {
+.announcement-editor-form.hidden,
+.newsletter-editor-form.hidden {
   display: none;
 }
 

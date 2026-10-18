@@ -18,7 +18,7 @@ async function page(name = 'index.html', options = {}) {
     requestAnimationFrame:cb=>setTimeout(cb,0), cancelAnimationFrame:clearTimeout,
     scrollTo:opts=>{reports.scrolls.push(opts);browser.scrollY=opts.top;},
     print:()=>{reports.prints++;},
-    history:{pushState:(_,__,url)=>{location.href=url;}},
+    history:{pushState:(_,__,url)=>{location.href=url;},replaceState:(_,__,url)=>{location.href=new URL(url,location).href;}},
     matchMedia:query=>{
       if(!media.has(query)) { const target=document.createElement('media'); media.set(query,{matches:query.includes('reduced-motion')?Boolean(options.reduced):query.includes('color-scheme')?Boolean(options.dark):false,addEventListener:target.addEventListener.bind(target),dispatchEvent:target.dispatchEvent.bind(target)}); }
       return media.get(query);

@@ -130,8 +130,6 @@ test('Admin publishing: saving a live announcement retains the correct visible s
 
 async function servicePage() {
   const p=await page('admin/index.html');
-  const button=p.document.getElementById('saveServiceButton');
-  button.replaceWith(button.cloneNode(true));
   p.run(`authenticatedAdmin={id:'admin'};
     let serviceWrites=0;
     supabaseClient={auth:{getUser:async()=>({data:{user:{id:'admin'}}})},from:()=>({update:()=>{++serviceWrites;return {eq:()=>({select:()=>({maybeSingle:async()=>({data:{id:1}})})})};}})};`);

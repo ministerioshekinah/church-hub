@@ -12,7 +12,7 @@ window.SHEKINAH_SUPABASE = {
 /* Admin-only extensions. They contain no secret credentials. */
 if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
   [
-    "/admin-service-validation.js?v=3.0",
+    "/admin-service-validation.js?v=3.1",
     "/administrators.js?v=1.0"
   ].forEach((src) => {
     const script = document.createElement("script");
@@ -31,7 +31,7 @@ if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
 if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
   window.addEventListener("DOMContentLoaded", () => {
     const script = document.createElement("script");
-    script.src = "/newsletter-extensions.js?v=4.1";
+    script.src = "/newsletter-extensions.js?v=4.2";
     script.async = false;
     document.body.appendChild(script);
   });

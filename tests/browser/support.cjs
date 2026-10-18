@@ -1,0 +1,124 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const http = require('node:http');
+const crypto = require('node:crypto');
+
+const sdkURL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.js';
+let sdkPromise;
+async function sdk() {
+  if (!sdkPromise) sdkPromise = (async () => {
+    let body;
+    if (process.env.SHEKINAH_TEST_SDK_PATH) body = fs.readFileSync(process.env.SHEKINAH_TEST_SDK_PATH);
+    else {
+      const response = await fetch(sdkURL, {signal:AbortSignal.timeout(20000)});
+      if (!response.ok) throw Error(`Could not fetch pinned test SDK: ${response.status}`);
+      body = Buffer.from(await response.arrayBuffer());
+    }
+    const integrity = 'sha384-' + crypto.createHash('sha384').update(body).digest('base64');
+    if (integrity !== 'sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd') throw Error('Test SDK integrity mismatch');
+    return body;
+  })();
+  return sdkPromise;
+}
+
+async function startSite(root = path.resolve(__dirname, '../..')) {
+  const server = http.createServer((req,res) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {res.writeHead(405);res.end();return;}
+    let pathname;
+    try {pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);}
+    catch {res.writeHead(400);res.end();return;}
+    let file = path.resolve(root, '.' + pathname);
+    if (file !== root && !file.startsWith(root + path.sep)) {res.writeHead(403);res.end();return;}
+    if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
+      if (!pathname.endsWith('/')) {res.writeHead(301,{Location:pathname+'/'+new URL(req.url,'http://localhost').search});res.end();return;}
+      file = path.join(file,'index.html');
+    }
+    let status = 200;
+    if (!fs.existsSync(file)) {status=404;file=path.join(root,'404.html');}
+    const types={'.html':'text/html','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.json':'application/json','.woff2':'font/woff2'};
+    res.writeHead(status,{'Content-Type':types[path.extname(file)]||'text/plain'});
+    res.end(req.method==='HEAD'?undefined:fs.readFileSync(file));
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  return {url:'http://127.0.0.1:'+server.address().port,close:()=>new Promise(resolve=>server.close(resolve))};
+}
+
+function contentFixture() {
+  return {
+    service_settings:[{id:1,day_en:'Sunday',day_es:'Domingo',service_label_en:'Sunday Service',service_label_es:'Servicio Dominical',service_time:'15:00:00',address:'2149 W Washington Blvd, Los Angeles, CA 90018'}],
+    announcements:[{id:'test-announcement',active:true,title_en:'Community gathering',title_es:'Reunión comunitaria',description_en:'Everyone is welcome.',description_es:'Todos son bienvenidos.',tag_en:'News',tag_es:'Noticias',sort_order:10}],
+    newsletters:Array.from({length:9},(_,i)=>({id:`test-issue-${i}`,issue_date:`2026-10-${String(18-i).padStart(2,'0')}`,status:'published',published_at:'2026-10-18T00:00:00Z',title_en:i===1?'Celebration':`Community issue ${i+1}`,title_es:i===1?'Celebración':`Boletín ${i+1}`,gathering_en:'Sunday worship.',gathering_es:'Adoración del domingo.',scripture_en:'Weekly scripture.',scripture_es:'Escritura semanal.',community_en:'Community news.',community_es:'Noticias de la comunidad.',optional_sections:[]})),
+    admin_users:[{user_id:'11111111-1111-4111-8111-111111111111',role:'admin'}]
+  };
+}
+
+async function createPage(browser,site,options={}) {
+  const context=await browser.newContext({viewport:options.viewport||{width:390,height:844},reducedMotion:options.motion?'no-preference':'reduce',colorScheme:options.theme||'light',javaScriptEnabled:options.javascript!==false});
+  const state={data:contentFixture(),requests:[],errors:[],offline:false,delay:0};
+  const user={id:'11111111-1111-4111-8111-111111111111',aud:'authenticated',role:'authenticated',email:'admin@example.test',app_metadata:{provider:'email'},user_metadata:{}};
+  const jwt=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,role:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test-signature';
+  await context.addInitScript(({options})=>{
+    if(options.blockStorage) {
+      Storage.prototype.getItem=()=>{throw Error('Storage unavailable')};
+      Storage.prototype.setItem=()=>{throw Error('Storage unavailable')};
+    } else {
+      // Respect changes made by the previous page in this context.
+      if(!localStorage.getItem('ministerioLanguage'))localStorage.setItem('ministerioLanguage',options.lang||'en');
+      if(!localStorage.getItem('ministerioTheme'))localStorage.setItem('ministerioTheme',options.theme||'light');
+      localStorage.setItem('ministerioBackgroundMotion',options.motion?'running':'paused');
+    }
+    window.__testClipboard=[];window.__testPrints=0;
+    Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{if(options.clipboardDenied)throw Error('Denied');window.__testClipboard.push(value)}}});
+    window.print=()=>{window.__testPrints++};
+  },{options});
+  await context.route('**/*',async route=>{
+    const req=route.request(),url=new URL(req.url());
+    state.requests.push({url:req.url(),method:req.method(),body:req.postData()});
+    if(url.origin===site.url)return route.continue();
+    if(req.url()===sdkURL)return route.fulfill({status:200,contentType:'text/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:await sdk()});
+    // Every backend request is fulfilled locally. No church records or accounts
+    // are read or changed by this browser suite, even during save/publish tests.
+    if(url.hostname==='nhzxlsjwsvyimozubbho.supabase.co') {
+      if(state.offline)return route.abort('failed');
+      if(state.delay)await new Promise(resolve=>setTimeout(resolve,state.delay));
+      const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS'};
+      const reply=(body,status=200)=>route.fulfill({status,headers,contentType:'application/json',body:JSON.stringify(body)});
+      if(req.method()==='OPTIONS')return reply({});
+      if(url.pathname==='/auth/v1/token')return reply({access_token:jwt,refresh_token:'test-refresh',expires_in:3600,token_type:'bearer',user});
+      if(url.pathname==='/auth/v1/user')return reply(user);
+      if(url.pathname==='/auth/v1/logout')return route.fulfill({status:204,headers});
+      if(url.pathname==='/functions/v1/admin-users') {
+        const action=JSON.parse(req.postData()||'{}');
+        if(action.action==='list')return reply({admins:[{id:user.id,email:user.email,role:'owner'}]});
+        return reply({error:'This fixture does not perform invitations or role changes.'},400);
+      }
+      if(url.pathname.startsWith('/rest/v1/')) {
+        const table=url.pathname.split('/').at(-1);
+        let rows=state.data[table]||[];
+        const id=url.searchParams.get('id')?.replace(/^eq\./,'');
+        if(['POST','PATCH'].includes(req.method())) {
+          const values=JSON.parse(req.postData()||'{}');
+          const index=rows.findIndex(row=>row.id===(values.id||Number(id)||id));
+          const saved={...(rows[index]||{}),...values};
+          if(index<0)rows.push(saved);else rows[index]=saved;
+          rows=[saved];
+        } else if(req.method()==='DELETE') {
+          const removed=rows.filter(row=>String(row.id)===id);
+          state.data[table]=rows.filter(row=>String(row.id)!==id);rows=removed;
+        } else {
+          rows=rows.filter(row=>(!id||String(row.id)===id)&&(!url.searchParams.has('active')||row.active)&&(!url.searchParams.has('status')||row.status==='published'));
+          if(url.searchParams.has('limit'))rows=rows.slice(0,Number(url.searchParams.get('limit')));
+        }
+        if(req.headers().accept?.includes('application/vnd.pgrst.object'))return reply(rows[0]||null);
+        return reply(rows);
+      }
+      return reply({message:'Unsupported test request'},400);
+    }
+    return route.abort();
+  });
+  const page=await context.newPage();
+  page.on('pageerror',error=>state.errors.push(error.message));
+  page.on('dialog',dialog=>dialog.accept());
+  return {page,state,context,close:()=>context.close(),async goto(route='/'){await page.goto(site.url+route,{waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);}};
+}
+module.exports={startSite,createPage};
