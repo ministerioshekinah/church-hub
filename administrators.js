@@ -104,7 +104,7 @@
       if (generation !== ownerGeneration || version !== listVersion) return;
       console.error("Administrator list failed:", error);
       list.innerHTML = "";
-      status.textContent = "Administrator management is not available yet. Deploy the admin-users Edge Function after applying the role migration.";
+      status.textContent = "Unable to load administrators. Check your connection and select Refresh to try again.";
     }
   }
 

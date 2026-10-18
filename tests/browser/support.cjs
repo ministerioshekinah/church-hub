@@ -113,6 +113,7 @@ async function createPage(browser,site,options={}) {
       if(url.pathname==='/functions/v1/admin-users') {
         const action=JSON.parse(req.postData()||'{}');
         if(state.data.admin_users[0]?.role!=='owner')return reply({error:'Owner access is required.'},403);
+        if(action.action==='list'&&state.listError)return reply({error:state.listError},500);
         if(action.action==='list')return reply({admins:state.adminDirectory});
         if(state.functionError)return reply({error:state.functionError},500);
         // Only local fixture records change. This handler never sends mail or

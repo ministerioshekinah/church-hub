@@ -241,6 +241,13 @@ async function check(name,fn) {
     assert(await page.locator('#refreshAdministratorsButton').evaluate(e=>e===document.activeElement));
     await page.locator('#refreshAdministratorsButton').click();await self.waitFor();
   }));
+  await check('Owner list recovery: a transient failure gives a usable refresh path',()=>journey({owner:true},async p=>{
+    await login(p);const {page,state}=p;await page.locator('#administratorsTab').click();await page.locator('.administrator-item').first().waitFor();
+    state.listError='Local fixture connection error';await page.locator('#refreshAdministratorsButton').click();await page.waitForFunction(()=>document.querySelector('#administratorList').children.length===0);
+    assert.match(await page.locator('#administratorListStatus').innerText(),/Refresh.*try again/);
+    assert(await page.locator('#refreshAdministratorsButton').isEnabled());state.listError=null;await page.locator('#refreshAdministratorsButton').click();await page.locator('.administrator-item').first().waitFor();
+    assert.equal(await page.locator('.administrator-item').count(),2);assert.match(await page.locator('#administratorListStatus').innerText(),/2 administrators/);
+  }));
   await check('Owner invitation failure: email is retained, retry succeeds, and sign-out clears the list',()=>journey({owner:true},async p=>{
     await login(p);const {page,state}=p;await page.locator('#administratorsTab').click();
     await page.locator('.administrator-item').first().waitFor();state.functionError='Local fixture failure';

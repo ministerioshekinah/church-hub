@@ -1,0 +1,3 @@
+# Preserve upstream SDK bytes exactly: its SRI and provenance include original
+# line endings and whitespace. Keep normal text diffs available for review.
+/assets/vendor/supabase-2.112.2.js -text -whitespace
