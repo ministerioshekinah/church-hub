@@ -18,6 +18,13 @@ body { background: white !important; color: #111 !important; }
 .newsletter-section { border-color: #bbb !important; }
 .newsletter-important-banner { background: #f3f3f3 !important; border-color: #bbb !important; }
 .newsletter-important-banner :is(p, h3, span) { color: #111 !important; }
+/* Dark screen surfaces must not survive beneath black printed text. */
+.full-newsletter .tag, .information-note, .information-content .button {
+  background: #f3f3f3 !important;
+  color: #111 !important;
+  border-color: #bbb !important;
+  box-shadow: none !important;
+}
 h1, h2, h3 { break-after: avoid; }
 p { orphans: 3; widows: 3; }
 .newsletter-section { break-inside: auto; }

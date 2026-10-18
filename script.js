@@ -47,7 +47,7 @@ const translations = {
     showing_issues: "Showing {shown} of {total} issues",
     copy_issue_link: "Copy issue link",
     link_copied: "Issue link copied.",
-    copy_link_unavailable: "Copy the link from your browser’s address bar.",
+    copy_link_unavailable: "Copy this link:",
     print_issue: "Print newsletter",
     newsletter_tools: "Newsletter tools",
     on_this_page: "On this page",
@@ -144,7 +144,7 @@ const translations = {
     showing_issues: "Mostrando {shown} de {total} boletines",
     copy_issue_link: "Copiar enlace",
     link_copied: "Enlace del boletín copiado.",
-    copy_link_unavailable: "Copia el enlace desde la barra de direcciones de tu navegador.",
+    copy_link_unavailable: "Copia este enlace:",
     print_issue: "Imprimir boletín",
     newsletter_tools: "Herramientas del boletín",
     on_this_page: "En esta página",
@@ -209,6 +209,8 @@ let cachedHomepageIssue = null;
 let archiveVisibleLimit = 6;
 let previousArchiveQuery = "";
 const publicLoadState = { service: "idle", announcements: "idle", newsletters: "idle", preview: "idle" };
+const publicRetryFocus = new Map();
+const publicRetryTargets = { serviceRetry: "services", announcementsRetry: "announcementList", newsletterRetry: "latestNewsletter" };
 
 function publicConfigReady() {
   const cfg = window.SHEKINAH_SUPABASE;
@@ -263,6 +265,10 @@ function applyLanguage(language) {
     const key = element.getAttribute("data-i18n");
     const translated = translations[safeLanguage]?.[key];
     if (translated) element.textContent = translated;
+  });
+  Object.keys(publicRetryTargets).forEach((id) => {
+    const button = document.getElementById(id);
+    if (button?.disabled) button.textContent = translations[safeLanguage].loading;
   });
 
   // Keep complete policy text and its links available without HTML injection.
@@ -534,8 +540,20 @@ async function loadAnnouncements() {
 function setPublicBusy(id, busy) {
   const button = document.getElementById(id);
   if (!button) return;
+  if (busy) publicRetryFocus.set(id, document.activeElement === button);
   button.disabled = busy;
   button.textContent = translations[currentLanguage][busy ? "loading" : "retry"];
+  if (!busy) {
+    const hadFocus = publicRetryFocus.get(id);
+    publicRetryFocus.delete(id);
+    // A successful retry hides its control. Keep keyboard users at the
+    // recovered content without moving focus away from another chosen control.
+    if (hadFocus && (document.activeElement === document.body || document.activeElement === button)) {
+      const target = button.hidden ? document.getElementById(publicRetryTargets[id]) : button;
+      if (target && target !== button) target.setAttribute("tabindex", "-1");
+      target?.focus({ preventScroll: true });
+    }
+  }
 }
 
 function renderAnnouncementError() {
@@ -954,9 +972,19 @@ function initializePublicInteractions() {
     url.searchParams.set("issue", id);
     try {
       await navigator.clipboard.writeText(url.href);
-      if (status) status.textContent = translations[currentLanguage].link_copied;
+      if (status && document.getElementById("latestNewsletter")?.dataset.issueId === id) {
+        status.textContent = translations[currentLanguage].link_copied;
+      }
     } catch {
-      if (status) status.textContent = translations[currentLanguage].copy_link_unavailable;
+      // A missing deep link may display a different, available issue. Offer
+      // that issue's exact URL instead of the stale browser address, and do
+      // not attach an old clipboard result to a newly selected issue.
+      if (status && document.getElementById("latestNewsletter")?.dataset.issueId === id) {
+        const link = document.createElement("a");
+        link.setAttribute("href", url.href);
+        link.textContent = url.href;
+        status.replaceChildren(document.createTextNode(translations[currentLanguage].copy_link_unavailable + " "), link);
+      }
     }
   });
   const header = document.querySelector(".site-header");

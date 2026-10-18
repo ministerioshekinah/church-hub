@@ -588,6 +588,7 @@ main :is(section[id], [id][tabindex="-1"]) { scroll-margin-top: 126px; }
 .utility-button:active { transform: scale(.97); }
 .tool-status { color: var(--glass-muted); font-size: .8rem; margin: 0 0 12px; }
 .tool-status:empty { display: none; }
+.tool-status a { overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: .2em; }
 .selection-notice { padding: 14px 18px; border: 1px solid var(--glass-edge); border-radius: 16px; background: #91ac7815; color: var(--glass-muted); font-size: .86rem; }
 .full-newsletter { border-radius: 32px; padding: clamp(26px, 4vw, 46px); }
 .full-newsletter h2 { font-size: clamp(1.9rem, 3.8vw, 2.7rem); line-height: 1.15; text-wrap: balance; letter-spacing: -.04em; }

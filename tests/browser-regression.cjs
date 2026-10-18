@@ -75,6 +75,49 @@ async function check(name,fn) {
     assert(await page.locator('#newsletterSelectionNotice').isVisible());assert.equal(await page.locator('#latestNewsletter h2').innerText(),payload);
     assert.equal(await page.locator('#latestNewsletter img').count(),0);assert.equal(await page.evaluate(()=>window.__unsafe),undefined);
   }));
+  await check('Sharing fallback: the displayed issue has a usable, wrapping bilingual link',async()=>{
+    for(const lang of ['en','es'])for(const theme of ['light','dark'])await journey({lang,theme,clipboardDenied:true,viewport:{width:320,height:900}},async({page,state,goto})=>{
+      state.data.newsletters[0].id='a-long-issue-'+ 'x'.repeat(150);
+      await goto('/newsletter/?issue=missing&tracking=discard#old');await page.locator('#copyNewsletterLink').click();
+      const link=page.locator('#newsletterToolStatus a');await link.waitFor();
+      const url=new URL(await link.getAttribute('href'));
+      assert.equal(url.searchParams.get('issue'),state.data.newsletters[0].id);assert.equal(url.searchParams.size,1);assert.equal(url.hash,'');
+      assert.equal(await link.innerText(),url.href);assert.match(await page.locator('#newsletterToolStatus').innerText(),lang==='es'?/Copia este enlace/:/Copy this link/);
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'fallback must wrap on a narrow screen');
+      await link.focus();assert(await link.evaluate(e=>e===document.activeElement));
+      await page.evaluate(axe.source);const violations=await page.evaluate(async()=>{const r=await axe.run('#newsletterToolStatus',{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}});return r.violations.map(v=>v.id)});assert.deepEqual(violations,[]);
+    });
+  });
+  await check('Sharing completion cannot announce a different selected issue',()=>journey({},async({page,goto})=>{
+    await goto('/newsletter/');await page.evaluate(()=>{navigator.clipboard.writeText=()=>new Promise(resolve=>{window.finishCopy=resolve})});
+    await page.locator('#copyNewsletterLink').click();await page.locator('.archive-item').first().click();
+    await page.evaluate(()=>window.finishCopy());assert.equal(await page.locator('#newsletterToolStatus').innerText(),'');
+  }));
+  await check('Print layouts retain readable text in both languages and themes',async()=>{
+    for(const lang of ['en','es'])for(const theme of ['light','dark'])await journey({lang,theme,viewport:{width:1100,height:900}},async({page,goto})=>{
+      for(const route of ['/newsletter/','/privacy/','/terms/','/contact/']){
+        await goto(route);await page.emulateMedia({media:'print'});assert(await page.locator('.site-header').isHidden());
+        assert(await page.locator('main h1').isVisible());
+        if(route!=='/newsletter/'){assert(await page.locator(`[data-language-content="${lang}"]`).isVisible());assert(await page.locator(`[data-language-content="${lang==='en'?'es':'en'}"]`).isHidden());}
+        await page.evaluate(axe.source);const violations=await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}});return r.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))});assert.deepEqual(violations,[],`${route} ${lang} ${theme} print`);
+        await page.emulateMedia({media:'screen'});
+      }
+    });
+  });
+  for(const [route,retry,target] of [['/','serviceRetry','services'],['/','announcementsRetry','announcementList'],['/newsletter/','newsletterRetry','latestNewsletter']]){
+    await check(`Retry keyboard recovery: ${retry} returns focus to loaded content`,()=>journey({},async({page,state,goto})=>{
+      state.offline=true;await goto(route);const button=page.locator('#'+retry);await button.focus();state.offline=false;state.delay=200;await page.keyboard.press('Enter');
+      await button.waitFor({state:'hidden'});assert(await page.locator('#'+target).evaluate(e=>e===document.activeElement),'focus must reach the recovered content');
+    }));
+  }
+  await check('Retry keyboard recovery: failures remain retryable without stealing chosen focus',()=>journey({},async({page,state,goto})=>{
+    state.offline=true;await goto('/newsletter/');const button=page.locator('#newsletterRetry');await button.focus();await page.keyboard.press('Enter');
+    await page.waitForFunction(()=>!document.querySelector('#newsletterRetry').disabled);assert(await button.evaluate(e=>e===document.activeElement));
+    state.offline=false;state.delay=500;await page.keyboard.press('Enter');await page.locator('[data-lang="es"]').focus();await page.keyboard.press('Enter');
+    assert.equal(await button.innerText(),'Cargando…');await button.waitFor({state:'hidden'});
+    assert(await page.locator('[data-lang="es"]').evaluate(e=>e===document.activeElement),'a completed retry must preserve the new focus choice');
+    assert.equal(await page.locator('html').getAttribute('lang'),'es');assert.match(await page.locator('#latestNewsletter h2').innerText(),/Boletín/);
+  }));
   await check('Policy deep links follow the visible language',()=>journey({lang:'es'},async({page,goto})=>{
     await goto('/privacy/#section-en-3');assert.match(page.url(),/#section-es-3$/);
     assert(await page.locator('#section-es-3').isVisible());await page.locator('[data-lang="en"]').click();assert.match(page.url(),/#section-en-3$/);

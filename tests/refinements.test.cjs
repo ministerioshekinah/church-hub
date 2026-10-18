@@ -86,7 +86,7 @@ test('Newsletter: copy link uses the selected issue and excludes unrelated URL p
 test('Newsletter: clipboard denial offers a useful fallback and print stays usable', async () => {
   const p = await page('newsletter/index.html', {issues, clipboardDenied:true});
   click(p, p.document.getElementById('copyNewsletterLink')); await settle();
-  assert.match(p.document.getElementById('newsletterToolStatus').textContent, /address bar/);
+  assert.equal(p.document.querySelector('#newsletterToolStatus a').href, 'https://mcshekinah.org/newsletter/?issue=new');
   click(p, p.document.getElementById('printNewsletter'));
   assert.equal(p.reports.prints, 1);
 });
