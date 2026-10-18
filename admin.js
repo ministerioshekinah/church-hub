@@ -45,7 +45,9 @@ async function runEditorAction(section, button, status, busyText, action) {
       } else if (section === "newsletter" && (selectedNewsletterId || selectedNewsletterIsNew)) {
         updateNewsletterStatusUI(document.getElementById("issueStatus").value);
       }
-      if (generation === adminSessionVersion && hadFocus && document.activeElement === document.body && panel.classList.contains("active") && dashboard.classList.contains("visible")) {
+      // WebKit may retain focus on the button until the now-hidden editor is
+      // laid out. Restore that focus too, without taking it from another control.
+      if (generation === adminSessionVersion && hadFocus && (document.activeElement === document.body || document.activeElement === button) && panel.classList.contains("active") && dashboard.classList.contains("visible")) {
         let focusTarget = button;
         if (section !== "service") {
           const editor = document.getElementById(section === "announcements" ? "announcementEditorForm" : "newsletterEditorForm");

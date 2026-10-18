@@ -167,6 +167,11 @@ async function createPage(browser,site,options={}) {
   page.on('requestfailed',request=>state.failedRequests.push({url:request.url(),error:request.failure()?.errorText}));
   page.on('console',message=>{if(message.type()==='error')state.consoleErrors.push(message.text());});
   page.on('dialog',dialog=>dialog.accept());
-  return {page,state,context,close:()=>context.close(),async goto(route='/'){await page.goto(site.url+route,{waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);}};
+  return {page,state,context,close:()=>context.close(),async goto(route='/'){
+    await page.goto(site.url+route,{waitUntil:'networkidle'});
+    // A no-JavaScript journey must not depend on an evaluated promise (which
+    // Firefox cannot settle in that context). Other journeys have a bounded wait.
+    if(options.javascript!==false)await page.waitForFunction(()=>document.fonts.status==='loaded');
+  }};
 }
 module.exports={startSite,createPage};

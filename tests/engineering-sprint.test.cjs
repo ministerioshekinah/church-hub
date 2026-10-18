@@ -151,6 +151,19 @@ test('Editor session: an old request cannot unlock a newer signed-in operation',
   assert.equal(p.document.getElementById('saveAnnouncementButton').disabled,false);
 });
 
+for(const moveFocus of [false,true])test(`Editor focus: ${moveFocus?'a different focused control is preserved':'a hidden button retaining focus returns to the new-item control'}`,async()=>{
+  const p=await admin();
+  p.document.getElementById('adminDashboard').classList.add('visible');
+  p.document.querySelector('[data-admin-panel="announcements"]').classList.add('active');
+  const button=p.document.getElementById('deleteAnnouncementButton');
+  Object.defineProperty(p.document,'activeElement',{value:button,writable:true,configurable:true});
+  p.run(`let finishFocusAction;runEditorAction('announcements',document.getElementById('deleteAnnouncementButton'),document.getElementById('announcementDraftStatus'),'Deleting…',()=>new Promise(resolve=>{finishFocusAction=()=>{resetAnnouncementEditor();resolve();};}));`);
+  if(moveFocus)p.document.activeElement=p.document.getElementById('signOutButton');
+  p.run('finishFocusAction()');await settle();
+  if(moveFocus)assert.notEqual(p.reports.focused,'addAnnouncementButton');
+  else assert.equal(p.reports.focused,'addAnnouncementButton');
+});
+
 test('Service publishing: the primary bundle rejects zero-row updates without the compatibility extension', async () => {
   const p=await admin();
   p.document.getElementById('serviceTimeInput').value='15:00';
