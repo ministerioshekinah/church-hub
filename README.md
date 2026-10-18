@@ -150,6 +150,8 @@ For rendered browser checks, run `npx playwright install --with-deps chromium` o
 
 The browser fixture also requires OpenSSL. It generates an ephemeral localhost certificate, removes the temporary key files, and serves HTTPS so the production CSP's upgrade rules behave consistently across engines. The test context trusts that loopback certificate; it does not validate the production certificate. CSP and SDK integrity checks remain enabled.
 
+`npm run security:transport` performs six serial TLS handshakes to the public apex/www website endpoints, with public trust roots, SNI, hostname and expiry validation. It records certificate details, negotiated ciphers, and whether obsolete TLS versions receive a protocol rejection. It sends no HTTP requests and does not enumerate ciphers or ports. The separate Public TLS Verification workflow runs when this probe changes or on manual dispatch; a failed client/network handshake is reported as inconclusive, never as proof of server rejection.
+
 `npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
 
 For an existing production project, apply the audit-trigger migration first, deploy the frontend with explicit column lists, and then apply the author-column restriction migration. Do not replay historical migrations. The two new filenames match the versions recorded by the controlled production deployment. Reload an admin tab opened before the rollout so it uses the new query column lists.

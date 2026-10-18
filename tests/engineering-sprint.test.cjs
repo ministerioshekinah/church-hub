@@ -8,11 +8,11 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 async function admin() {
   const p = await page('admin/index.html');
   p.browser.confirm = () => true;
-  p.run(`authenticatedAdmin={id:'test-admin'};
-    adminAnnouncements=[{id:'a',active:false,title_en:'A',title_es:'A'},{id:'b',active:false,title_en:'B',title_es:'B'}];
+  p.run(`authenticatedAdmin={id:'test-admin'}; serviceVersion='2026-10-18T00:00:00.123456+00:00';
+    adminAnnouncements=[{id:'a',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false,title_en:'A',title_es:'A'},{id:'b',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false,title_en:'B',title_es:'B'}];
     selectAnnouncement(0);
-    adminNewsletters=[{id:'a',issue_date:'2026-10-11',status:'draft',title_en:'A',title_es:'A'},
-      {id:'b',issue_date:'2026-10-18',status:'draft',title_en:'B',title_es:'B'}];
+    adminNewsletters=[{id:'a',updated_at:'2026-10-18T00:00:00.123456+00:00',issue_date:'2026-10-11',status:'draft',title_en:'A',title_es:'A'},
+      {id:'b',updated_at:'2026-10-18T00:00:00.123456+00:00',issue_date:'2026-10-18',status:'draft',title_en:'B',title_es:'B'}];
     selectNewsletter('a');`);
   return p;
 }
@@ -57,7 +57,7 @@ test('Information: unrecognized section hashes cannot create redirects or select
 
 test('Announcement deletion: a delayed response removes its captured ID and preserves another selection', async () => {
   const p = await admin();
-  p.run(`let finishDelete;supabaseClient={from:()=>({delete:()=>({eq:()=>({select:()=>({maybeSingle:()=>new Promise(r=>{finishDelete=r})})})})})};`);
+  p.run(`let finishDelete;supabaseClient=contentClient(()=>new Promise(r=>{finishDelete=r}));`);
   click(p,p.document.getElementById('deleteAnnouncementButton'));
   assert.equal(p.document.getElementById('announcementTitleEn').disabled,true);
   p.run(`selectAnnouncement(1);finishDelete({data:{id:'a'},error:null});`);
@@ -73,7 +73,7 @@ for (const kind of ['Announcement','Newsletter']) {
   const statusId=kind==='Announcement'?'announcementDraftStatus':'draftStatus';
   test(`${kind} deletion: a zero-row response cannot report success or remove local content`, async () => {
     const p=await admin();
-    p.run(`supabaseClient={from:()=>({delete:()=>({eq:()=>({select:()=>({maybeSingle:async()=>({data:null,error:null})})})})})};`);
+    p.run(`supabaseClient=contentClient(async()=>({data:null,error:null}));`);
     click(p,p.document.getElementById(`delete${kind}Button`));await settle();
     assert.equal(p.run(kind==='Announcement'?'adminAnnouncements.length':'adminNewsletters.length'),2);
     assert.match(p.document.getElementById(statusId).textContent,/not deleted/);
@@ -96,14 +96,14 @@ test('Announcement actions: save and publish cannot overlap while a request is p
   click(p,p.document.getElementById('toggleAnnouncementVisibilityButton'));
   assert.equal(p.run('requests'),1);
   assert.equal(p.document.getElementById('addAnnouncementButton').disabled,true);
-  p.run(`finishSave({data:{id:'a',active:false},error:null});`);await settle();
+  p.run(`finishSave({data:{id:'a',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false},error:null});`);await settle();
   assert.equal(p.document.getElementById('addAnnouncementButton').disabled,false);
   assert.equal(p.document.getElementById('announcementTitleEn').disabled,false);
 });
 
 test('Announcement save: a late response cannot replace a different open draft', async () => {
   const p=await admin();
-  p.run(`let finishSave;supabaseClient=contentClient(()=>new Promise(r=>{finishSave=r}));let result;saveAnnouncement().then(r=>{result=r});selectAnnouncement(1);finishSave({data:{id:'a',active:false}});`);
+  p.run(`let finishSave;supabaseClient=contentClient(()=>new Promise(r=>{finishSave=r}));let result;saveAnnouncement().then(r=>{result=r});selectAnnouncement(1);finishSave({data:{id:'a',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false}});`);
   await settle();
   assert.equal(p.run('result'),null);
   assert.equal(p.document.getElementById('announcementTitleEn').value,'B');
@@ -111,7 +111,7 @@ test('Announcement save: a late response cannot replace a different open draft',
 
 test('Newsletter deletion: a late response preserves another open issue', async () => {
   const p=await admin();
-  p.run(`let finishDelete;supabaseClient={from:()=>({delete:()=>({eq:()=>({select:()=>({maybeSingle:()=>new Promise(r=>{finishDelete=r})})})})})};`);
+  p.run(`let finishDelete;supabaseClient=contentClient(()=>new Promise(r=>{finishDelete=r}));`);
   click(p,p.document.getElementById('deleteNewsletterButton'));
   p.run(`selectNewsletter('b');finishDelete({data:{id:'a'},error:null});`);await settle();
   assert.equal(p.run('selectedNewsletterId'),'b');
@@ -142,12 +142,12 @@ test('Editor session: an old request cannot unlock a newer signed-in operation',
   const p=await admin();
   p.run(`let completions=[];supabaseClient=contentClient(()=>new Promise(r=>completions.push(r)));`);
   click(p,p.document.getElementById('saveAnnouncementButton'));
-  p.run(`showLogin();authenticatedAdmin={id:'second-admin'};adminAnnouncements=[{id:'b',active:false,title_en:'B',title_es:'B'}];selectAnnouncement(0);`);
+  p.run(`showLogin();authenticatedAdmin={id:'second-admin'};adminAnnouncements=[{id:'b',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false,title_en:'B',title_es:'B'}];selectAnnouncement(0);`);
   click(p,p.document.getElementById('saveAnnouncementButton'));
-  p.run(`completions[0]({data:{id:'a',active:false}});`);await settle();
+  p.run(`completions[0]({data:{id:'a',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false}});`);await settle();
   assert.equal(p.document.getElementById('saveAnnouncementButton').disabled,true);
   assert.equal(p.document.getElementById('announcementTitleEn').value,'B');
-  p.run(`completions[1]({data:{id:'b',active:false}});`);await settle();
+  p.run(`completions[1]({data:{id:'b',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false}});`);await settle();
   assert.equal(p.document.getElementById('saveAnnouncementButton').disabled,false);
 });
 
@@ -167,15 +167,15 @@ for(const moveFocus of [false,true])test(`Editor focus: ${moveFocus?'a different
 test('Service publishing: the primary bundle rejects zero-row updates without the compatibility extension', async () => {
   const p=await admin();
   p.document.getElementById('serviceTimeInput').value='15:00';
-  p.run(`supabaseClient={auth:{getUser:async()=>({data:{user:{id:'test-admin'}}})},from:()=>({update:()=>({eq:()=>({select:()=>({maybeSingle:async()=>({data:null,error:null})})})})})};`);
+  p.run(`supabaseClient=Object.assign(contentClient(async()=>({data:null,error:null})),{auth:{getUser:async()=>({data:{user:{id:'test-admin'}}})}});`);
   click(p,p.document.getElementById('saveServiceButton'));await settle();
-  assert.match(p.document.getElementById('serviceDraftStatus').textContent,/row was not updated/);
+  assert.match(p.document.getElementById('serviceDraftStatus').textContent,/changed or no longer exists/);
   assert.equal(p.document.getElementById('serviceTimeInput').disabled,false);
 });
 
 test('Service publishing: repeated clicks share one operation and preserve the captured form', async () => {
   const p=await admin();p.document.getElementById('serviceTimeInput').value='15:00';
-  p.run(`let finishService,payload,writes=0;supabaseClient={auth:{getUser:async()=>({data:{user:{id:'test-admin'}}})},from:()=>({update:value=>{writes++;payload=value;return {eq:()=>({select:()=>({maybeSingle:()=>new Promise(r=>{finishService=r})})})}}})};`);
+  p.run(`let finishService,payload,writes=0;supabaseClient=Object.assign(contentClient(({payload:value})=>{writes++;payload=value;return new Promise(r=>{finishService=r})}),{auth:{getUser:async()=>({data:{user:{id:'test-admin'}}})}});`);
   click(p,p.document.getElementById('saveServiceButton'));await settle();
   click(p,p.document.getElementById('saveServiceButton'));
   assert.equal(p.run('writes'),1);assert.equal(p.document.getElementById('serviceTimeInput').disabled,true);
@@ -187,9 +187,9 @@ test('Service publishing: repeated clicks share one operation and preserve the c
 
 test('Service publishing: an old completion cannot unlock the next authenticated save', async () => {
   const p=await admin();p.document.getElementById('serviceTimeInput').value='15:00';
-  p.run(`let finishes=[];supabaseClient={auth:{getUser:async()=>({data:{user:{id:authenticatedAdmin.id}}})},from:()=>({update:()=>({eq:()=>({select:()=>({maybeSingle:()=>new Promise(r=>finishes.push(r))})})})})};`);
+  p.run(`let finishes=[];supabaseClient=Object.assign(contentClient(()=>new Promise(r=>finishes.push(r))),{auth:{getUser:async()=>({data:{user:{id:authenticatedAdmin.id}}})}});`);
   click(p,p.document.getElementById('saveServiceButton'));await settle();
-  p.run(`showLogin();authenticatedAdmin={id:'second-admin'}`);p.document.getElementById('serviceTimeInput').value='16:00';
+  p.run(`showLogin();authenticatedAdmin={id:'second-admin'};serviceVersion='2026-10-18T01:00:00+00:00'`);p.document.getElementById('serviceTimeInput').value='16:00';
   click(p,p.document.getElementById('saveServiceButton'));await settle();
   p.run(`finishes[0]({data:{id:1}})`);await settle();
   assert.equal(p.document.getElementById('saveServiceButton').disabled,true);

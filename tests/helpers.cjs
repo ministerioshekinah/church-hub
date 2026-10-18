@@ -35,8 +35,12 @@ async function page(name = 'index.html', options = {}) {
   const ctx=vm.createContext({window:browser,document,Element,localStorage,navigator:{clipboard:{writeText:async value=>{if(options.clipboardDenied)throw Error('denied');reports.clipboard.push(value);}}},fetch,URL,URLSearchParams,AbortController,setTimeout,clearTimeout,console:{error:(...args)=>reports.errors.push(args),info(){}}});
   const run=code=>vm.runInContext(code,ctx);
   run(`function contentClient(write) {
-    const query=(table,operation,payload,id)=>({select:()=>({single:()=>write({table,operation,payload,id})})});
-    return {from:table=>({insert:payload=>query(table,'insert',payload,payload.id),update:payload=>({eq:(_,id)=>query(table,'update',payload,id)})})};
+    const query=(table,operation,payload)=>{
+      const filters={};
+      const complete=()=>write({table,operation,payload,id:filters.id??payload?.id,filters});
+      return {eq(key,value){filters[key]=value;return this},select(){return this},single:complete,maybeSingle:complete};
+    };
+    return {from:table=>({insert:payload=>query(table,'insert',payload),update:payload=>query(table,'update',payload),delete:()=>query(table,'delete')})};
   }`);
   if(name==='admin/index.html') {run(read('theme.js'));run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));}
   else {run(read('theme.js'));run(read('supabase-config.js'));run(read('script.js'));if(name==='newsletter/index.html')run(read('newsletter-extensions.js'));}

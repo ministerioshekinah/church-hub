@@ -245,6 +245,51 @@ async function check(name,fn) {
     await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent&&document.querySelector('[data-admin-panel="announcements"]').getAttribute('aria-busy')==='false');
     assert.equal(state.data.announcements.length,0);assert.match(await page.locator('#announcementDraftStatus').innerText(),/Could not save/);
   }));
+  await check('Admin accessibility: increased text spacing keeps the narrow announcement filter usable',()=>journey({viewport:{width:320,height:900}},async p=>{
+    await p.context.route('**/__text-spacing.css',route=>route.fulfill({contentType:'text/css',body:'*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}p{margin-bottom:2em!important}'}));
+    await login(p);const {page}=p;await page.locator('[data-admin-section="announcements"]').click();
+    await page.evaluate(()=>{const link=document.createElement('link');link.rel='stylesheet';link.href='/__text-spacing.css';document.head.append(link)});
+    await page.waitForFunction(()=>[...document.styleSheets].some(s=>s.href?.endsWith('/__text-spacing.css')));
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    const box=await page.locator('#announcementFilter').boundingBox();assert(box.x>=0&&box.x+box.width<=320);
+    await page.locator('#announcementFilter').selectOption('hidden');assert.equal(await page.locator('#announcementCount').innerText(),'0 announcements');
+    await page.locator('#announcementFilter').selectOption('active');assert.equal(await page.locator('#announcementCount').innerText(),'1 announcement');
+  }));
+  await check('Admin accessibility: reduced motion brings keyboard-focused fields into view immediately',()=>journey({viewport:{width:844,height:320}},async p=>{
+    await login(p);const {page}=p;await page.locator('#serviceMessageEs').focus();
+    const field=await page.locator('#serviceMessageEs').boundingBox();assert(field.y>=0&&field.y+field.height<=320);
+    assert(await page.locator('#serviceMessageEs').evaluate(e=>e===document.activeElement));
+    await page.locator('#serviceDraftStatus').evaluate(e=>{e.textContent='Test announcement'});
+    assert.equal(await page.locator('#serviceDraftStatus').getAttribute('role'),'status');
+  }));
+  for (const editor of [
+    {section:'service',table:'service_settings',field:'#serviceLabelEn',save:'#saveServiceButton',status:'#serviceDraftStatus',key:'service_label_en'},
+    {section:'announcements',table:'announcements',select:'[data-announcement-index="0"]',field:'#announcementTitleEn',save:'#saveAnnouncementButton',status:'#announcementDraftStatus',key:'title_en'},
+    {section:'newsletter',table:'newsletters',select:'[data-newsletter-id="test-issue-0"]',field:'#titleEn',save:'#saveNewsletterButton',status:'#draftStatus',key:'title_en'}
+  ]) await check(`Concurrent edit: ${editor.section} preserves both the newer record and the unsaved draft`,()=>journey({},async p=>{
+    await login(p);const {page,state}=p;await page.locator(`[data-admin-section="${editor.section}"]`).click();
+    if(editor.select)await page.locator(editor.select).click();
+    await page.locator(editor.field).fill('My unsaved draft');
+    state.data[editor.table][0][editor.key]='Saved by another session';
+    state.data[editor.table][0].updated_at='2026-10-18T00:00:00.123457+00:00';
+    await page.locator(editor.save).click();
+    await page.waitForFunction(({section,status})=>document.querySelector(status).textContent&&document.querySelector(`[data-admin-panel="${section}"]`).getAttribute('aria-busy')==='false',editor);
+    assert.equal(state.data[editor.table][0][editor.key],'Saved by another session');
+    assert.equal(await page.locator(editor.field).inputValue(),'My unsaved draft');
+    assert.match(await page.locator(editor.status).innerText(),/changed|no longer exists/);
+    assert(await page.locator(editor.save).isEnabled());
+  }));
+  for (const editor of [
+    {section:'announcements',table:'announcements',select:'[data-announcement-index="0"]',button:'#deleteAnnouncementButton',status:'#announcementDraftStatus'},
+    {section:'newsletter',table:'newsletters',select:'[data-newsletter-id="test-issue-0"]',button:'#deleteNewsletterButton',status:'#draftStatus'}
+  ]) await check(`Concurrent deletion: ${editor.section} cannot delete a version the editor has not seen`,()=>journey({},async p=>{
+    await login(p);const {page,state}=p;await page.locator(`[data-admin-section="${editor.section}"]`).click();await page.locator(editor.select).click();
+    const row=state.data[editor.table][0];row.title_en='Newer version';row.updated_at='2026-10-18T00:00:00.123457+00:00';
+    await page.locator(editor.button).click();
+    await page.waitForFunction(({section})=>document.querySelector(`[data-admin-panel="${section}"]`).getAttribute('aria-busy')==='false',editor);
+    assert(state.data[editor.table].some(item=>item.id===row.id&&item.title_en==='Newer version'));
+    assert.match(await page.locator(editor.status).innerText(),/changed|no longer exists/);
+  }));
   const report={checkedAt:new Date().toISOString(),engine,browser:browser.version(),mode:'local site and entirely mocked backend; no production writes',filter:process.env.BROWSER_TEST_FILTER||null,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
   const output=process.env.BROWSER_REPORT_PATH||path.resolve(__dirname,'../security/local-results/browser-regression.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
   await browser.close();await site.close();console.log(`${report.passed}/${results.length} browser journeys passed`);if(report.failed)process.exitCode=1;

@@ -22,7 +22,17 @@ let authenticatedAdmin = null;
 let adminSessionVersion = 0;
 let adminAnnouncements = [];
 let selectedAnnouncementIndex = null;
+let selectedAnnouncementVersion = null;
+let serviceVersion = null;
 const editorOperations = new Map();
+
+const contentConflictMessage = "This content changed or no longer exists. Your draft is still here. Copy your changes, then reload this page to review the latest version.";
+
+function requireEditorVersion(version, status) {
+  if (typeof version === "string" && version.length > 0) return true;
+  status.textContent = "The saved version could not be verified. Copy your draft, then reload this page before trying again.";
+  return false;
+}
 
 // A save/publish/delete is one operation per editor. Keep its inputs stable and
 // always release controls, including when the network throws or the user signs out.
@@ -91,6 +101,7 @@ function showLogin() {
   ++adminSessionVersion;
   for (const operation of editorOperations.values()) operation.release();
   authenticatedAdmin = null;
+  serviceVersion = null;
   window.SHEKINAH_OWNER?.clear();
   adminAnnouncements = [];
   adminNewsletters = [];
@@ -425,7 +436,7 @@ async function loadServiceEditor() {
   const generation = adminSessionVersion;
   const { data, error } = await supabaseClient
     .from("service_settings")
-    .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address")
+    .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address,updated_at")
     .eq("id", 1)
     .maybeSingle();
   if (generation !== adminSessionVersion) return;
@@ -438,6 +449,7 @@ async function loadServiceEditor() {
   }
 
   if (!data) return;
+  serviceVersion = data.updated_at;
 
   document.getElementById("serviceTimeInput").value =
     String(data.service_time || "15:00").slice(0, 5);
@@ -469,6 +481,8 @@ async function saveServiceChanges() {
       if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.time)) {
         throw new Error("Choose a valid service time before publishing.");
       }
+      if (!requireEditorVersion(serviceVersion, status)) return;
+      const version = serviceVersion;
       const { data: userData, error: userError } = await supabaseClient.auth.getUser();
       if (generation !== adminSessionVersion) return;
       if (userError || !userData?.user || authenticatedAdmin?.id !== userData.user.id) {
@@ -483,10 +497,14 @@ async function saveServiceChanges() {
         time_display: form.time_display,
         special_message_en: form.special_message_en,
         special_message_es: form.special_message_es
-      }).eq("id", 1).select("id").maybeSingle();
+      }).eq("id", 1).eq("updated_at", version).select("id,updated_at").maybeSingle();
       if (generation !== adminSessionVersion) return;
       if (error) throw error;
-      if (data?.id !== 1) throw new Error("The service row was not updated.");
+      if (data?.id !== 1) {
+        status.textContent = contentConflictMessage;
+        return;
+      }
+      serviceVersion = data.updated_at;
       status.textContent = "Published. The live website now uses these service settings.";
     } catch (error) {
       if (generation !== adminSessionVersion) return;
@@ -586,6 +604,7 @@ function selectAnnouncement(index) {
   selectedAnnouncementIndex = index;
   const item = adminAnnouncements[index];
   if (!item) return;
+  selectedAnnouncementVersion = item.updated_at;
 
   document.getElementById("announcementEmptyState").style.display = "none";
   document.getElementById("announcementEditorForm").classList.remove("hidden");
@@ -697,18 +716,22 @@ async function saveAnnouncement(activeOverride = null) {
 
   // Creating and editing have different conflict semantics. A stale editor
   // must never recreate a row that another administrator has deleted.
+  const isNew = adminAnnouncements[selectedAnnouncementIndex]?.isNew;
+  if (!isNew && !requireEditorVersion(selectedAnnouncementVersion, status)) return null;
   const table = supabaseClient.from("announcements");
-  const write = adminAnnouncements[selectedAnnouncementIndex]?.isNew
+  const write = isNew
     ? table.insert(payload)
-    : table.update(payload).eq("id", payload.id);
+    : table.update(payload).eq("id", payload.id).eq("updated_at", selectedAnnouncementVersion);
   const { data, error } = await write
-    .select("id,active")
+    .select("id,active,updated_at")
     .single();
   if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
-    status.textContent = error.code === "23505"
+    status.textContent = !isNew && error.code === "PGRST116"
+      ? `Could not save announcement. ${contentConflictMessage}`
+      : error.code === "23505"
       ? "An announcement with this ID already exists. Reload the list before saving again."
       : `Could not save announcement: ${error.message}`;
     return null;
@@ -784,12 +807,16 @@ document.getElementById("deleteAnnouncementButton").addEventListener("click", as
 
   const button = document.getElementById("deleteAnnouncementButton");
   const status = document.getElementById("announcementDraftStatus");
+  const version = selectedAnnouncementVersion;
+  if (!requireEditorVersion(version, status)) return;
   await runEditorAction("announcements", button, status, "Deleting…", async () => {
     const { data, error } = await supabaseClient.from("announcements")
-      .delete().eq("id", item.id).select("id").maybeSingle();
+      .delete().eq("id", item.id).eq("updated_at", version).select("id").maybeSingle();
     if (generation !== adminSessionVersion) return;
     if (error || data?.id !== item.id) {
-      status.textContent = "The announcement was not deleted. Refresh your session and try again.";
+      status.textContent = error
+        ? "The announcement was not deleted. Check your connection and try again."
+        : `The announcement was not deleted. ${contentConflictMessage}`;
       return;
     }
     const currentId = adminAnnouncements[selectedAnnouncementIndex]?.id;
@@ -805,6 +832,7 @@ document.getElementById("deleteAnnouncementButton").addEventListener("click", as
 
 function resetAnnouncementEditor() {
   selectedAnnouncementIndex = null;
+  selectedAnnouncementVersion = null;
   document.getElementById("announcementEditorForm").classList.add("hidden");
   document.getElementById("announcementEmptyState").style.display = "grid";
 }
@@ -815,6 +843,7 @@ function resetAnnouncementEditor() {
 let adminNewsletters = [];
 let selectedNewsletterId = null;
 let selectedNewsletterIsNew = false;
+let selectedNewsletterVersion = null;
 let newsletterFilter = "all";
 let newsletterSelectionVersion = 0;
 
@@ -900,6 +929,7 @@ function selectNewsletter(id) {
 
   selectedNewsletterId = item.id;
   selectedNewsletterIsNew = false;
+  selectedNewsletterVersion = item.updated_at;
 
   document.getElementById("newsletterEmptyState").style.display = "none";
   document.getElementById("newsletterEditorForm").classList.remove("hidden");
@@ -928,6 +958,7 @@ document.getElementById("newNewsletterButton").addEventListener("click", () => {
   ++newsletterSelectionVersion;
   selectedNewsletterId = null;
   selectedNewsletterIsNew = true;
+  selectedNewsletterVersion = null;
 
   document.getElementById("newsletterEmptyState").style.display = "none";
   document.getElementById("newsletterEditorForm").classList.remove("hidden");
@@ -1138,33 +1169,38 @@ async function persistNewsletter(targetStatus = null) {
 
   // An insert lets the database reject a concurrently created issue; an
   // update requires the selected issue to still exist. Do not upsert here.
+  const isNew = selectedNewsletterIsNew;
+  if (!isNew && !requireEditorVersion(selectedNewsletterVersion, document.getElementById("draftStatus"))) return null;
   const table = supabaseClient.from("newsletters");
-  const write = selectedNewsletterIsNew
+  const write = isNew
     ? table.insert(payload)
-    : table.update(payload).eq("id", id);
+    : table.update(payload).eq("id", id).eq("updated_at", selectedNewsletterVersion);
   const { data: saved, error } = await write
-    .select("id,status")
+    .select("id,status,updated_at")
     .single();
   if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
-    document.getElementById("draftStatus").textContent = error.code === "23505"
+    document.getElementById("draftStatus").textContent = !isNew && error.code === "PGRST116"
+      ? `Could not save newsletter. ${contentConflictMessage}`
+      : error.code === "23505"
       ? "A newsletter already exists for that issue date. Reload the list to edit it."
       : `Could not save newsletter: ${error.message}`;
     return null;
   }
 
+  // Keep the exact server timestamp. Parsing it as a JavaScript Date would
+  // discard PostgreSQL's microseconds and weaken the next conflict check.
+  const index = adminNewsletters.findIndex(item => item.id === saved.id);
+  const savedItem = { ...existing, ...payload, ...saved, updated_at: saved.updated_at };
+  if (index >= 0) adminNewsletters[index] = savedItem;
+  else adminNewsletters.push(savedItem);
+  adminNewsletters.sort((a, b) => b.issue_date.localeCompare(a.issue_date));
   if (selectionVersion !== newsletterSelectionVersion) {
-    const index = adminNewsletters.findIndex(item => item.id === saved.id);
-    if (index >= 0) adminNewsletters[index] = { ...adminNewsletters[index], ...payload, ...saved };
     renderAdminNewsletterList();
     return null;
   }
-  selectedNewsletterId = saved.id;
-  selectedNewsletterIsNew = false;
-  await loadNewsletterEditor();
-  if (generation !== adminSessionVersion || selectionVersion !== newsletterSelectionVersion) return null;
   selectNewsletter(saved.id);
   return saved;
 }
@@ -1235,12 +1271,16 @@ document.getElementById("deleteNewsletterButton").addEventListener("click", asyn
 
   const button = document.getElementById("deleteNewsletterButton");
   const status = document.getElementById("draftStatus");
+  const version = selectedNewsletterVersion;
+  if (!requireEditorVersion(version, status)) return;
   await runEditorAction("newsletter", button, status, "Deleting…", async () => {
     const { data, error } = await supabaseClient.from("newsletters")
-      .delete().eq("id", deletedId).select("id").maybeSingle();
+      .delete().eq("id", deletedId).eq("updated_at", version).select("id").maybeSingle();
     if (generation !== adminSessionVersion) return;
     if (error || data?.id !== deletedId) {
-      status.textContent = "The newsletter was not deleted. Refresh your session and try again.";
+      status.textContent = error
+        ? "The newsletter was not deleted. Check your connection and try again."
+        : `The newsletter was not deleted. ${contentConflictMessage}`;
       return;
     }
     adminNewsletters = adminNewsletters.filter(newsletter => newsletter.id !== deletedId);
@@ -1253,6 +1293,7 @@ function resetNewsletterEditor() {
   ++newsletterSelectionVersion;
   selectedNewsletterId = null;
   selectedNewsletterIsNew = false;
+  selectedNewsletterVersion = null;
   document.getElementById("newsletterEditorForm").classList.add("hidden");
   document.getElementById("newsletterEmptyState").style.display = "grid";
   renderAdminNewsletterList();

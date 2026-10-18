@@ -57,6 +57,8 @@
 .admin-body :is(.management-list-item p, .management-toolbar label, .optional-builder-heading p, .optional-language-label) { color: var(--admin-muted); }
 .admin-body .management-list-item.selected { border-color: #758e60; box-shadow: 0 0 0 2px #91ac7829; }
 .admin-body .management-list-item { transition: border-color 180ms ease, background-color 180ms ease; }
+.admin-body .management-toolbar label { max-width: 100%; flex-wrap: wrap; }
+.admin-body .management-toolbar select { min-width: 0; max-width: 100%; }
 .admin-body :is(.editor-language-tabs, .admin-editor-meta, .announcement-editor-meta, .service-admin-preview, .announcement-admin-preview, .preview-newsletter-body, .empty-management-list, .optional-empty-state, .editor-empty-state) { background: var(--admin-soft); color: var(--admin-ink); border-color: var(--admin-edge); }
 .admin-body .editor-language-tabs { width: fit-content; max-width: 100%; padding: 4px; border-radius: 999px; gap: 3px; }
 .admin-body .editor-tab { color: var(--admin-muted); background: transparent; border-color: transparent; min-height: 44px; }
@@ -110,6 +112,7 @@
   .admin-topbar { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   .admin-body *, .admin-body *::before { animation: none !important; transition: none !important; scroll-behavior: auto; }
   .admin-body .button:active { transform: none; }
 }

@@ -55,12 +55,16 @@ async function startSite(root = path.resolve(__dirname, '../..')) {
 }
 
 function contentFixture() {
-  return {
+  const data = {
     service_settings:[{id:1,day_en:'Sunday',day_es:'Domingo',service_label_en:'Sunday Service',service_label_es:'Servicio Dominical',service_time:'15:00:00',address:'2149 W Washington Blvd, Los Angeles, CA 90018'}],
     announcements:[{id:'test-announcement',active:true,title_en:'Community gathering',title_es:'Reunión comunitaria',description_en:'Everyone is welcome.',description_es:'Todos son bienvenidos.',tag_en:'News',tag_es:'Noticias',sort_order:10}],
     newsletters:Array.from({length:9},(_,i)=>({id:`test-issue-${i}`,issue_date:`2026-10-${String(18-i).padStart(2,'0')}`,status:'published',published_at:'2026-10-18T00:00:00Z',title_en:i===1?'Celebration':`Community issue ${i+1}`,title_es:i===1?'Celebración':`Boletín ${i+1}`,gathering_en:'Sunday worship.',gathering_es:'Adoración del domingo.',scripture_en:'Weekly scripture.',scripture_es:'Escritura semanal.',community_en:'Community news.',community_es:'Noticias de la comunidad.',optional_sections:[]})),
     admin_users:[{user_id:'11111111-1111-4111-8111-111111111111',role:'admin'}]
   };
+  for (const table of ['service_settings','announcements','newsletters']) {
+    for (const row of data[table]) row.updated_at = '2026-10-18T00:00:00.123456+00:00';
+  }
+  return data;
 }
 
 async function createPage(browser,site,options={}) {
@@ -132,9 +136,11 @@ async function createPage(browser,site,options={}) {
         const table=url.pathname.split('/').at(-1);
         let rows=state.data[table]||[];
         const id=url.searchParams.get('id')?.replace(/^eq\./,'');
+        const version=url.searchParams.get('updated_at')?.replace(/^eq\./,'');
+        const matches=row=>(!id||String(row.id)===id)&&(!version||row.updated_at===version);
         if(['POST','PATCH'].includes(req.method())) {
           const values=JSON.parse(req.postData()||'{}');
-          const index=rows.findIndex(row=>row.id===(values.id||Number(id)||id));
+          const index=rows.findIndex(row=>row.id===(values.id||Number(id)||id)&&(req.method()!=='PATCH'||matches(row)));
           if(req.method()==='PATCH'&&index<0) {
             if(req.headers().accept?.includes('application/vnd.pgrst.object'))return reply({code:'PGRST116',message:'The selected row no longer exists.'},406);
             return reply([]);
@@ -143,12 +149,12 @@ async function createPage(browser,site,options={}) {
             (index>=0||(table==='newsletters'&&rows.some(row=>row.issue_date===values.issue_date)))) {
             return reply({code:'23505',message:'Duplicate record.'},409);
           }
-          const saved={...(rows[index]||{}),...values};
+          const saved={...(rows[index]||{}),...values,updated_at:new Date(Date.now()+(state.revision=(state.revision||0)+1)).toISOString()};
           if(index<0)rows.push(saved);else rows[index]=saved;
           rows=[saved];
         } else if(req.method()==='DELETE') {
-          const removed=rows.filter(row=>String(row.id)===id);
-          state.data[table]=rows.filter(row=>String(row.id)!==id);rows=removed;
+          const removed=rows.filter(matches);
+          state.data[table]=rows.filter(row=>!matches(row));rows=removed;
         } else {
           rows=rows.filter(row=>(!id||String(row.id)===id)&&(!url.searchParams.has('active')||row.active)&&(!url.searchParams.has('status')||row.status==='published'));
           if(url.searchParams.has('limit'))rows=rows.slice(0,Number(url.searchParams.get('limit')));

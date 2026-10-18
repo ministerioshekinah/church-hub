@@ -152,9 +152,9 @@ test('Admin session: a delayed session restore cannot reopen a signed-out dashbo
 
 test('Admin session: pending announcement save cannot restore private form content after sign-out', async () => {
   const p=await page('admin/index.html');
-  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'private',active:false,title_en:'Hidden',title_es:'Oculto'}]; selectAnnouncement(0);
+  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'private',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false,title_en:'Hidden',title_es:'Oculto'}]; selectAnnouncement(0);
     let releaseSave; supabaseClient=contentClient(()=>new Promise(resolve=>{releaseSave=resolve;}));
-    let saveResult; saveAnnouncement().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',active:false}});`);
+    let saveResult; saveAnnouncement().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false}});`);
   await settle();
   assert.equal(p.run('saveResult'),null);
   assert.equal(p.run('adminAnnouncements.length'),0);
@@ -165,7 +165,7 @@ test('Admin session: pending newsletter save cannot restore a signed-out editor'
   for(const extended of [false,true]) {
     const p=await page('admin/index.html');
     if(extended) p.run(read('newsletter-extensions.js'));
-    p.run(`authenticatedAdmin={id:'admin'}; selectedNewsletterId='private';
+    p.run(`authenticatedAdmin={id:'admin'}; selectedNewsletterId='private';selectedNewsletterVersion='2026-10-18T00:00:00.123456+00:00';
       validateNewsletterForm=()=>({issue_date:'2026-10-13',title_en:'Private',title_es:'Privado'});
       let releaseSave; supabaseClient=contentClient(()=>new Promise(resolve=>{releaseSave=resolve;}));
       let saveResult; persistNewsletter().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',status:'draft'}});`);
@@ -178,8 +178,8 @@ test('Admin session: pending newsletter save cannot restore a signed-out editor'
 
 test('Admin publishing: saving a live announcement retains the correct visible status', async () => {
   const p=await page('admin/index.html');
-  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'live',active:true,title_en:'Live',title_es:'Publicado'}]; selectAnnouncement(0);
-    supabaseClient=contentClient(async()=>({data:{id:'live',active:true}}));`);
+  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'live',updated_at:'2026-10-18T00:00:00.123456+00:00',active:true,title_en:'Live',title_es:'Publicado'}]; selectAnnouncement(0);
+    supabaseClient=contentClient(async()=>({data:{id:'live',updated_at:'2026-10-18T00:00:00.123456+00:00',active:true}}));`);
   click(p,p.document.getElementById('saveAnnouncementButton')); await settle();
   assert.match(p.document.getElementById('announcementDraftStatus').textContent,/Changes are live/);
 });
@@ -187,8 +187,8 @@ test('Admin publishing: saving a live announcement retains the correct visible s
 async function servicePage() {
   const p=await page('admin/index.html');
   p.run(`authenticatedAdmin={id:'admin'};
-    let serviceWrites=0;
-    supabaseClient={auth:{getUser:async()=>({data:{user:{id:'admin'}}})},from:()=>({update:()=>{++serviceWrites;return {eq:()=>({select:()=>({maybeSingle:async()=>({data:{id:1}})})})};}})};`);
+    let serviceWrites=0;serviceVersion='2026-10-18T00:00:00.123456+00:00';
+    supabaseClient=Object.assign(contentClient(async()=>{++serviceWrites;return {data:{id:1,updated_at:'2026-10-18T01:00:00+00:00'}}}),{auth:{getUser:async()=>({data:{user:{id:'admin'}}})}});`);
   p.run(read('admin-service-validation.js'));
   return p;
 }
