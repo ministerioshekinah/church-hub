@@ -3,7 +3,7 @@ window.SHEKINAH_ADMIN_READY = true;
 window.addEventListener("error", function (event) {
   var message = document.getElementById("adminMessage");
   if (message && !document.getElementById("adminLoginView").classList.contains("hidden")) {
-    message.textContent = "The admin portal hit a JavaScript error. Refresh the page or upload the latest admin.js file.";
+    message.textContent = "The admin portal could not finish loading. Reload this page and try again.";
   }
 });
 
@@ -262,11 +262,12 @@ async function initializeAuth() {
     passwordInput.disabled = true;
 
     adminMessage.textContent =
-      "Secure login setup is not finished yet.";
+      "Secure sign-in is unavailable. Reload this page or try again later.";
 
     return;
   }
 
+  adminMessage.textContent = "";
   supabaseClient = window.supabase.createClient(
     window.SHEKINAH_SUPABASE.url,
     window.SHEKINAH_SUPABASE.publishableKey,

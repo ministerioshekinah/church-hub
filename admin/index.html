@@ -56,7 +56,7 @@
               Sign in with an authorized Ministerio Cristiano Shekinah administrator account.
             </p>
 
-            <form class="admin-form" id="adminLoginForm">
+            <form class="admin-form" id="adminLoginForm" method="post">
               <label>
                 Email
                 <input
@@ -68,6 +68,7 @@
                   spellcheck="false"
                   inputmode="email"
                   required
+                  disabled
                 />
               </label>
 
@@ -80,15 +81,16 @@
                     placeholder="••••••••"
                     autocomplete="current-password"
                     required
+                    disabled
                   />
                   <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password" aria-pressed="false" aria-controls="adminPassword">Show</button>
                 </div>
               </label>
 
-              <button class="button button-primary" type="submit">Sign In</button>
+              <button class="button button-primary" type="submit" disabled>Sign In</button>
             </form>
 
-            <p class="admin-message" id="adminMessage" role="status" aria-live="polite"></p>
+            <p class="admin-message" id="adminMessage" role="status" aria-live="polite">Enable JavaScript or reload.</p>
             <div class="admin-security-note">
               <span>🔒</span>
               <span>
@@ -522,6 +524,6 @@
 
   <script src="/assets/vendor/supabase-2.112.2.js" integrity="sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd" crossorigin="anonymous"></script>
   <script src="/supabase-config.js?v=11.4"></script>
-  <script src="/admin.js?v=10.8"></script>
+  <script src="/admin.js?v=10.9"></script>
 </body>
 </html>

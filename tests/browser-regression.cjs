@@ -129,6 +129,14 @@ async function check(name,fn) {
     assert(!p.state.requests.some(r=>new URL(r.url).hostname==='cdn.jsdelivr.net'));
     assert(await p.page.evaluate(()=>[...document.scripts].every(s=>new URL(s.src).origin===location.origin)));
   }));
+  for(const javascript of [true,false])await check(`Sign-in startup: ${javascript?'an unavailable main bundle':'disabled JavaScript'} leaves the form safely unavailable`,()=>journey({javascript},async p=>{
+    if(javascript)await p.context.route('**/admin.js?*',route=>route.abort());
+    await p.goto('/admin/');
+    assert(await p.page.locator('#adminEmail').isDisabled());assert(await p.page.locator('#adminPassword').isDisabled());assert(await p.page.locator('#adminLoginForm button[type="submit"]').isDisabled());
+    assert.match(await p.page.locator('#adminMessage').innerText(),/JavaScript.*reload/);
+    assert.equal(p.state.requests.filter(r=>r.url.includes('/auth/v1/')).length,0);
+    await p.page.locator('.admin-back-link').click();await p.page.waitForURL(site.url+'/');
+  }));
   await check('Admin supply chain: an altered SDK is blocked by integrity and cannot enable sign-in',()=>journey({},async p=>{
     await p.context.route('**/assets/vendor/supabase-2.112.2.js',route=>route.fulfill({contentType:'text/javascript',body:'window.__alteredSDKExecuted=true;'}));
     await p.goto('/admin/');
@@ -136,6 +144,7 @@ async function check(name,fn) {
     assert(await p.page.locator('#adminEmail').isDisabled());
     assert(await p.page.locator('#adminLoginForm button[type="submit"]').isDisabled());
     assert.equal(await p.page.locator('#adminDashboard').isVisible(),false);
+    assert.match(await p.page.locator('#adminMessage').innerText(),/Reload this page/);
   }));
   await check('Service publishing: primary validation works when the compatibility script fails to load',()=>journey({},async p=>{
     await p.context.route('**/admin-service-validation.js?*',route=>route.abort());
