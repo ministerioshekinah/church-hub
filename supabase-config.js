@@ -31,7 +31,7 @@ if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
 if (/\/admin(?:\/|\.html)?$/.test(window.location.pathname)) {
   window.addEventListener("DOMContentLoaded", () => {
     const script = document.createElement("script");
-    script.src = "/newsletter-extensions.js?v=4.2";
+    script.src = "/newsletter-extensions.js?v=4.3";
     script.async = false;
     document.body.appendChild(script);
   });

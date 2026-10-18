@@ -83,6 +83,14 @@ function confirmDiscardEditor(section) {
   return !hasUnsavedEditorChanges(section) || window.confirm("Discard your unsaved changes in this editor?");
 }
 
+function focusEditorHeading(section) {
+  // Selecting a record rebuilds its list and removes the activated button.
+  // Place focus at the opened editor so the next Tab reaches its controls.
+  const heading = document.getElementById(section === "announcements" ? "announcementEditorHeading" : "newsletterEditorHeading");
+  heading?.setAttribute("tabindex", "-1");
+  heading?.focus();
+}
+
 ["input", "change", "click"].forEach(type => document.addEventListener(type, updateUnloadGuard));
 
 const contentConflictMessage = "This content changed or no longer exists. Your draft is still here. Copy your changes, then reload this page to review the latest version.";
@@ -687,6 +695,7 @@ function renderAdminAnnouncementList() {
     button.addEventListener("click", () => {
       if (!confirmDiscardEditor("announcements")) return;
       selectAnnouncement(Number(button.dataset.announcementIndex));
+      focusEditorHeading("announcements");
     });
   });
 }
@@ -752,6 +761,7 @@ document.getElementById("addAnnouncementButton").addEventListener("click", (even
   announcementFilter = "all";
   document.getElementById("announcementFilter").value = "all";
   selectAnnouncement(0);
+  focusEditorHeading("announcements");
 });
 
 document.querySelectorAll(".announcement-lang-tab").forEach((tab) => {
@@ -1016,6 +1026,7 @@ function renderAdminNewsletterList() {
     button.addEventListener("click", () => {
       if (!confirmDiscardEditor("newsletter")) return;
       selectNewsletter(button.dataset.newsletterId);
+      focusEditorHeading("newsletter");
     });
   });
 }
@@ -1092,6 +1103,7 @@ document.getElementById("newNewsletterButton").addEventListener("click", (event)
   document.getElementById("draftStatus").textContent = "New unsaved draft.";
   renderAdminNewsletterList();
   rememberEditorBaseline("newsletter");
+  focusEditorHeading("newsletter");
 });
 
 document.querySelectorAll("[data-editor-lang]").forEach((tab) => {

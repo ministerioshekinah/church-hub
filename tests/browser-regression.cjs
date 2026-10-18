@@ -484,6 +484,41 @@ async function check(name,fn) {
     await page.locator('#signOutButton').click();await page.waitForFunction(()=>!document.querySelector('#adminLoginView').classList.contains('hidden'));
     assert.equal(await page.locator('#serviceLabelEn').inputValue(),'');await page.locator('.admin-back-link').click();await page.waitForURL(site.url+'/');assert.deepEqual(dialogs,[]);
   }));
+  for(const width of [390,1440])await check(`Editor focus: selecting and creating records has a usable keyboard destination at ${width}px`,()=>journey({viewport:{width,height:900}},async p=>{
+    await login(p);const {page}=p;
+    for(const editor of [
+      {section:'announcements',item:'[data-announcement-index="0"]',heading:'#announcementEditorHeading',next:'.announcement-lang-tab[data-announcement-lang="en"]',create:'#addAnnouncementButton',field:'#announcementTitleEn'},
+      {section:'newsletter',item:'[data-newsletter-id="test-issue-0"]',heading:'#newsletterEditorHeading',next:'#issueDate',create:'#newNewsletterButton',field:'#titleEn'}
+    ]){
+      await page.locator(`[data-admin-section="${editor.section}"]`).click();
+      await page.locator(editor.item).focus();await page.keyboard.press('Enter');
+      assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement),'Selection must enter the editor');
+      const box=await page.locator(editor.heading).boundingBox();assert(box.y>=0&&box.y+box.height<=900,'Editor heading must be visible');
+      await page.keyboard.press('Tab');assert(await page.locator(editor.next).evaluate(e=>e===document.activeElement),'Tab must continue into the editor');
+      await page.locator(editor.create).focus();await page.keyboard.press('Enter');assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement));
+      await page.locator(editor.field).fill('Keep this draft');
+      page.removeAllListeners('dialog');page.on('dialog',dialog=>dialog.dismiss());
+      await page.locator(editor.item).focus();await page.keyboard.press('Enter');
+      assert(await page.locator(editor.item).evaluate(e=>e===document.activeElement),'Cancelled discard must keep the activated control');
+      assert.equal(await page.locator(editor.field).inputValue(),'Keep this draft');
+    }
+  }));
+  for(const lang of ['en','es'])await check(`Optional section focus: adding and removing first, middle and last sections preserves ${lang} editing`,()=>journey({theme:'dark'},async p=>{
+    await login(p);const {page}=p;await page.locator('[data-admin-section="newsletter"]').click();await page.locator('[data-newsletter-id="test-issue-0"]').click();await page.locator(`[data-editor-lang="${lang}"]`).click();
+    const add=page.locator('[data-add-optional="custom"]');
+    for(const title of ['First','Middle','Last']){
+      await add.focus();await page.keyboard.press('Enter');
+      assert.equal(await page.evaluate(()=>document.activeElement.dataset.field),`title_${lang}`);
+      await page.keyboard.type(title);await page.locator('[data-optional-id]').last().locator('[data-field="body_en"]').fill(`Keep ${title}`);
+    }
+    for(const [index,expected] of [[1,'Last'],[0,'Last']]){
+      await page.locator('[data-remove-optional]').nth(index).focus();await page.keyboard.press('Enter');
+      assert.deepEqual(await page.evaluate(()=>({field:document.activeElement.dataset.field,value:document.activeElement.value})),{field:`title_${lang}`,value:expected});
+    }
+    assert.equal(await page.locator('[data-field="body_en"]').inputValue(),'Keep Last');
+    await page.locator('[data-remove-optional]').focus();await page.keyboard.press('Enter');assert(await add.evaluate(e=>e===document.activeElement));
+    await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>v.id)}),[]);
+  }));
   const report={checkedAt:new Date().toISOString(),engine,browser:browser.version(),mode:'local site and entirely mocked backend; no production writes',filter:process.env.BROWSER_TEST_FILTER||null,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
   const output=process.env.BROWSER_REPORT_PATH||path.resolve(__dirname,'../security/local-results/browser-regression.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
   await browser.close();await site.close();console.log(`${report.passed}/${results.length} browser journeys passed`);if(report.failed)process.exitCode=1;

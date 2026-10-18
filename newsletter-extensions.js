@@ -231,17 +231,24 @@
         optionalSections.push(makeSection(addButton.dataset.addOptional));
         renderEditor();
         renderPreview();
+        list.lastElementChild?.querySelector(`[data-field="title_${activeEditorLanguage()}"]`)?.focus();
         return;
       }
 
       const removeButton = event.target.closest("[data-remove-optional]");
       if (removeButton) {
         syncFromDom();
+        const index = optionalSections.findIndex(section => section.id === removeButton.dataset.removeOptional);
+        const type = optionalSections[index]?.type || "custom";
         optionalSections = optionalSections.filter(
           (section) => section.id !== removeButton.dataset.removeOptional
         );
         renderEditor();
         renderPreview();
+        const nextCard = list.querySelectorAll("[data-optional-id]")[Math.min(index, optionalSections.length - 1)];
+        const target = nextCard?.querySelector(`[data-field="title_${activeEditorLanguage()}"]`)
+          || builder.querySelector(`[data-add-optional="${type}"]`);
+        target?.focus();
       }
     });
 
