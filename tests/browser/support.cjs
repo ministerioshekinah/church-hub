@@ -56,6 +56,9 @@ async function createPage(browser,site,options={}) {
   const context=await browser.newContext({viewport:options.viewport||{width:390,height:844},reducedMotion:options.motion?'no-preference':'reduce',colorScheme:options.theme||'light',javaScriptEnabled:options.javascript!==false});
   const state={data:contentFixture(),requests:[],errors:[],offline:false,delay:0};
   const user={id:'11111111-1111-4111-8111-111111111111',aud:'authenticated',role:'authenticated',email:'admin@example.test',app_metadata:{provider:'email'},user_metadata:{}};
+  state.data.admin_users[0].role=options.owner?'owner':'admin';
+  state.adminDirectory=[{id:user.id,email:user.email,role:options.owner?'owner':'admin'},
+    {id:'22222222-2222-4222-8222-222222222222',email:'editor@example.test',role:'admin'}];
   const jwt=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,role:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test-signature';
   await context.addInitScript(({options})=>{
     if(options.blockStorage) {
@@ -89,8 +92,28 @@ async function createPage(browser,site,options={}) {
       if(url.pathname==='/auth/v1/logout')return route.fulfill({status:204,headers});
       if(url.pathname==='/functions/v1/admin-users') {
         const action=JSON.parse(req.postData()||'{}');
-        if(action.action==='list')return reply({admins:[{id:user.id,email:user.email,role:'owner'}]});
-        return reply({error:'This fixture does not perform invitations or role changes.'},400);
+        if(state.data.admin_users[0]?.role!=='owner')return reply({error:'Owner access is required.'},403);
+        if(action.action==='list')return reply({admins:state.adminDirectory});
+        if(state.functionError)return reply({error:state.functionError},500);
+        // Only local fixture records change. This handler never sends mail or
+        // forwards invitations, role changes, or removals to a real service.
+        if(action.action==='invite') {
+          const existing=state.adminDirectory.find(row=>row.email===action.email);
+          if(existing)return reply({alreadyAuthorized:true,role:existing.role});
+          state.adminDirectory.push({id:'33333333-3333-4333-8333-333333333333',email:action.email,role:'admin'});
+          return reply({ok:true,invited:true});
+        }
+        if(action.userId===user.id)return reply({error:'Own access is protected.'},409);
+        if(action.action==='set-role') {
+          const row=state.adminDirectory.find(row=>row.id===action.userId);
+          if(!row)return reply({error:'Administrator not found.'},404);
+          row.role=action.role;return reply({ok:true,admin:row});
+        }
+        if(action.action==='remove') {
+          state.adminDirectory=state.adminDirectory.filter(row=>row.id!==action.userId);
+          return reply({ok:true});
+        }
+        return reply({error:'Unsupported fixture action.'},400);
       }
       if(url.pathname.startsWith('/rest/v1/')) {
         const table=url.pathname.split('/').at(-1);

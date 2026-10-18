@@ -69,6 +69,62 @@ test('Owner session: returning owner can refresh controls after a new sign-in', 
   assert.equal(p.document.getElementById('administratorList').textContent, '');
 });
 
+function submitInvitation(p, email) {
+  p.document.getElementById('newAdministratorEmail').value=email;
+  p.document.getElementById('inviteAdministratorForm').dispatchEvent(new p.Event('submit',{bubbles:true,cancelable:true}));
+}
+
+test('Owner invitation: pending input stays stable and duplicate submissions are ignored', async () => {
+  const p=await ownerPage();
+  p.run('let finishInvite; let inviteCalls=0; supabaseClient.functions.invoke=async(_,request)=>{if(request.body.action==="list")return {data:{admins:[]}}; ++inviteCalls;return new Promise(resolve=>{finishInvite=resolve});};');
+  submitInvitation(p,'FIRST@example.test');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,true);
+  assert.equal(p.document.getElementById('inviteAdministratorForm').getAttribute('aria-busy'),'true');
+  p.document.getElementById('inviteAdministratorForm').dispatchEvent(new p.Event('submit',{bubbles:true,cancelable:true}));
+  assert.equal(p.run('inviteCalls'),1);
+  p.run('finishInvite({data:{invited:true}})');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').value,'');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,false);
+  assert.equal(p.document.getElementById('administratorInviteStatus').getAttribute('role'),'status');
+  assert.match(p.document.getElementById('administratorInviteStatus').textContent,/Invitation sent/);
+});
+
+test('Owner invitation: a failed request preserves the email and releases the form', async () => {
+  const p=await ownerPage();
+  p.run('supabaseClient.functions.invoke=async()=>({error:new Error("Connection interrupted")});');
+  submitInvitation(p,'retry@example.test');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').value,'retry@example.test');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,false);
+  assert.equal(p.document.getElementById('inviteAdministratorForm').getAttribute('aria-busy'),'false');
+  assert.match(p.document.getElementById('administratorInviteStatus').textContent,/Connection interrupted/);
+});
+
+test('Owner invitation: an old response cannot unlock a new session invitation', async () => {
+  const p=await ownerPage();
+  p.run('let finishOld, finishNew; supabaseClient.functions.invoke=()=>new Promise(resolve=>{finishOld=resolve});');
+  submitInvitation(p,'old@example.test');
+  p.run('showLogin(); authenticatedAdmin={id:"test-owner"};window.SHEKINAH_OWNER.refresh();');await settle();
+  p.run('supabaseClient.functions.invoke=()=>new Promise(resolve=>{finishNew=resolve});');
+  submitInvitation(p,'new@example.test');
+  p.run('finishOld({data:{invited:true}})');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').value,'new@example.test');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,true);
+  assert.equal(p.document.getElementById('administratorInviteStatus').textContent,'');
+  p.run('finishNew({error:new Error("Local fixture complete")})');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,false);
+});
+
+test('Owner list: an older refresh cannot replace the latest access list', async () => {
+  const p=await ownerPage();
+  p.run('let listResponses=[];supabaseClient.functions.invoke=()=>new Promise(resolve=>listResponses.push(resolve));');
+  click(p,p.document.getElementById('administratorsTab'));
+  click(p,p.document.getElementById('refreshAdministratorsButton'));
+  p.run('listResponses[1]({data:{admins:[{id:"latest",email:"latest@example.test",role:"admin"}]}})');await settle();
+  p.run('listResponses[0]({data:{admins:[{id:"stale",email:"removed@example.test",role:"admin"}]}})');await settle();
+  assert.match(p.document.getElementById('administratorList').textContent,/latest@example.test/);
+  assert(!p.document.getElementById('administratorList').textContent.includes('removed@example.test'));
+});
+
 test('Admin session: signing out clears draft fields, previews, and in-memory content', async () => {
   const p=await page('admin/index.html');
   p.run('adminNewsletters=[{id:"private",title_en:"Private title",status:"draft"}]; adminAnnouncements=[{id:"hidden",title_en:"Hidden message",active:false}]; document.getElementById("titleEn").value="Private draft text"; document.getElementById("previewTitle").textContent="Private draft text"; showLogin();');

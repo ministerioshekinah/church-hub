@@ -32,6 +32,10 @@ jobs:
   browser-regressions:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -41,6 +45,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Exercise public and admin journeys with an isolated backend
         run: npm run test:browser
+        env:
+          BROWSER_ENGINE: ${{ matrix.browser }}

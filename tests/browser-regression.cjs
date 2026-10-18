@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {chromium}=require('playwright');
+const browserEngines=require('playwright');
 const axe=require('axe-core');
 const {startSite,createPage}=require('./browser/support.cjs');
 const results=[];
@@ -13,7 +13,10 @@ async function check(name,fn) {
 }
 (async()=>{
   const site=await startSite();
-  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox','--disable-dev-shm-usage']});
+  const engine=process.env.BROWSER_ENGINE||'chromium';
+  if(!['chromium','firefox','webkit'].includes(engine))throw Error('BROWSER_ENGINE must be chromium, firefox, or webkit');
+  const browser=await browserEngines[engine].launch({headless:true,
+    ...(engine==='chromium'?{executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox','--disable-dev-shm-usage']}: {})});
   async function journey(options,fn){const p=await createPage(browser,site,options);try{await fn(p);assert.deepEqual(p.state.errors,[]);}finally{await p.close();}}
   await check('Mobile navigation: keyboard, Escape, and section focus',()=>journey({},async({page,goto})=>{
     await goto();const menu=page.locator('#menuButton');await menu.focus();await page.keyboard.press('Enter');
@@ -151,7 +154,7 @@ async function check(name,fn) {
     await page.locator('#toggleAnnouncementVisibilityButton').click();await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent.startsWith('Published.'));
     assert.equal(state.data.announcements.find(r=>r.id===id).active,true);
     await page.locator('#toggleAnnouncementVisibilityButton').click();await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent.startsWith('Hidden.'));
-    await page.locator('#deleteAnnouncementButton').click();await page.locator('#announcementEditorForm').waitFor({state:'hidden'});
+    await page.locator('#deleteAnnouncementButton').focus();await page.keyboard.press('Enter');await page.locator('#announcementEditorForm').waitFor({state:'hidden'});
     assert(!state.data.announcements.some(r=>r.id===id));assert(await page.locator('#addAnnouncementButton').evaluate(e=>e===document.activeElement));
   }));
   await check('Newsletter lifecycle: draft, publish, unpublish, and confirmed deletion',()=>journey({},async p=>{
@@ -164,7 +167,7 @@ async function check(name,fn) {
     assert.equal(state.data.newsletters.find(r=>r.id==='2026-10-25').status,'published');
     await page.locator('#unpublishNewsletterButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.startsWith('Unpublished.'));
     const issue=state.data.newsletters.find(r=>r.id==='2026-10-25');assert.equal(issue.status,'ready');assert.equal(issue.published_at,null);
-    await page.locator('#deleteNewsletterButton').click();await page.locator('#newsletterEditorForm').waitFor({state:'hidden'});
+    await page.locator('#deleteNewsletterButton').focus();await page.keyboard.press('Enter');await page.locator('#newsletterEditorForm').waitFor({state:'hidden'});
     assert(!state.data.newsletters.some(r=>r.id==='2026-10-25'));assert(await page.locator('#newNewsletterButton').evaluate(e=>e===document.activeElement));
   }));
   await check('Cross-tab sign-out clears the other tab’s private editor',()=>journey({},async p=>{
@@ -173,7 +176,52 @@ async function check(name,fn) {
     await other.locator('#titleEn').fill('Private unsaved fixture');await p.page.locator('#signOutButton').click();
     await other.locator('#adminLoginView').waitFor({state:'visible'});assert.equal(await other.locator('#titleEn').inputValue(),'');
   }));
-  const report={checkedAt:new Date().toISOString(),browser:browser.version(),mode:'local site and entirely mocked backend; no production writes',filter:process.env.BROWSER_TEST_FILTER||null,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
+  await check('Owner controls: fixture invitation, role change, removal, and self-access safeguards',()=>journey({owner:true},async p=>{
+    await login(p);const {page,state}=p;await page.locator('#administratorsTab').click();
+    const self=page.locator('.administrator-item').filter({hasText:'admin@example.test'});
+    await self.waitFor();assert(await self.locator('select').isDisabled());assert(await self.locator('button').isDisabled());
+    await page.locator('#newAdministratorEmail').fill('invited@example.test');state.delay=100;
+    await page.locator('#inviteAdministratorForm button').click();assert(await page.locator('#newAdministratorEmail').isDisabled());
+    await page.waitForFunction(()=>document.querySelector('#administratorInviteStatus').textContent.includes('Invitation sent'));
+    await page.locator('#newAdministratorEmail').waitFor({state:'visible'});
+    const invited=page.locator('.administrator-item').filter({hasText:'invited@example.test'});await invited.waitFor();
+    await invited.locator('select').focus();await invited.locator('select').selectOption('owner');await page.waitForFunction(()=>[...document.querySelectorAll('.administrator-item')].some(row=>row.textContent.includes('invited@example.test')&&row.querySelector('.administrator-role').textContent==='Owner'));
+    assert.equal(state.adminDirectory.find(row=>row.email==='invited@example.test').role,'owner');
+    assert(await invited.locator('select').evaluate(e=>e===document.activeElement));
+    await invited.locator('button').focus();await page.keyboard.press('Enter');await invited.waitFor({state:'hidden'});
+    assert(!state.adminDirectory.some(row=>row.email==='invited@example.test'));
+    assert(await page.locator('#refreshAdministratorsButton').evaluate(e=>e===document.activeElement));
+    await page.locator('#refreshAdministratorsButton').click();await self.waitFor();
+  }));
+  await check('Owner invitation failure: email is retained, retry succeeds, and sign-out clears the list',()=>journey({owner:true},async p=>{
+    await login(p);const {page,state}=p;await page.locator('#administratorsTab').click();
+    await page.locator('.administrator-item').first().waitFor();state.functionError='Local fixture failure';
+    await page.locator('#newAdministratorEmail').fill('retry@example.test');await page.locator('#inviteAdministratorForm button').click();
+    await page.waitForFunction(()=>document.querySelector('#administratorInviteStatus').textContent&&document.querySelector('#inviteAdministratorForm').getAttribute('aria-busy')==='false');
+    assert.equal(await page.locator('#newAdministratorEmail').inputValue(),'retry@example.test');
+    assert(await page.locator('#newAdministratorEmail').isEnabled());state.functionError=null;
+    await page.locator('#inviteAdministratorForm button').click();await page.waitForFunction(()=>document.querySelector('#administratorInviteStatus').textContent.includes('Invitation sent'));
+    await page.locator('#signOutButton').click();await page.locator('#adminLoginView').waitFor({state:'visible'});
+    assert.equal(await page.locator('#administratorList').innerText(),'');assert.equal(await page.locator('#newAdministratorEmail').inputValue(),'');
+  }));
+  await check('Backend outage: translated errors recover through every public retry control',()=>journey({lang:'es'},async({page,state,goto})=>{
+    state.offline=true;await goto();
+    assert(await page.locator('#serviceRetry').isVisible());assert(await page.locator('#announcementsRetry').isVisible());
+    assert.match(await page.locator('#announcementList').innerText(),/No pudimos/);
+    state.offline=false;await page.locator('#serviceRetry').click();await page.locator('#announcementsRetry').click();
+    await page.locator('#serviceRetry').waitFor({state:'hidden'});await page.locator('#announcementsRetry').waitFor({state:'hidden'});
+    state.offline=true;await goto('/newsletter/');assert(await page.locator('#newsletterRetry').isVisible());assert(await page.locator('#newsletterTools').isHidden());
+    state.offline=false;await page.locator('#newsletterRetry').click();await page.locator('#newsletterRetry').waitFor({state:'hidden'});
+    assert.match(await page.locator('#latestNewsletter h2').innerText(),/Boletín/);assert(await page.locator('#newsletterTools').isVisible());
+  }));
+  await check('Clipboard denied: the address remains selectable and newsletter sharing explains the fallback',()=>journey({lang:'es',clipboardDenied:true},async({page,goto})=>{
+    await goto();await page.locator('#copyAddress').click();
+    assert.match(await page.evaluate(()=>getSelection().toString()),/2149 W Washington/);
+    assert.match(await page.locator('#copyStatus').innerText(),/Selecciona/);
+    await goto('/newsletter/');await page.locator('#copyNewsletterLink').click();
+    assert.match(await page.locator('#newsletterToolStatus').innerText(),/direcciones/);
+  }));
+  const report={checkedAt:new Date().toISOString(),engine,browser:browser.version(),mode:'local site and entirely mocked backend; no production writes',filter:process.env.BROWSER_TEST_FILTER||null,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
   const output=process.env.BROWSER_REPORT_PATH||path.resolve(__dirname,'../security/local-results/browser-regression.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
   await browser.close();await site.close();console.log(`${report.passed}/${results.length} browser journeys passed`);if(report.failed)process.exitCode=1;
 })().catch(error=>{console.error(error);process.exit(1)});
