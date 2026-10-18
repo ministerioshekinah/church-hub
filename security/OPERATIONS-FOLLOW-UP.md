@@ -38,7 +38,7 @@ The public archive currently requests the newest 100 published issues. Before th
 - Exact `updated_at` filters protect cooperating versions of the three editors from silent overwrites/deletions. Older clients and direct authorized API callers can omit those filters. Fully enforced collaborative locking/versioning needs a separate server design.
 - The server audit triggers supply versions; clients preserve their full strings, including microseconds. Do not convert them through JavaScript `Date` before comparison.
 - Navigation warnings are a convenience, not autosave. Mobile app termination can bypass `beforeunload`. Private drafts are not newly persisted to local storage by this PR.
-- The historical back-navigation privacy probe passed with a fresh document (`pageshow.persisted=false`). It does not establish behavior for every physical-device back/forward cache implementation.
+- Back-navigation privacy probes passed with fresh documents (`pageshow.persisted=false`). A second instrumented Chromium probe removed the automation launch flag that disables the back/forward cache, but DevTools still reported `BackForwardCacheDisabledForDelegate` and `BrowsingInstanceNotSwapped`. It therefore does not establish native cache restoration behavior. Verify stale-session handling on actual Apple devices; consider clearing/revalidating sensitive UI on persisted page-lifecycle events in a separately tested follow-up. This is a coverage limitation, not a demonstrated additional privacy vulnerability.
 - Physical iPhone/iPad, Safari on Apple hardware and human screen-reader review remain outstanding. Linux WebKit CI is useful coverage, not a substitute for those checks.
 
 ## Release and rollback
