@@ -34,6 +34,10 @@ async function page(name = 'index.html', options = {}) {
   const fetch=async url=>{reports.requests.push(url);if(options.unavailable)throw Error('offline');if(options.fetch) return options.fetch(url);return {ok:true,json:async()=>url.includes('newsletters')?(options.issues||[]):url.includes('service')?[{id:1,service_time:'15:00'}]:(options.announcements||[])};};
   const ctx=vm.createContext({window:browser,document,Element,localStorage,navigator:{clipboard:{writeText:async value=>{if(options.clipboardDenied)throw Error('denied');reports.clipboard.push(value);}}},fetch,URL,URLSearchParams,AbortController,setTimeout,clearTimeout,console:{error:(...args)=>reports.errors.push(args),info(){}}});
   const run=code=>vm.runInContext(code,ctx);
+  run(`function contentClient(write) {
+    const query=(table,operation,payload,id)=>({select:()=>({single:()=>write({table,operation,payload,id})})});
+    return {from:table=>({insert:payload=>query(table,'insert',payload,payload.id),update:payload=>({eq:(_,id)=>query(table,'update',payload,id)})})};
+  }`);
   if(name==='admin/index.html') {run(read('theme.js'));run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));}
   else {run(read('theme.js'));run(read('supabase-config.js'));run(read('script.js'));if(name==='newsletter/index.html')run(read('newsletter-extensions.js'));}
   if(options.boot!==false) {document.dispatchEvent(new Event('DOMContentLoaded'));await new Promise(r=>setImmediate(r));Object.defineProperty(document,'readyState',{value:'complete',configurable:true});}

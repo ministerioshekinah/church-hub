@@ -122,6 +122,14 @@ async function createPage(browser,site,options={}) {
         if(['POST','PATCH'].includes(req.method())) {
           const values=JSON.parse(req.postData()||'{}');
           const index=rows.findIndex(row=>row.id===(values.id||Number(id)||id));
+          if(req.method()==='PATCH'&&index<0) {
+            if(req.headers().accept?.includes('application/vnd.pgrst.object'))return reply({code:'PGRST116',message:'The selected row no longer exists.'},406);
+            return reply([]);
+          }
+          if(req.method()==='POST'&&!req.headers().prefer?.includes('resolution=merge-duplicates')&&
+            (index>=0||(table==='newsletters'&&rows.some(row=>row.issue_date===values.issue_date)))) {
+            return reply({code:'23505',message:'Duplicate record.'},409);
+          }
           const saved={...(rows[index]||{}),...values};
           if(index<0)rows.push(saved);else rows[index]=saved;
           rows=[saved];

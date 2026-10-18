@@ -693,16 +693,22 @@ async function saveAnnouncement(activeOverride = null) {
     return null;
   }
 
-  const { data, error } = await supabaseClient
-    .from("announcements")
-    .upsert(payload, { onConflict: "id" })
+  // Creating and editing have different conflict semantics. A stale editor
+  // must never recreate a row that another administrator has deleted.
+  const table = supabaseClient.from("announcements");
+  const write = adminAnnouncements[selectedAnnouncementIndex]?.isNew
+    ? table.insert(payload)
+    : table.update(payload).eq("id", payload.id);
+  const { data, error } = await write
     .select("id,active")
     .single();
   if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
-    status.textContent = `Could not save announcement: ${error.message}`;
+    status.textContent = error.code === "23505"
+      ? "An announcement with this ID already exists. Reload the list before saving again."
+      : `Could not save announcement: ${error.message}`;
     return null;
   }
 
@@ -1128,17 +1134,22 @@ async function persistNewsletter(targetStatus = null) {
         : null
   };
 
-  const { data: saved, error } = await supabaseClient
-    .from("newsletters")
-    .upsert(payload, { onConflict: "id" })
+  // An insert lets the database reject a concurrently created issue; an
+  // update requires the selected issue to still exist. Do not upsert here.
+  const table = supabaseClient.from("newsletters");
+  const write = selectedNewsletterIsNew
+    ? table.insert(payload)
+    : table.update(payload).eq("id", id);
+  const { data: saved, error } = await write
     .select("id,status")
     .single();
   if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
-    document.getElementById("draftStatus").textContent =
-      `Could not save newsletter: ${error.message}`;
+    document.getElementById("draftStatus").textContent = error.code === "23505"
+      ? "A newsletter already exists for that issue date. Reload the list to edit it."
+      : `Could not save newsletter: ${error.message}`;
     return null;
   }
 

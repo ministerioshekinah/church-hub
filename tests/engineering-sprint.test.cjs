@@ -81,7 +81,7 @@ for (const kind of ['Announcement','Newsletter']) {
   });
   test(`${kind} actions: a thrown network error unlocks the editor and provides retry feedback`, async () => {
     const p=await admin();
-    p.run(`supabaseClient={from:()=>({upsert:()=>({select:()=>({single:async()=>{throw new Error('offline')}})})})};`);
+    p.run(`supabaseClient=contentClient(async()=>{throw new Error('offline')});`);
     click(p,p.document.getElementById(`save${kind}Button`));await settle();
     assert.equal(p.document.getElementById(`save${kind}Button`).disabled,false);
     assert.match(p.document.getElementById(statusId).textContent,/could not be completed/);
@@ -91,7 +91,7 @@ for (const kind of ['Announcement','Newsletter']) {
 
 test('Announcement actions: save and publish cannot overlap while a request is pending', async () => {
   const p=await admin();
-  p.run(`let finishSave,requests=0;supabaseClient={from:()=>({upsert:()=>{requests++;return {select:()=>({single:()=>new Promise(r=>{finishSave=r})})}}})};`);
+  p.run(`let finishSave,requests=0;supabaseClient=contentClient(()=>{requests++;return new Promise(r=>{finishSave=r})});`);
   click(p,p.document.getElementById('saveAnnouncementButton'));
   click(p,p.document.getElementById('toggleAnnouncementVisibilityButton'));
   assert.equal(p.run('requests'),1);
@@ -103,7 +103,7 @@ test('Announcement actions: save and publish cannot overlap while a request is p
 
 test('Announcement save: a late response cannot replace a different open draft', async () => {
   const p=await admin();
-  p.run(`let finishSave;supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(r=>{finishSave=r})})})})};let result;saveAnnouncement().then(r=>{result=r});selectAnnouncement(1);finishSave({data:{id:'a',active:false}});`);
+  p.run(`let finishSave;supabaseClient=contentClient(()=>new Promise(r=>{finishSave=r}));let result;saveAnnouncement().then(r=>{result=r});selectAnnouncement(1);finishSave({data:{id:'a',active:false}});`);
   await settle();
   assert.equal(p.run('result'),null);
   assert.equal(p.document.getElementById('announcementTitleEn').value,'B');
@@ -122,7 +122,7 @@ test('Newsletter deletion: a late response preserves another open issue', async 
 for(const extended of [false,true])test(`Newsletter save: another selection survives a delayed save (${extended?'optional editor':'base editor'})`,async()=>{
   const p=await admin();
   if(extended)p.run(read('newsletter-extensions.js'));
-  p.run(`let finishSave;supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(r=>{finishSave=r})})})})};let result;persistNewsletter().then(r=>{result=r});selectNewsletter('b');finishSave({data:{id:'a',status:'draft'}});`);
+  p.run(`let finishSave;supabaseClient=contentClient(()=>new Promise(r=>{finishSave=r}));let result;persistNewsletter().then(r=>{result=r});selectNewsletter('b');finishSave({data:{id:'a',status:'draft'}});`);
   await settle();
   assert.equal(p.run('result'),null);
   assert.equal(p.run('selectedNewsletterId'),'b');
@@ -132,7 +132,7 @@ for(const extended of [false,true])test(`Newsletter save: another selection surv
 test('Newsletter persistence: optional sections use the same guarded writer', async () => {
   const p=await admin();p.run(read('newsletter-extensions.js'));
   p.run(`adminNewsletters[0].optional_sections=[{id:'test',type:'custom',title_en:'Extra',title_es:'Más',body_en:'Hello',body_es:'Hola'}];selectNewsletter('a');
-    let payload;supabaseClient={from:()=>({upsert:value=>{payload=value;return {select:()=>({single:async()=>({data:{id:'a',status:'draft'}})})}}})};loadNewsletterEditor=async()=>{};`);
+    let payload;supabaseClient=contentClient(async({payload:value})=>{payload=value;return {data:{id:'a',status:'draft'}}});loadNewsletterEditor=async()=>{};`);
   await p.run('persistNewsletter()');
   assert.equal(p.run('payload.optional_sections[0].body_es'),'Hola');
   assert(!read('newsletter-extensions.js').includes('persistNewsletter = async'));
@@ -140,7 +140,7 @@ test('Newsletter persistence: optional sections use the same guarded writer', as
 
 test('Editor session: an old request cannot unlock a newer signed-in operation', async () => {
   const p=await admin();
-  p.run(`let completions=[];supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(r=>completions.push(r))})})})};`);
+  p.run(`let completions=[];supabaseClient=contentClient(()=>new Promise(r=>completions.push(r)));`);
   click(p,p.document.getElementById('saveAnnouncementButton'));
   p.run(`showLogin();authenticatedAdmin={id:'second-admin'};adminAnnouncements=[{id:'b',active:false,title_en:'B',title_es:'B'}];selectAnnouncement(0);`);
   click(p,p.document.getElementById('saveAnnouncementButton'));

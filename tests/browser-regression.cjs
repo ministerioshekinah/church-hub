@@ -221,6 +221,25 @@ async function check(name,fn) {
     await goto('/newsletter/');await page.locator('#copyNewsletterLink').click();
     assert.match(await page.locator('#newsletterToolStatus').innerText(),/direcciones/);
   }));
+  await check('Newsletter creation: another tab’s new issue cannot be overwritten by a stale draft',()=>journey({},async p=>{
+    await login(p);const {page,state}=p;await page.locator('[data-admin-section="newsletter"]').click();await page.locator('#newNewsletterButton').click();
+    await page.locator('#issueDate').fill('2026-11-01');await page.locator('#titleEn').fill('My unsaved draft');
+    state.data.newsletters.push({...state.data.newsletters[0],id:'2026-11-01',issue_date:'2026-11-01',title_en:'Created by another tab'});
+    await page.locator('#saveNewsletterButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent&&document.querySelector('[data-admin-panel="newsletter"]').getAttribute('aria-busy')==='false');
+    assert.equal(state.data.newsletters.find(row=>row.id==='2026-11-01').title_en,'Created by another tab');
+    assert.equal(await page.locator('#titleEn').inputValue(),'My unsaved draft');assert.match(await page.locator('#draftStatus').innerText(),/already exists/);
+  }));
+  await check('Deleted records: a stale newsletter or announcement editor cannot recreate them',()=>journey({},async p=>{
+    await login(p);const {page,state}=p;
+    await page.locator('[data-admin-section="newsletter"]').click();await page.locator('[data-newsletter-id="test-issue-0"]').click();
+    state.data.newsletters=state.data.newsletters.filter(row=>row.id!=='test-issue-0');await page.locator('#saveNewsletterButton').click();
+    await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent&&document.querySelector('[data-admin-panel="newsletter"]').getAttribute('aria-busy')==='false');
+    assert(!state.data.newsletters.some(row=>row.id==='test-issue-0'));assert.match(await page.locator('#draftStatus').innerText(),/Could not save/);
+    await page.locator('[data-admin-section="announcements"]').click();await page.locator('[data-announcement-index="0"]').click();
+    state.data.announcements=[];await page.locator('#saveAnnouncementButton').click();
+    await page.waitForFunction(()=>document.querySelector('#announcementDraftStatus').textContent&&document.querySelector('[data-admin-panel="announcements"]').getAttribute('aria-busy')==='false');
+    assert.equal(state.data.announcements.length,0);assert.match(await page.locator('#announcementDraftStatus').innerText(),/Could not save/);
+  }));
   const report={checkedAt:new Date().toISOString(),engine,browser:browser.version(),mode:'local site and entirely mocked backend; no production writes',filter:process.env.BROWSER_TEST_FILTER||null,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
   const output=process.env.BROWSER_REPORT_PATH||path.resolve(__dirname,'../security/local-results/browser-regression.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
   await browser.close();await site.close();console.log(`${report.passed}/${results.length} browser journeys passed`);if(report.failed)process.exitCode=1;

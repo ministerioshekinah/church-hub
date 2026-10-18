@@ -153,7 +153,7 @@ test('Admin session: a delayed session restore cannot reopen a signed-out dashbo
 test('Admin session: pending announcement save cannot restore private form content after sign-out', async () => {
   const p=await page('admin/index.html');
   p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'private',active:false,title_en:'Hidden',title_es:'Oculto'}]; selectAnnouncement(0);
-    let releaseSave; supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(resolve=>{releaseSave=resolve;})})})})};
+    let releaseSave; supabaseClient=contentClient(()=>new Promise(resolve=>{releaseSave=resolve;}));
     let saveResult; saveAnnouncement().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',active:false}});`);
   await settle();
   assert.equal(p.run('saveResult'),null);
@@ -167,7 +167,7 @@ test('Admin session: pending newsletter save cannot restore a signed-out editor'
     if(extended) p.run(read('newsletter-extensions.js'));
     p.run(`authenticatedAdmin={id:'admin'}; selectedNewsletterId='private';
       validateNewsletterForm=()=>({issue_date:'2026-10-13',title_en:'Private',title_es:'Privado'});
-      let releaseSave; supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(resolve=>{releaseSave=resolve;})})})})};
+      let releaseSave; supabaseClient=contentClient(()=>new Promise(resolve=>{releaseSave=resolve;}));
       let saveResult; persistNewsletter().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',status:'draft'}});`);
     await settle();
     assert.equal(p.run('saveResult'),null);
@@ -179,7 +179,7 @@ test('Admin session: pending newsletter save cannot restore a signed-out editor'
 test('Admin publishing: saving a live announcement retains the correct visible status', async () => {
   const p=await page('admin/index.html');
   p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'live',active:true,title_en:'Live',title_es:'Publicado'}]; selectAnnouncement(0);
-    supabaseClient={from:()=>({upsert:()=>({select:()=>({single:async()=>({data:{id:'live',active:true}})})})})};`);
+    supabaseClient=contentClient(async()=>({data:{id:'live',active:true}}));`);
   click(p,p.document.getElementById('saveAnnouncementButton')); await settle();
   assert.match(p.document.getElementById('announcementDraftStatus').textContent,/Changes are live/);
 });
