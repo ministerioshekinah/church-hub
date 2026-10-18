@@ -498,13 +498,15 @@ async function check(name,fn) {
     await login(p);const {page}=p;
     for(const editor of [
       {section:'announcements',item:'[data-announcement-index="0"]',heading:'#announcementEditorHeading',next:'.announcement-lang-tab[data-announcement-lang="en"]',create:'#addAnnouncementButton',field:'#announcementTitleEn'},
-      {section:'newsletter',item:'[data-newsletter-id="test-issue-0"]',heading:'#newsletterEditorHeading',next:'#issueDate',create:'#newNewsletterButton',field:'#titleEn'}
+      {section:'newsletter',item:'[data-newsletter-id="test-issue-0"]',heading:'#newsletterEditorHeading',next:'#issueDate, [data-editor-lang="en"]',create:'#newNewsletterButton',field:'#titleEn'}
     ]){
       await page.locator(`[data-admin-section="${editor.section}"]`).click();
       await page.locator(editor.item).focus();await page.keyboard.press('Enter');
       assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement),'Selection must enter the editor');
       const box=await page.locator(editor.heading).boundingBox();assert(box.y>=0&&box.y+box.height<=900,'Editor heading must be visible');
-      await page.keyboard.press('Tab');assert(await page.locator(editor.next).evaluate(e=>e===document.activeElement),'Tab must continue into the editor: '+JSON.stringify(await page.evaluate(()=>({id:document.activeElement.id,tag:document.activeElement.tagName,html:document.activeElement.outerHTML.slice(0,350)}))));
+      // Firefox/WebKit skip the read-only date field; both native destinations
+      // are inside the editor and must remain reachable from its heading.
+      await page.keyboard.press('Tab');assert(await page.locator(editor.next).evaluateAll(elements=>elements.includes(document.activeElement)),'Tab must continue into the editor: '+JSON.stringify(await page.evaluate(()=>({id:document.activeElement.id,tag:document.activeElement.tagName,html:document.activeElement.outerHTML.slice(0,350)}))));
       await page.locator(editor.create).focus();await page.keyboard.press('Enter');assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement));
       await page.locator(editor.field).fill('Keep this draft');
       page.removeAllListeners('dialog');page.on('dialog',dialog=>dialog.dismiss());

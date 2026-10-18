@@ -28,6 +28,7 @@ beforeEach(async()=>{
   await db.exec('RESET ROLE;');
   await db.query("SELECT set_config('request.jwt.claim.sub','',false)");
   await db.exec('TRUNCATE public.admin_users,public.announcements,public.newsletters;');
+  await db.query('INSERT INTO auth.users VALUES($1),($2),($3) ON CONFLICT DO NOTHING',[OWNER,ADMIN,OUTSIDER]);
   await db.query("INSERT INTO public.admin_users(user_id,role) VALUES($1,'owner'),($2,'admin')",[OWNER,ADMIN]);
   await db.exec("INSERT INTO public.announcements(id,active,title_en,title_es) VALUES('public',true,'Public','Público'),('private',false,'Private','Privado'); INSERT INTO public.newsletters(id,issue_date,status,published_at,title_en,title_es) VALUES('published','2026-10-18','published',now(),'Public','Público'),('draft','2026-10-11','draft',null,'Private','Privado');");
 });
@@ -73,4 +74,17 @@ test('RLS: privileged account management retains least privilege over church con
     for(const table of ['service_settings','announcements','newsletters'])await assert.rejects(db.query(`SELECT id FROM public.${table}`),{code:'42501'});
     await assert.rejects(db.query('DELETE FROM public.admin_users WHERE user_id=$1',[OWNER]),{code:'23514'});
   });
+});
+test('RLS: deleting an Auth fixture account cascades to membership without retaining access',async()=>{
+  assert.deepEqual((await db.query('DELETE FROM auth.users WHERE id=$1 RETURNING id',[ADMIN])).rows,[{id:ADMIN}]);
+  assert.deepEqual((await db.query('SELECT user_id FROM public.admin_users WHERE user_id=$1',[ADMIN])).rows,[]);
+  await asRole('authenticated',ADMIN,async()=>{
+    assert.deepEqual((await db.query('SELECT id FROM public.newsletters ORDER BY id')).rows,[{id:'published'}]);
+    assert.deepEqual((await db.query("UPDATE public.service_settings SET day_en='Deleted account' WHERE id=1 RETURNING id")).rows,[]);
+  });
+});
+test('RLS: an Auth cascade cannot delete the final Owner account',async()=>{
+  await assert.rejects(db.query('DELETE FROM auth.users WHERE id=$1',[OWNER]),{code:'23514'});
+  assert.deepEqual((await db.query('SELECT id FROM auth.users WHERE id=$1',[OWNER])).rows,[{id:OWNER}]);
+  assert.deepEqual((await db.query('SELECT user_id FROM public.admin_users WHERE user_id=$1',[OWNER])).rows,[{user_id:OWNER}]);
 });

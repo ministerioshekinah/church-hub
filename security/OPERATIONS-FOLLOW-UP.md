@@ -10,7 +10,7 @@ The exact catalog-read function reproduced zero deleted rows and a retained cont
 
 The browser additionally checks the refreshed access list and visibly warns if a legacy backend reports success while the account remains listed. This improves detection before a backend release; it does not itself revoke access.
 
-Five more isolated tests apply all nine repository migrations and execute the real RLS policies under anon, authenticated and service_role fixtures. The same authenticated identity loses private reads and writes after membership deletion; nonmembers remain denied, author UUIDs stay private and the service role retains its restricted table privileges.
+Seven more isolated tests apply all nine repository migrations and execute the real RLS policies under anon, authenticated and service_role fixtures. Auth account deletion cascades also remove membership, while the final Owner remains protected. The same authenticated identity loses private reads and writes after membership deletion; nonmembers remain denied, author UUIDs stay private and the service role retains its restricted table privileges.
 
 Ten database tests execute real trigger semantics, including removal, final-Owner protection, multirow atomicity, repeat application and integration with the actual Edge handler. They run on PGlite 0.5.10 / PostgreSQL 18.6, with fictional IDs and no network. Production is PostgreSQL 17.6; native staging concurrency and the complete deployed middleware remain separate acceptance gates. The original trigger's DELETE semantics are also documented in [PostgreSQL 17 trigger guidance](https://www.postgresql.org/docs/17/plpgsql-trigger.html).
 
