@@ -118,6 +118,19 @@ async function check(name,fn) {
     assert(await page.locator('[data-lang="es"]').evaluate(e=>e===document.activeElement),'a completed retry must preserve the new focus choice');
     assert.equal(await page.locator('html').getAttribute('lang'),'es');assert.match(await page.locator('#latestNewsletter h2').innerText(),/Boletín/);
   }));
+  await check('A stalled public request times out and can recover through the normal retry',()=>journey({lang:'es'},async({page,context,goto})=>{
+    let pending;const pattern='**/rest/v1/newsletters**';
+    const stall=route=>{if(route.request().method()==='GET')pending=route;else return route.fallback();};
+    await context.route(pattern,stall);
+    await page.goto(site.url+'/newsletter/',{waitUntil:'domcontentloaded'});
+    await page.locator('#newsletterRetry').waitFor({state:'visible',timeout:9000});
+    assert(pending,'the public request was held locally');assert(await page.locator('#newsletterTools').isHidden());
+    assert.match(await page.locator('#latestNewsletter').innerText(),/No pudimos cargar/);
+    await context.unroute(pattern,stall);await pending.abort('failed').catch(()=>{});
+    await page.locator('#newsletterRetry').click();await page.locator('#newsletterRetry').waitFor({state:'hidden'});
+    assert.equal(await page.locator('#latestNewsletter').getAttribute('data-issue-id'),'test-issue-0');
+    assert(await page.locator('#newsletterTools').isVisible());
+  }));
   await check('Policy deep links follow the visible language',()=>journey({lang:'es'},async({page,goto})=>{
     await goto('/privacy/#section-en-3');assert.match(page.url(),/#section-es-3$/);
     assert(await page.locator('#section-es-3').isVisible());await page.locator('[data-lang="en"]').click();assert.match(page.url(),/#section-en-3$/);
@@ -326,7 +339,8 @@ async function check(name,fn) {
     assert.match(await page.evaluate(()=>getSelection().toString()),/2149 W Washington/);
     assert.match(await page.locator('#copyStatus').innerText(),/Selecciona/);
     await goto('/newsletter/');await page.locator('#copyNewsletterLink').click();
-    assert.match(await page.locator('#newsletterToolStatus').innerText(),/direcciones/);
+    assert.match(await page.locator('#newsletterToolStatus').innerText(),/Copia este enlace/);
+    assert.equal(new URL(await page.locator('#newsletterToolStatus a').getAttribute('href')).searchParams.get('issue'),'test-issue-0');
   }));
   await check('Newsletter creation: another tab’s new issue cannot be overwritten by a stale draft',()=>journey({},async p=>{
     await login(p);const {page,state}=p;await page.locator('[data-admin-section="newsletter"]').click();await page.locator('#newNewsletterButton').click();

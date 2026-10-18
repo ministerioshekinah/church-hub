@@ -23,6 +23,16 @@ For MFA, preserve the existing membership boundary and public read policies. Rev
 
 The Owner function currently reads only the first 1,000 Auth users when mapping membership to email addresses and locating an existing invitee. With the presently small authorized group this was not an observed production failure. If public registration remains available and the Auth population grows, add bounded pagination or a purpose-specific lookup before that limit is reached. Do not treat the fixture directory as a production user inventory.
 
+## Additional read-only upgrade review
+
+A follow-up catalog check on October 18 still reports PostgreSQL 17.6. `pgcrypto` 1.3 is installed; `ltree` and `btree_gist` are absent. No non-extension custom operator with a non-built-in selectivity estimator was found. The public application schema has no `bytea` columns or custom function source references to PGP encryption/decryption; the checked repository migrations and Edge Function also contain none. These observations narrow the compatibility review, but do not establish that legacy PGP encryption was never used through an external client or another schema. No encrypted values were read or decrypted.
+
+The `anon` and `authenticated` database roles have no login, superuser, replication, role-creation, RLS-bypass, database-CREATE or public-schema-CREATE capability. The only non-extension function in `public` is an event trigger, and neither role has EXECUTE permission on it. The reviewed HTTP application therefore exposes no direct arbitrary-SQL or custom public RPC path to the PostgreSQL issues; this is an exposure observation, not proof that an unpatched server is safe. Keep the upgrade as a high-priority provider-coordinated task.
+
+Upstream PostgreSQL 17.11 also describes security fixes beyond the extension compatibility warnings. Review the provider's supported upgrade target, backup/restore path and any external SQL/replication clients. Do not attempt exploit payloads, broad cipher scans or production compatibility mutations as a substitute for patching. See the [upstream 17.11 release notes](https://www.postgresql.org/docs/release/17.11/).
+
+The public archive currently requests the newest 100 published issues. Before that collection grows beyond the limit, add bounded server pagination or a direct fetch for an older requested issue; otherwise a published issue outside the loaded window can be treated as unavailable. The current small collection did not demonstrate this failure.
+
 ## Editing and browser limitations
 
 - Exact `updated_at` filters protect cooperating versions of the three editors from silent overwrites/deletions. Older clients and direct authorized API callers can omit those filters. Fully enforced collaborative locking/versioning needs a separate server design.
