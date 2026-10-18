@@ -136,7 +136,7 @@ test('Admin session: signing out clears draft fields, previews, and in-memory co
 
 test('Admin session: a late content response cannot refill the editor after sign-out', async () => {
   const p=await page('admin/index.html');
-  p.run('authenticatedAdmin={id:"fixture-admin"};let releaseContent; supabaseClient={from:()=>({select:()=>({order:()=>new Promise(resolve=>{releaseContent=resolve;})})})}; loadNewsletterEditor(); showLogin(); releaseContent({data:[{id:"private",title_en:"Delayed private draft",status:"draft"}]});');
+  p.run('authenticatedAdmin={id:"fixture-admin"};let releaseContent; supabaseClient={from:()=>({select:()=>({abortSignal(){return this},order:()=>new Promise(resolve=>{releaseContent=resolve;})})})}; loadNewsletterEditor(); showLogin(); releaseContent({data:[{id:"private",title_en:"Delayed private draft",status:"draft"}]});');
   await settle();
   assert.equal(p.run('adminNewsletters.length'),0);
   assert(!p.document.getElementById('adminNewsletterList').textContent.includes('Delayed private draft'));

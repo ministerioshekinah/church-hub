@@ -494,6 +494,20 @@ async function check(name,fn) {
     await page.locator('#signOutButton').click();await page.waitForFunction(()=>!document.querySelector('#adminLoginView').classList.contains('hidden'));
     assert.equal(await page.locator('#serviceLabelEn').inputValue(),'');await page.locator('.admin-back-link').click();await page.waitForURL(site.url+'/');assert.deepEqual(dialogs,[]);
   }));
+  await check('Admin content loading: stalled reads release all editors and a reload recovers',()=>journey({},async p=>{
+    let release;const held=new Promise(resolve=>{release=resolve});const pattern=/\/rest\/v1\/(service_settings|announcements|newsletters)\?/;
+    await p.context.route(pattern,async route=>{if(route.request().method()==='GET')await held;await route.fallback();});
+    try{
+      await login(p);const {page}=p;
+      await page.waitForFunction(()=>['service','announcements','newsletter'].every(section=>document.querySelector(`[data-admin-panel="${section}"]`).getAttribute('aria-busy')==='false'),null,{timeout:14000});
+      for(const selector of ['#serviceDraftStatus','#adminAnnouncementList','#adminNewsletterList'])assert.match(await page.locator(selector).textContent(),/Reload this page/);
+      for(const selector of ['#saveServiceButton','#addAnnouncementButton','#newNewsletterButton'])assert(await page.locator(selector).isEnabled());
+      assert(!p.state.requests.some(request=>request.method==='PATCH'||request.method==='DELETE'));
+      release();await p.context.unroute(pattern);await page.reload({waitUntil:'networkidle'});
+      await page.waitForFunction(()=>!document.querySelector('#serviceLabelEn').disabled&&document.querySelector('#serviceLabelEn').value==='Sunday Service');
+      assert.equal(await page.locator('[data-announcement-index]').count(),1);assert.equal(await page.locator('[data-newsletter-id]').count(),9);
+    }finally{release();}
+  }));
   for(const width of [390,1440])await check(`Editor focus: selecting and creating records has a usable keyboard destination at ${width}px`,()=>journey({viewport:{width,height:900}},async p=>{
     await login(p);const {page}=p;
     for(const editor of [

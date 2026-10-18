@@ -152,6 +152,18 @@ async function runEditorAction(section, button, status, busyText, action) {
   }
 }
 
+async function withAdminReadTimeout(request) {
+  // Bound content reads so a stalled connection cannot lock an editor forever.
+  // Writes deliberately keep their existing confirmation/error handling.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    return await request(controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function configIsReady() {
   const cfg = window.SHEKINAH_SUPABASE;
   return Boolean(
@@ -525,17 +537,18 @@ async function loadServiceEditor() {
 async function fetchServiceEditor() {
   const generation = adminSessionVersion;
   serviceVersion = null;
-  const { data, error } = await supabaseClient
+  const { data, error } = await withAdminReadTimeout(signal => supabaseClient
     .from("service_settings")
     .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address,updated_at")
+    .abortSignal(signal)
     .eq("id", 1)
-    .maybeSingle();
+    .maybeSingle());
   if (generation !== adminSessionVersion) return;
 
   if (error) {
     console.error(error);
     document.getElementById("serviceDraftStatus").textContent =
-      "Could not load live service settings.";
+      "Could not load live service settings. Reload this page to try again.";
     return;
   }
 
@@ -619,11 +632,12 @@ async function loadAnnouncementEditor() {
 
 async function fetchAnnouncementEditor() {
   const generation = adminSessionVersion;
-  const { data, error } = await supabaseClient
+  const { data, error } = await withAdminReadTimeout(signal => supabaseClient
     .from("announcements")
     .select("id,active,tag_en,tag_es,title_en,title_es,description_en,description_es,sort_order,created_at,updated_at")
+    .abortSignal(signal)
     .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }));
   if (generation !== adminSessionVersion) return;
 
   if (error) {
@@ -961,10 +975,11 @@ async function loadNewsletterEditor() {
 
 async function fetchNewsletterEditor() {
   const generation = adminSessionVersion;
-  const { data, error } = await supabaseClient
+  const { data, error } = await withAdminReadTimeout(signal => supabaseClient
     .from("newsletters")
     .select("id,issue_date,status,title_en,title_es,gathering_en,gathering_es,scripture_en,scripture_es,community_en,community_es,optional_sections,published_at,created_at,updated_at")
-    .order("issue_date", { ascending: false });
+    .abortSignal(signal)
+    .order("issue_date", { ascending: false }));
   if (generation !== adminSessionVersion) return;
 
   if (error) {
