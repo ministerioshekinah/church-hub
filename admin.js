@@ -1021,6 +1021,7 @@ function updateNewsletterStatusUI(status) {
 
 function updateNewsletterPreview() {
   const lang = activeEditorLanguage();
+  document.querySelector(".preview-newsletter")?.setAttribute("lang", lang);
   const isSpanish = lang === "es";
   const data = newsletterFormData();
 

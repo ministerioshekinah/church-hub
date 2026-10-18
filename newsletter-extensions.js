@@ -158,7 +158,7 @@
               </div>
 
               <div class="optional-language-grid">
-                <div class="optional-language-column">
+                <div class="optional-language-column" lang="en">
                   <span class="optional-language-label">English</span>
                   <label>
                     Section title
@@ -170,7 +170,7 @@
                   </label>
                 </div>
 
-                <div class="optional-language-column">
+                <div class="optional-language-column" lang="es">
                   <span class="optional-language-label">Español</span>
                   <label>
                     Título de la sección

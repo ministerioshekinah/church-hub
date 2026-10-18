@@ -134,6 +134,10 @@ async function check(name,fn) {
     await page.locator('[data-newsletter-id="test-issue-0"]').click();await page.locator('[data-add-optional="custom"]').click();
     await page.locator('[data-field="title_en"]').fill('Fixture extra');await page.locator('[data-field="title_es"]').fill('Sección de prueba');
     await page.locator('[data-field="body_en"]').fill('Local test only.');await page.locator('[data-field="body_es"]').fill('Solo prueba local.');
+    await page.locator('[data-editor-lang="es"]').click();
+    assert.equal(await page.locator('.preview-newsletter').getAttribute('lang'),'es');
+    assert.equal(await page.locator('[data-field="body_es"]').evaluate(e=>e.closest('[lang]').lang),'es');
+    assert.equal(await page.locator('#titleEs').evaluate(e=>e.closest('[lang]').lang),'es');
     await page.locator('#publishButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.startsWith('Published.'));
     assert.equal(state.data.newsletters[0].optional_sections[0].body_es,'Solo prueba local.');
     assert.equal(await page.locator('[data-field="body_es"]').inputValue(),'Solo prueba local.');
