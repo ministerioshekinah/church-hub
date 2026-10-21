@@ -16,6 +16,7 @@ async function page(name = 'index.html', options = {}) {
   const browser = {document, location, innerHeight:800, scrollY:0,
     addEventListener:events.addEventListener.bind(events), removeEventListener:events.removeEventListener.bind(events), dispatchEvent:events.dispatchEvent.bind(events),
     requestAnimationFrame:cb=>setTimeout(cb,0), cancelAnimationFrame:clearTimeout,
+    getComputedStyle:()=>({opacity:'1'}),
     scrollTo:opts=>{reports.scrolls.push(opts);browser.scrollY=opts.top;},
     print:()=>{reports.prints++;},
     history:{pushState:(_,__,url)=>{location.href=url;},replaceState:(_,__,url)=>{location.href=new URL(url,location).href;}},

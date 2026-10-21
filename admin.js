@@ -275,6 +275,29 @@ async function restoreAuthenticatedAdmin() {
   await showDashboard(data.user);
 }
 
+function clearHistorySessionView() {
+  // A history cache can retain the entire document, including private drafts
+  // and Owner controls, while authentication changes in a different tab.
+  showLogin();
+  passwordInput.value = "";
+  passwordInput.type = "password";
+  passwordToggle.textContent = "Show";
+  passwordToggle.setAttribute("aria-pressed", "false");
+  passwordToggle.setAttribute("aria-label", "Show password");
+}
+
+window.addEventListener("pagehide", (event) => {
+  if (event.persisted) clearHistorySessionView();
+});
+
+window.addEventListener("pageshow", (event) => {
+  if (!event.persisted) return;
+  // Replace the frozen document before reusing authentication or editor state.
+  // Normal startup then verifies identity and current membership with the server.
+  clearHistorySessionView();
+  window.location.reload();
+});
+
 async function initializeAuth() {
   if (!configIsReady()) {
     loginForm.querySelector('button[type="submit"]').disabled = true;
