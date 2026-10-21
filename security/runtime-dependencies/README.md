@@ -12,9 +12,9 @@ GitHub Actions runs this in addition to the root dependency audit. It blocks hig
 
 When upgrading either package:
 
-1. Update the exact version in this manifest and the corresponding source import or HTML SDK URL. Keep the administrator HTML's CSP URL and integrity hash aligned with the new SDK artifact.
+1. Update the exact version in this manifest and the corresponding Edge import or vendored SDK. Replace the SDK bytes from the exact npm version, compare them with the upstream UMD artifact, update `assets/vendor/provenance.json` and license notices, and align the administrator HTML's local URL and integrity hash. Keep script CSP restricted to self.
 2. Regenerate this lockfile with `npm install --prefix security/runtime-dependencies --package-lock-only --ignore-scripts` from the repository root.
 3. Run both dependency audits and `npm test`. The source-version guard must pass.
 4. Validate authentication, content publishing, and Owner operations in a permitted test environment before deploying a changed runtime package. Updating this fixture alone does not deploy or upgrade an Edge Function.
 
-The npm graph is an advisory snapshot. The CDN browser bundle and Deno's deployed transitive resolution are separate delivery systems; a zero-result audit does not attest to every deployed byte or prove the absence of vulnerabilities. The browser still requires its pinned Subresource Integrity hash, and the Edge Function still requires verified authentication and server-side authorization.
+The npm graph is an advisory snapshot. The vendored browser bundle and Deno's deployed transitive resolution are separate delivery systems; a zero-result audit does not attest to every deployed byte or prove the absence of vulnerabilities. The browser still requires its pinned Subresource Integrity hash, and the Edge Function still requires verified authentication and server-side authorization.

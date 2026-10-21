@@ -69,6 +69,62 @@ test('Owner session: returning owner can refresh controls after a new sign-in', 
   assert.equal(p.document.getElementById('administratorList').textContent, '');
 });
 
+function submitInvitation(p, email) {
+  p.document.getElementById('newAdministratorEmail').value=email;
+  p.document.getElementById('inviteAdministratorForm').dispatchEvent(new p.Event('submit',{bubbles:true,cancelable:true}));
+}
+
+test('Owner invitation: pending input stays stable and duplicate submissions are ignored', async () => {
+  const p=await ownerPage();
+  p.run('let finishInvite; let inviteCalls=0; supabaseClient.functions.invoke=async(_,request)=>{if(request.body.action==="list")return {data:{admins:[]}}; ++inviteCalls;return new Promise(resolve=>{finishInvite=resolve});};');
+  submitInvitation(p,'FIRST@example.test');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,true);
+  assert.equal(p.document.getElementById('inviteAdministratorForm').getAttribute('aria-busy'),'true');
+  p.document.getElementById('inviteAdministratorForm').dispatchEvent(new p.Event('submit',{bubbles:true,cancelable:true}));
+  assert.equal(p.run('inviteCalls'),1);
+  p.run('finishInvite({data:{invited:true}})');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').value,'');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,false);
+  assert.equal(p.document.getElementById('administratorInviteStatus').getAttribute('role'),'status');
+  assert.match(p.document.getElementById('administratorInviteStatus').textContent,/Invitation sent/);
+});
+
+test('Owner invitation: a failed request preserves the email and releases the form', async () => {
+  const p=await ownerPage();
+  p.run('supabaseClient.functions.invoke=async()=>({error:new Error("Connection interrupted")});');
+  submitInvitation(p,'retry@example.test');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').value,'retry@example.test');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,false);
+  assert.equal(p.document.getElementById('inviteAdministratorForm').getAttribute('aria-busy'),'false');
+  assert.match(p.document.getElementById('administratorInviteStatus').textContent,/Connection interrupted/);
+});
+
+test('Owner invitation: an old response cannot unlock a new session invitation', async () => {
+  const p=await ownerPage();
+  p.run('let finishOld, finishNew; supabaseClient.functions.invoke=()=>new Promise(resolve=>{finishOld=resolve});');
+  submitInvitation(p,'old@example.test');
+  p.run('showLogin(); authenticatedAdmin={id:"test-owner"};window.SHEKINAH_OWNER.refresh();');await settle();
+  p.run('supabaseClient.functions.invoke=()=>new Promise(resolve=>{finishNew=resolve});');
+  submitInvitation(p,'new@example.test');
+  p.run('finishOld({data:{invited:true}})');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').value,'new@example.test');
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,true);
+  assert.equal(p.document.getElementById('administratorInviteStatus').textContent,'');
+  p.run('finishNew({error:new Error("Local fixture complete")})');await settle();
+  assert.equal(p.document.getElementById('newAdministratorEmail').disabled,false);
+});
+
+test('Owner list: an older refresh cannot replace the latest access list', async () => {
+  const p=await ownerPage();
+  p.run('let listResponses=[];supabaseClient.functions.invoke=()=>new Promise(resolve=>listResponses.push(resolve));');
+  click(p,p.document.getElementById('administratorsTab'));
+  click(p,p.document.getElementById('refreshAdministratorsButton'));
+  p.run('listResponses[1]({data:{admins:[{id:"latest",email:"latest@example.test",role:"admin"}]}})');await settle();
+  p.run('listResponses[0]({data:{admins:[{id:"stale",email:"removed@example.test",role:"admin"}]}})');await settle();
+  assert.match(p.document.getElementById('administratorList').textContent,/latest@example.test/);
+  assert(!p.document.getElementById('administratorList').textContent.includes('removed@example.test'));
+});
+
 test('Admin session: signing out clears draft fields, previews, and in-memory content', async () => {
   const p=await page('admin/index.html');
   p.run('adminNewsletters=[{id:"private",title_en:"Private title",status:"draft"}]; adminAnnouncements=[{id:"hidden",title_en:"Hidden message",active:false}]; document.getElementById("titleEn").value="Private draft text"; document.getElementById("previewTitle").textContent="Private draft text"; showLogin();');
@@ -80,7 +136,7 @@ test('Admin session: signing out clears draft fields, previews, and in-memory co
 
 test('Admin session: a late content response cannot refill the editor after sign-out', async () => {
   const p=await page('admin/index.html');
-  p.run('let releaseContent; supabaseClient={from:()=>({select:()=>({order:()=>new Promise(resolve=>{releaseContent=resolve;})})})}; loadNewsletterEditor(); showLogin(); releaseContent({data:[{id:"private",title_en:"Delayed private draft",status:"draft"}]});');
+  p.run('authenticatedAdmin={id:"fixture-admin"};let releaseContent; supabaseClient={from:()=>({select:()=>({abortSignal(){return this},order:()=>new Promise(resolve=>{releaseContent=resolve;})})})}; loadNewsletterEditor(); showLogin(); releaseContent({data:[{id:"private",title_en:"Delayed private draft",status:"draft"}]});');
   await settle();
   assert.equal(p.run('adminNewsletters.length'),0);
   assert(!p.document.getElementById('adminNewsletterList').textContent.includes('Delayed private draft'));
@@ -94,11 +150,24 @@ test('Admin session: a delayed session restore cannot reopen a signed-out dashbo
   assert.equal(p.run('authenticatedAdmin'),null);
 });
 
+test('Admin sign-in: an old completion cannot leave logout locked or unlock a newer attempt', async () => {
+  const p=await page('admin/index.html');
+  p.run(`let pendingLogins=[];supabaseClient={auth:{signInWithPassword:()=>new Promise(resolve=>pendingLogins.push(resolve))}};`);
+  const submit=()=>p.document.getElementById('adminLoginForm').dispatchEvent(new p.Event('submit',{bubbles:true,cancelable:true}));
+  submit();assert.equal(p.document.getElementById('adminEmail').disabled,true);
+  p.run('showLogin()');assert.equal(p.document.getElementById('adminEmail').disabled,false);
+  submit();submit();assert.equal(p.run('pendingLogins.length'),2);
+  p.run(`pendingLogins[0]({error:{message:'old request'}})`);await settle();
+  assert.equal(p.document.getElementById('adminEmail').disabled,true);
+  p.run(`pendingLogins[1]({error:{message:'current request'}})`);await settle();
+  assert.equal(p.document.getElementById('adminEmail').disabled,false);
+});
+
 test('Admin session: pending announcement save cannot restore private form content after sign-out', async () => {
   const p=await page('admin/index.html');
-  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'private',active:false,title_en:'Hidden',title_es:'Oculto'}]; selectAnnouncement(0);
-    let releaseSave; supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(resolve=>{releaseSave=resolve;})})})})};
-    let saveResult; saveAnnouncement().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',active:false}});`);
+  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'private',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false,title_en:'Hidden',title_es:'Oculto'}]; selectAnnouncement(0);
+    let releaseSave; supabaseClient=contentClient(()=>new Promise(resolve=>{releaseSave=resolve;}));
+    let saveResult; saveAnnouncement().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',updated_at:'2026-10-18T00:00:00.123456+00:00',active:false}});`);
   await settle();
   assert.equal(p.run('saveResult'),null);
   assert.equal(p.run('adminAnnouncements.length'),0);
@@ -109,9 +178,9 @@ test('Admin session: pending newsletter save cannot restore a signed-out editor'
   for(const extended of [false,true]) {
     const p=await page('admin/index.html');
     if(extended) p.run(read('newsletter-extensions.js'));
-    p.run(`authenticatedAdmin={id:'admin'}; selectedNewsletterId='private';
+    p.run(`authenticatedAdmin={id:'admin'}; selectedNewsletterId='private';selectedNewsletterVersion='2026-10-18T00:00:00.123456+00:00';
       validateNewsletterForm=()=>({issue_date:'2026-10-13',title_en:'Private',title_es:'Privado'});
-      let releaseSave; supabaseClient={from:()=>({upsert:()=>({select:()=>({single:()=>new Promise(resolve=>{releaseSave=resolve;})})})})};
+      let releaseSave; supabaseClient=contentClient(()=>new Promise(resolve=>{releaseSave=resolve;}));
       let saveResult; persistNewsletter().then(result=>{saveResult=result;}); showLogin(); releaseSave({data:{id:'private',status:'draft'}});`);
     await settle();
     assert.equal(p.run('saveResult'),null);
@@ -122,19 +191,17 @@ test('Admin session: pending newsletter save cannot restore a signed-out editor'
 
 test('Admin publishing: saving a live announcement retains the correct visible status', async () => {
   const p=await page('admin/index.html');
-  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'live',active:true,title_en:'Live',title_es:'Publicado'}]; selectAnnouncement(0);
-    supabaseClient={from:()=>({upsert:()=>({select:()=>({single:async()=>({data:{id:'live',active:true}})})})})};`);
+  p.run(`authenticatedAdmin={id:'admin'}; adminAnnouncements=[{id:'live',updated_at:'2026-10-18T00:00:00.123456+00:00',active:true,title_en:'Live',title_es:'Publicado'}]; selectAnnouncement(0);
+    supabaseClient=contentClient(async()=>({data:{id:'live',updated_at:'2026-10-18T00:00:00.123456+00:00',active:true}}));`);
   click(p,p.document.getElementById('saveAnnouncementButton')); await settle();
   assert.match(p.document.getElementById('announcementDraftStatus').textContent,/Changes are live/);
 });
 
 async function servicePage() {
   const p=await page('admin/index.html');
-  const button=p.document.getElementById('saveServiceButton');
-  button.replaceWith(button.cloneNode(true));
   p.run(`authenticatedAdmin={id:'admin'};
-    let serviceWrites=0;
-    supabaseClient={auth:{getUser:async()=>({data:{user:{id:'admin'}}})},from:()=>({update:()=>{++serviceWrites;return {eq:()=>({select:()=>({maybeSingle:async()=>({data:{id:1}})})})};}})};`);
+    let serviceWrites=0;serviceVersion='2026-10-18T00:00:00.123456+00:00';
+    supabaseClient=Object.assign(contentClient(async()=>{++serviceWrites;return {data:{id:1,updated_at:'2026-10-18T01:00:00+00:00'}}}),{auth:{getUser:async()=>({data:{user:{id:'admin'}}})}});`);
   p.run(read('admin-service-validation.js'));
   return p;
 }

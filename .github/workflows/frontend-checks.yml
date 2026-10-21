@@ -29,3 +29,24 @@ jobs:
       - run: npm audit --audit-level=high
       - name: Audit pinned browser and Edge Function dependencies
         run: npm audit --prefix security/runtime-dependencies --audit-level=high
+  browser-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Exercise public and admin journeys with an isolated backend
+        run: npm run test:browser
+        env:
+          BROWSER_ENGINE: ${{ matrix.browser }}

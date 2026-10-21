@@ -14,11 +14,12 @@ async function page(name = 'index.html', options = {}) {
   const location = new URL('https://mcshekinah.org/' + name.replace(/index\.html$/, ''));
   const media = new Map();
   const browser = {document, location, innerHeight:800, scrollY:0,
-    addEventListener:events.addEventListener.bind(events), dispatchEvent:events.dispatchEvent.bind(events),
+    addEventListener:events.addEventListener.bind(events), removeEventListener:events.removeEventListener.bind(events), dispatchEvent:events.dispatchEvent.bind(events),
     requestAnimationFrame:cb=>setTimeout(cb,0), cancelAnimationFrame:clearTimeout,
+    getComputedStyle:()=>({opacity:'1'}),
     scrollTo:opts=>{reports.scrolls.push(opts);browser.scrollY=opts.top;},
     print:()=>{reports.prints++;},
-    history:{pushState:(_,__,url)=>{location.href=url;}},
+    history:{pushState:(_,__,url)=>{location.href=url;},replaceState:(_,__,url)=>{location.href=new URL(url,location).href;}},
     matchMedia:query=>{
       if(!media.has(query)) { const target=document.createElement('media'); media.set(query,{matches:query.includes('reduced-motion')?Boolean(options.reduced):query.includes('color-scheme')?Boolean(options.dark):false,addEventListener:target.addEventListener.bind(target),dispatchEvent:target.dispatchEvent.bind(target)}); }
       return media.get(query);
@@ -34,6 +35,14 @@ async function page(name = 'index.html', options = {}) {
   const fetch=async url=>{reports.requests.push(url);if(options.unavailable)throw Error('offline');if(options.fetch) return options.fetch(url);return {ok:true,json:async()=>url.includes('newsletters')?(options.issues||[]):url.includes('service')?[{id:1,service_time:'15:00'}]:(options.announcements||[])};};
   const ctx=vm.createContext({window:browser,document,Element,localStorage,navigator:{clipboard:{writeText:async value=>{if(options.clipboardDenied)throw Error('denied');reports.clipboard.push(value);}}},fetch,URL,URLSearchParams,AbortController,setTimeout,clearTimeout,console:{error:(...args)=>reports.errors.push(args),info(){}}});
   const run=code=>vm.runInContext(code,ctx);
+  run(`function contentClient(write) {
+    const query=(table,operation,payload)=>{
+      const filters={};
+      const complete=()=>write({table,operation,payload,id:filters.id??payload?.id,filters});
+      return {eq(key,value){filters[key]=value;return this},select(){return this},single:complete,maybeSingle:complete};
+    };
+    return {from:table=>({insert:payload=>query(table,'insert',payload),update:payload=>query(table,'update',payload),delete:()=>query(table,'delete')})};
+  }`);
   if(name==='admin/index.html') {run(read('theme.js'));run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));}
   else {run(read('theme.js'));run(read('supabase-config.js'));run(read('script.js'));if(name==='newsletter/index.html')run(read('newsletter-extensions.js'));}
   if(options.boot!==false) {document.dispatchEvent(new Event('DOMContentLoaded'));await new Promise(r=>setImmediate(r));Object.defineProperty(document,'readyState',{value:'complete',configurable:true});}

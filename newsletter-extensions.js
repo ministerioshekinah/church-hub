@@ -158,7 +158,7 @@
               </div>
 
               <div class="optional-language-grid">
-                <div class="optional-language-column">
+                <div class="optional-language-column" lang="en">
                   <span class="optional-language-label">English</span>
                   <label>
                     Section title
@@ -170,7 +170,7 @@
                   </label>
                 </div>
 
-                <div class="optional-language-column">
+                <div class="optional-language-column" lang="es">
                   <span class="optional-language-label">Español</span>
                   <label>
                     Título de la sección
@@ -231,17 +231,24 @@
         optionalSections.push(makeSection(addButton.dataset.addOptional));
         renderEditor();
         renderPreview();
+        list.lastElementChild?.querySelector(`[data-field="title_${activeEditorLanguage()}"]`)?.focus();
         return;
       }
 
       const removeButton = event.target.closest("[data-remove-optional]");
       if (removeButton) {
         syncFromDom();
+        const index = optionalSections.findIndex(section => section.id === removeButton.dataset.removeOptional);
+        const type = optionalSections[index]?.type || "custom";
         optionalSections = optionalSections.filter(
           (section) => section.id !== removeButton.dataset.removeOptional
         );
         renderEditor();
         renderPreview();
+        const nextCard = list.querySelectorAll("[data-optional-id]")[Math.min(index, optionalSections.length - 1)];
+        const target = nextCard?.querySelector(`[data-field="title_${activeEditorLanguage()}"]`)
+          || builder.querySelector(`[data-add-optional="${type}"]`);
+        target?.focus();
       }
     });
 
@@ -271,79 +278,8 @@
       renderPreview();
     };
 
-    persistNewsletter = async function (targetStatus = null) {
-      if (!authenticatedAdmin) return null;
-      const generation = adminSessionVersion;
-
-      const data = validateNewsletterForm();
-      if (!data) return null;
-
-      const currentStatus =
-        document.getElementById("issueStatus").value || "draft";
-      const status = targetStatus || currentStatus;
-      const id = selectedNewsletterId || data.issue_date;
-
-      if (selectedNewsletterIsNew) {
-        const dateConflict = adminNewsletters.some(
-          (item) => item.issue_date === data.issue_date
-        );
-        if (dateConflict) {
-          document.getElementById("draftStatus").textContent =
-            "A newsletter already exists for that issue date.";
-          return null;
-        }
-      }
-
-      const existing = adminNewsletters.find(
-        (item) => item.id === selectedNewsletterId
-      );
-      const sections = syncFromDom();
-
-      const payload = {
-        id,
-        issue_date: data.issue_date,
-        status,
-        title_en: data.title_en,
-        title_es: data.title_es,
-        gathering_en: data.gathering_en,
-        gathering_es: data.gathering_es,
-        scripture_en: data.scripture_en,
-        scripture_es: data.scripture_es,
-        community_en: data.community_en,
-        community_es: data.community_es,
-        optional_sections: sections,
-
-
-
-        published_at:
-          status === "published"
-            ? existing?.published_at || new Date().toISOString()
-            : null
-      };
-
-      const { data: saved, error } = await supabaseClient
-        .from("newsletters")
-        .upsert(payload, { onConflict: "id" })
-        .select("id,status")
-        .single();
-      if (generation !== adminSessionVersion) return null;
-
-      if (error) {
-        console.error(error);
-        document.getElementById("draftStatus").textContent =
-          `Could not save newsletter: ${error.message}`;
-        return null;
-      }
-
-      selectedNewsletterId = saved.id;
-      selectedNewsletterIsNew = false;
-      await loadNewsletterEditor();
-      if (generation !== adminSessionVersion) return null;
-      selectNewsletter(saved.id);
-      return saved;
-    };
-
     window.SHEKINAH_NEWSLETTER_EDITOR = {
+      collect: syncFromDom,
       clear() { optionalSections = []; renderEditor(); renderPreview(); }
     };
     renderEditor();

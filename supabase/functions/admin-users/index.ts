@@ -220,11 +220,18 @@ export default {
 
         await ensureAnotherOwner(ctx, userId);
 
-        const { error } = await ctx.supabaseAdmin
+        const { data, error } = await ctx.supabaseAdmin
           .from("admin_users")
           .delete()
-          .eq("user_id", userId);
+          .eq("user_id", userId)
+          .select("user_id")
+          .maybeSingle();
         if (error) throw error;
+        // A trigger or concurrent change can prevent a deletion without a
+        // database error. Never report that access was revoked without proof.
+        if (data?.user_id !== userId) {
+          throw new RequestError("Administrator access was not removed. Refresh the list and try again.", 409);
+        }
 
         return jsonResponse({ ok: true });
       }

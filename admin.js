@@ -3,7 +3,7 @@ window.SHEKINAH_ADMIN_READY = true;
 window.addEventListener("error", function (event) {
   var message = document.getElementById("adminMessage");
   if (message && !document.getElementById("adminLoginView").classList.contains("hidden")) {
-    message.textContent = "The admin portal hit a JavaScript error. Refresh the page or upload the latest admin.js file.";
+    message.textContent = "The admin portal could not finish loading. Reload this page and try again.";
   }
 });
 
@@ -20,8 +20,149 @@ const signOutButton = document.getElementById("signOutButton");
 let supabaseClient = null;
 let authenticatedAdmin = null;
 let adminSessionVersion = 0;
+let loginOperation = null;
 let adminAnnouncements = [];
 let selectedAnnouncementIndex = null;
+let selectedAnnouncementVersion = null;
+let serviceVersion = null;
+const editorOperations = new Map();
+const editorBaselines = new Map();
+let unloadGuardActive = false;
+
+function editorKey(section) {
+  if (!authenticatedAdmin) return null;
+  if (section === "service") return "service";
+  if (section === "announcements") return adminAnnouncements[selectedAnnouncementIndex]?.id || null;
+  return selectedNewsletterId || (selectedNewsletterIsNew ? "new" : null);
+}
+
+function editorSnapshot(section) {
+  const key = editorKey(section);
+  if (!key) return null;
+  const editor = document.querySelector(section === "service"
+    ? '[data-admin-panel="service"] .editor-panel'
+    : section === "announcements" ? "#announcementEditorForm" : "#newsletterEditorForm");
+  return JSON.stringify([key, Array.from(editor.querySelectorAll("input, textarea, select"), field => [
+    field.id || field.name || field.dataset.field || "",
+    field.type === "checkbox" || field.type === "radio" ? field.checked : field.value
+  ])]);
+}
+
+function hasUnsavedEditorChanges(section) {
+  const snapshot = editorSnapshot(section);
+  return snapshot !== null && editorBaselines.has(section) && snapshot !== editorBaselines.get(section);
+}
+
+function warnBeforeLeaving(event) {
+  if (!["service", "announcements", "newsletter"].some(hasUnsavedEditorChanges)) return;
+  event.preventDefault();
+  event.returnValue = true;
+}
+
+function updateUnloadGuard() {
+  const dirty = ["service", "announcements", "newsletter"].some(hasUnsavedEditorChanges);
+  if (dirty === unloadGuardActive) return;
+  unloadGuardActive = dirty;
+  if (dirty) window.addEventListener("beforeunload", warnBeforeLeaving);
+  else window.removeEventListener("beforeunload", warnBeforeLeaving);
+}
+
+function rememberEditorBaseline(section) {
+  const generation = adminSessionVersion;
+  const key = editorKey(section);
+  // The optional newsletter extension finishes populating fields in the same
+  // task. Snapshot them too, without persisting private drafts to storage.
+  Promise.resolve().then(() => {
+    if (generation !== adminSessionVersion || key !== editorKey(section)) return;
+    editorBaselines.set(section, editorSnapshot(section));
+    updateUnloadGuard();
+  });
+}
+
+function confirmDiscardEditor(section) {
+  return !hasUnsavedEditorChanges(section) || window.confirm("Discard your unsaved changes in this editor?");
+}
+
+function focusEditorHeading(section) {
+  // Selecting a record rebuilds its list and removes the activated button.
+  // Place focus at the opened editor so the next Tab reaches its controls.
+  const heading = document.getElementById(section === "announcements" ? "announcementEditorHeading" : "newsletterEditorHeading");
+  heading?.setAttribute("tabindex", "-1");
+  heading?.focus();
+}
+
+["input", "change", "click"].forEach(type => document.addEventListener(type, updateUnloadGuard));
+
+const contentConflictMessage = "This content changed or no longer exists. Your draft is still here. Copy your changes, then reload this page to review the latest version.";
+
+function requireEditorVersion(version, status) {
+  if (typeof version === "string" && version.length > 0) return true;
+  status.textContent = "The saved version could not be verified. Copy your draft, then reload this page before trying again.";
+  return false;
+}
+
+// A save/publish/delete is one operation per editor. Keep its inputs stable and
+// always release controls, including when the network throws or the user signs out.
+async function runEditorAction(section, button, status, busyText, action) {
+  if (editorOperations.has(section) || !authenticatedAdmin) return;
+  const generation = adminSessionVersion;
+  const panel = document.querySelector(`[data-admin-panel="${section}"]`);
+  const controls = new Map(Array.from(panel.querySelectorAll("button, input, select, textarea"), control => [control, control.disabled]));
+  const label = button.textContent;
+  const hadFocus = document.activeElement === button;
+  const operation = {
+    release() {
+      if (editorOperations.get(section) !== operation) return;
+      editorOperations.delete(section);
+      controls.forEach((disabled, control) => { control.disabled = disabled; });
+      panel.setAttribute("aria-busy", "false");
+      button.textContent = label;
+      if (section === "announcements" && selectedAnnouncementIndex !== null) {
+        updateAnnouncementStatusUI(adminAnnouncements[selectedAnnouncementIndex]);
+      } else if (section === "newsletter" && (selectedNewsletterId || selectedNewsletterIsNew)) {
+        updateNewsletterStatusUI(document.getElementById("issueStatus").value);
+      }
+      // WebKit may retain focus on the button until the now-hidden editor is
+      // laid out. Restore that focus too, without taking it from another control.
+      if (generation === adminSessionVersion && hadFocus && (document.activeElement === document.body || document.activeElement === button) && panel.classList.contains("active") && dashboard.classList.contains("visible")) {
+        let focusTarget = button;
+        if (section !== "service") {
+          const editor = document.getElementById(section === "announcements" ? "announcementEditorForm" : "newsletterEditorForm");
+          const fallback = document.getElementById(section === "announcements" ? "addAnnouncementButton" : "newNewsletterButton");
+          if (editor.classList.contains("hidden")) focusTarget = fallback;
+        }
+        focusTarget.focus({ preventScroll: true });
+      }
+    }
+  };
+  editorOperations.set(section, operation);
+  controls.forEach((_, control) => { control.disabled = true; });
+  panel.setAttribute("aria-busy", "true");
+  button.textContent = busyText;
+  status.textContent = "";
+  try {
+    await action();
+  } catch (error) {
+    if (generation === adminSessionVersion) {
+      console.error("Content request failed:", error);
+      status.textContent = "The request could not be completed. Check your connection and try again.";
+    }
+  } finally {
+    operation.release();
+  }
+}
+
+async function withAdminReadTimeout(request) {
+  // Bound content reads so a stalled connection cannot lock an editor forever.
+  // Writes deliberately keep their existing confirmation/error handling.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    return await request(controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function configIsReady() {
   const cfg = window.SHEKINAH_SUPABASE;
@@ -37,7 +178,13 @@ function configIsReady() {
 
 function showLogin() {
   ++adminSessionVersion;
+  loginOperation = null;
+  setLoginBusy(false);
+  for (const operation of editorOperations.values()) operation.release();
   authenticatedAdmin = null;
+  editorBaselines.clear();
+  updateUnloadGuard();
+  serviceVersion = null;
   window.SHEKINAH_OWNER?.clear();
   adminAnnouncements = [];
   adminNewsletters = [];
@@ -62,6 +209,7 @@ function showLogin() {
 async function showDashboard(user) {
   ++adminSessionVersion;
   authenticatedAdmin = user;
+  rememberEditorBaseline("service");
   loginView.classList.add("hidden");
   dashboard.classList.add("visible");
   window.SHEKINAH_OWNER?.refresh();
@@ -127,6 +275,29 @@ async function restoreAuthenticatedAdmin() {
   await showDashboard(data.user);
 }
 
+function clearHistorySessionView() {
+  // A history cache can retain the entire document, including private drafts
+  // and Owner controls, while authentication changes in a different tab.
+  showLogin();
+  passwordInput.value = "";
+  passwordInput.type = "password";
+  passwordToggle.textContent = "Show";
+  passwordToggle.setAttribute("aria-pressed", "false");
+  passwordToggle.setAttribute("aria-label", "Show password");
+}
+
+window.addEventListener("pagehide", (event) => {
+  if (event.persisted) clearHistorySessionView();
+});
+
+window.addEventListener("pageshow", (event) => {
+  if (!event.persisted) return;
+  // Replace the frozen document before reusing authentication or editor state.
+  // Normal startup then verifies identity and current membership with the server.
+  clearHistorySessionView();
+  window.location.reload();
+});
+
 async function initializeAuth() {
   if (!configIsReady()) {
     loginForm.querySelector('button[type="submit"]').disabled = true;
@@ -134,11 +305,12 @@ async function initializeAuth() {
     passwordInput.disabled = true;
 
     adminMessage.textContent =
-      "Secure login setup is not finished yet.";
+      "Secure sign-in is unavailable. Reload this page or try again later.";
 
     return;
   }
 
+  adminMessage.textContent = "";
   supabaseClient = window.supabase.createClient(
     window.SHEKINAH_SUPABASE.url,
     window.SHEKINAH_SUPABASE.publishableKey,
@@ -151,11 +323,12 @@ async function initializeAuth() {
     }
   );
 
-  await restoreAuthenticatedAdmin();
-
+  // Subscribe before restoring content: a sign-out in another tab must
+  // invalidate every pending private read during startup too.
   supabaseClient.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_OUT") showLogin();
   });
+  await restoreAuthenticatedAdmin();
 }
 
 passwordToggle.addEventListener("click", () => {
@@ -168,12 +341,17 @@ passwordToggle.addEventListener("click", () => {
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (loginOperation) return;
 
   if (!supabaseClient) {
     adminMessage.textContent = "Secure authentication is not available.";
     return;
   }
 
+  const operation = {};
+  const focusedControl = document.activeElement;
+  const hadFormFocus = Boolean(focusedControl && loginForm.contains(focusedControl));
+  loginOperation = operation;
   setLoginBusy(true);
   const generation = ++adminSessionVersion;
   adminMessage.textContent = "";
@@ -215,11 +393,18 @@ loginForm.addEventListener("submit", async (event) => {
 
     await showDashboard(verified.user);
   } catch (error) {
+    if (loginOperation !== operation) return;
     console.error(error);
     adminMessage.textContent =
       "A secure sign-in error occurred. Please try again.";
   } finally {
-    setLoginBusy(false);
+    if (loginOperation === operation) {
+      loginOperation = null;
+      setLoginBusy(false);
+      if (hadFormFocus && !loginView.classList.contains("hidden") && (document.activeElement === document.body || document.activeElement === focusedControl)) {
+        passwordInput.focus();
+      }
+    }
   }
 });
 
@@ -369,22 +554,29 @@ function updateServicePreview() {
 }
 
 async function loadServiceEditor() {
+  await runEditorAction("service", document.getElementById("saveServiceButton"), document.getElementById("serviceDraftStatus"), "Loading…", fetchServiceEditor);
+}
+
+async function fetchServiceEditor() {
   const generation = adminSessionVersion;
-  const { data, error } = await supabaseClient
+  serviceVersion = null;
+  const { data, error } = await withAdminReadTimeout(signal => supabaseClient
     .from("service_settings")
-    .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address")
+    .select("id,day_en,day_es,service_label_en,service_label_es,service_time,time_display,special_message_en,special_message_es,address,updated_at")
+    .abortSignal(signal)
     .eq("id", 1)
-    .maybeSingle();
+    .maybeSingle());
   if (generation !== adminSessionVersion) return;
 
   if (error) {
     console.error(error);
     document.getElementById("serviceDraftStatus").textContent =
-      "Could not load live service settings.";
+      "Could not load live service settings. Reload this page to try again.";
     return;
   }
 
   if (!data) return;
+  serviceVersion = data.updated_at;
 
   document.getElementById("serviceTimeInput").value =
     String(data.service_time || "15:00").slice(0, 5);
@@ -402,24 +594,29 @@ async function loadServiceEditor() {
     data.special_message_es || "";
 
   updateServicePreview();
+  rememberEditorBaseline("service");
 }
 
-document.getElementById("saveServiceButton").addEventListener(
-  "click",
-  async () => {
-    if (!authenticatedAdmin) return;
-    const generation = adminSessionVersion;
-
-    const button = document.getElementById("saveServiceButton");
-    const status = document.getElementById("serviceDraftStatus");
-    const form = serviceFormData();
-
-    setButtonBusy(button, true, "Saving…", "Save Service");
-    status.textContent = "";
-
-    const { error } = await supabaseClient
-      .from("service_settings")
-      .update({
+// Verification belongs in the primary bundle so a failed optional extension
+// cannot fall back to reporting a zero-row update as a successful publication.
+async function saveServiceChanges() {
+  const generation = adminSessionVersion;
+  const button = document.getElementById("saveServiceButton");
+  const status = document.getElementById("serviceDraftStatus");
+  await runEditorAction("service", button, status, "Saving…", async () => {
+    try {
+      const form = serviceFormData();
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.time)) {
+        throw new Error("Choose a valid service time before publishing.");
+      }
+      if (!requireEditorVersion(serviceVersion, status)) return;
+      const version = serviceVersion;
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      if (generation !== adminSessionVersion) return;
+      if (userError || !userData?.user || authenticatedAdmin?.id !== userData.user.id) {
+        throw new Error("Your admin session could not be verified. Please sign in again.");
+      }
+      const { data, error } = await supabaseClient.from("service_settings").update({
         day_en: form.day_en,
         day_es: form.day_es,
         service_label_en: form.service_label_en,
@@ -427,25 +624,25 @@ document.getElementById("saveServiceButton").addEventListener(
         service_time: form.time,
         time_display: form.time_display,
         special_message_en: form.special_message_en,
-        special_message_es: form.special_message_es,
-
-
-      })
-      .eq("id", 1);
-
-    setButtonBusy(button, false, "Saving…", "Save Service");
-    if (generation !== adminSessionVersion) return;
-
-    if (error) {
-      console.error(error);
-      status.textContent = `Could not publish service changes: ${error.message}`;
-      return;
+        special_message_es: form.special_message_es
+      }).eq("id", 1).eq("updated_at", version).select("id,updated_at").maybeSingle();
+      if (generation !== adminSessionVersion) return;
+      if (error) throw error;
+      if (data?.id !== 1) {
+        status.textContent = contentConflictMessage;
+        return;
+      }
+      serviceVersion = data.updated_at;
+      rememberEditorBaseline("service");
+      status.textContent = "Published. The live website now uses these service settings.";
+    } catch (error) {
+      if (generation !== adminSessionVersion) return;
+      console.error("Service publish verification failed:", error);
+      status.textContent = `Could not publish service changes: ${error.message || "Check your connection and try again."}`;
     }
-
-    status.textContent =
-      "Published. The live website now uses these service settings.";
-  }
-);
+  });
+}
+document.getElementById("saveServiceButton").addEventListener("click", saveServiceChanges);
 
 // ------------------------------------------------------------
 // ANNOUNCEMENT MANAGEMENT
@@ -453,18 +650,24 @@ document.getElementById("saveServiceButton").addEventListener(
 let announcementFilter = "all";
 
 async function loadAnnouncementEditor() {
+  await runEditorAction("announcements", document.getElementById("addAnnouncementButton"), document.getElementById("announcementDraftStatus"), "Loading…", fetchAnnouncementEditor);
+}
+
+async function fetchAnnouncementEditor() {
   const generation = adminSessionVersion;
-  const { data, error } = await supabaseClient
+  const { data, error } = await withAdminReadTimeout(signal => supabaseClient
     .from("announcements")
     .select("id,active,tag_en,tag_es,title_en,title_es,description_en,description_es,sort_order,created_at,updated_at")
+    .abortSignal(signal)
     .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }));
   if (generation !== adminSessionVersion) return;
 
   if (error) {
     console.error(error);
     adminAnnouncements = [];
     renderAdminAnnouncementList();
+    document.getElementById("adminAnnouncementList").textContent = "Announcements could not be loaded. Reload this page to try again.";
     return;
   }
 
@@ -527,7 +730,9 @@ function renderAdminAnnouncementList() {
 
   list.querySelectorAll("[data-announcement-index]").forEach((button) => {
     button.addEventListener("click", () => {
+      if (!confirmDiscardEditor("announcements")) return;
       selectAnnouncement(Number(button.dataset.announcementIndex));
+      focusEditorHeading("announcements");
     });
   });
 }
@@ -536,6 +741,7 @@ function selectAnnouncement(index) {
   selectedAnnouncementIndex = index;
   const item = adminAnnouncements[index];
   if (!item) return;
+  selectedAnnouncementVersion = item.updated_at;
 
   document.getElementById("announcementEmptyState").style.display = "none";
   document.getElementById("announcementEditorForm").classList.remove("hidden");
@@ -554,6 +760,7 @@ function selectAnnouncement(index) {
   updateAnnouncementStatusUI(item);
   document.getElementById("announcementDraftStatus").textContent = "";
   renderAdminAnnouncementList();
+  rememberEditorBaseline("announcements");
 }
 
 function updateAnnouncementStatusUI(item) {
@@ -566,7 +773,11 @@ function updateAnnouncementStatusUI(item) {
   toggleButton.textContent = item.active ? "Hide Announcement" : "Publish Announcement";
 }
 
-document.getElementById("addAnnouncementButton").addEventListener("click", () => {
+document.getElementById("addAnnouncementButton").addEventListener("click", (event) => {
+  if (!confirmDiscardEditor("announcements")) {
+    event.stopImmediatePropagation();
+    return;
+  }
   const newAnnouncement = {
     id: `announcement-${Date.now()}`,
     active: false,
@@ -587,6 +798,7 @@ document.getElementById("addAnnouncementButton").addEventListener("click", () =>
   announcementFilter = "all";
   document.getElementById("announcementFilter").value = "all";
   selectAnnouncement(0);
+  focusEditorHeading("announcements");
 });
 
 document.querySelectorAll(".announcement-lang-tab").forEach((tab) => {
@@ -636,7 +848,6 @@ function announcementFormPayload(activeOverride = null) {
 async function saveAnnouncement(activeOverride = null) {
   if (!authenticatedAdmin || selectedAnnouncementIndex === null) return null;
   const generation = adminSessionVersion;
-  const selectedIndex = selectedAnnouncementIndex;
 
   const status = document.getElementById("announcementDraftStatus");
   const payload = announcementFormPayload(activeOverride);
@@ -646,39 +857,53 @@ async function saveAnnouncement(activeOverride = null) {
     return null;
   }
 
-  const { data, error } = await supabaseClient
-    .from("announcements")
-    .upsert(payload, { onConflict: "id" })
-    .select("id,active")
+  // Creating and editing have different conflict semantics. A stale editor
+  // must never recreate a row that another administrator has deleted.
+  const isNew = adminAnnouncements[selectedAnnouncementIndex]?.isNew;
+  if (!isNew && !requireEditorVersion(selectedAnnouncementVersion, status)) return null;
+  const table = supabaseClient.from("announcements");
+  const write = isNew
+    ? table.insert(payload)
+    : table.update(payload).eq("id", payload.id).eq("updated_at", selectedAnnouncementVersion);
+  const { data, error } = await write
+    .select("id,active,updated_at")
     .single();
   if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
-    status.textContent = `Could not save announcement: ${error.message}`;
+    status.textContent = !isNew && error.code === "PGRST116"
+      ? `Could not save announcement. ${contentConflictMessage}`
+      : error.code === "23505"
+      ? "An announcement with this ID already exists. Reload the list before saving again."
+      : `Could not save announcement: ${error.message}`;
     return null;
   }
 
+  const currentId = adminAnnouncements[selectedAnnouncementIndex]?.id;
+  const savedIndex = adminAnnouncements.findIndex(item => item.id === payload.id);
+  if (savedIndex < 0) return null;
   const saved = { ...payload, ...data };
-  adminAnnouncements[selectedIndex] = saved;
-  selectAnnouncement(selectedIndex);
-  return saved;
+  adminAnnouncements[savedIndex] = saved;
+  if (currentId === payload.id) selectAnnouncement(savedIndex);
+  else {
+    selectedAnnouncementIndex = adminAnnouncements.findIndex(item => item.id === currentId);
+    if (selectedAnnouncementIndex < 0) selectedAnnouncementIndex = null;
+    renderAdminAnnouncementList();
+  }
+  // A late response must never claim that a different open draft was saved.
+  return currentId === payload.id ? saved : null;
 }
 
 document.getElementById("saveAnnouncementButton").addEventListener("click", async () => {
   const button = document.getElementById("saveAnnouncementButton");
-  setButtonBusy(button, true, "Saving…", "Save Changes");
-
-  const saved = await saveAnnouncement();
-
-  setButtonBusy(button, false, "Saving…", "Save Changes");
-
-  if (saved) {
-    document.getElementById("announcementDraftStatus").textContent =
-      saved.active
-        ? "Saved. Changes are live on the website."
-        : "Saved as hidden. Visitors cannot see this announcement.";
-  }
+  const status = document.getElementById("announcementDraftStatus");
+  await runEditorAction("announcements", button, status, "Saving…", async () => {
+    const saved = await saveAnnouncement();
+    if (saved) status.textContent = saved.active
+      ? "Saved. Changes are live on the website."
+      : "Saved as hidden. Visitors cannot see this announcement.";
+  });
 });
 
 document
@@ -690,31 +915,18 @@ document
     const button = document.getElementById("toggleAnnouncementVisibilityButton");
     const nextActive = !item.active;
 
-    setButtonBusy(
-      button,
-      true,
-      nextActive ? "Publishing…" : "Hiding…",
-      nextActive ? "Publish Announcement" : "Hide Announcement"
-    );
-
-    const saved = await saveAnnouncement(nextActive);
-
-    setButtonBusy(
-      button,
-      false,
-      "",
-      saved?.active ? "Hide Announcement" : "Publish Announcement"
-    );
-
-    if (saved) {
-      announcementFilter = "all";
-      document.getElementById("announcementFilter").value = "all";
-      renderAdminAnnouncementList();
-      document.getElementById("announcementDraftStatus").textContent =
-        saved.active
+    const status = document.getElementById("announcementDraftStatus");
+    await runEditorAction("announcements", button, status, nextActive ? "Publishing…" : "Hiding…", async () => {
+      const saved = await saveAnnouncement(nextActive);
+      if (saved) {
+        announcementFilter = "all";
+        document.getElementById("announcementFilter").value = "all";
+        renderAdminAnnouncementList();
+        status.textContent = saved.active
           ? "Published. This announcement is now live."
           : "Hidden. This announcement is no longer public.";
-    }
+      }
+    });
   });
 
 document.getElementById("deleteAnnouncementButton").addEventListener("click", async () => {
@@ -736,25 +948,36 @@ document.getElementById("deleteAnnouncementButton").addEventListener("click", as
 
   if (!confirmed) return;
 
-  const { error } = await supabaseClient
-    .from("announcements")
-    .delete()
-    .eq("id", item.id);
-  if (generation !== adminSessionVersion) return;
-
-  if (error) {
-    document.getElementById("announcementDraftStatus").textContent =
-      `Could not delete announcement: ${error.message}`;
-    return;
-  }
-
-  adminAnnouncements.splice(selectedAnnouncementIndex, 1);
-  resetAnnouncementEditor();
-  renderAdminAnnouncementList();
+  const button = document.getElementById("deleteAnnouncementButton");
+  const status = document.getElementById("announcementDraftStatus");
+  const version = selectedAnnouncementVersion;
+  if (!requireEditorVersion(version, status)) return;
+  await runEditorAction("announcements", button, status, "Deleting…", async () => {
+    const { data, error } = await supabaseClient.from("announcements")
+      .delete().eq("id", item.id).eq("updated_at", version).select("id").maybeSingle();
+    if (generation !== adminSessionVersion) return;
+    if (error || data?.id !== item.id) {
+      status.textContent = error
+        ? "The announcement was not deleted. Check your connection and try again."
+        : `The announcement was not deleted. ${contentConflictMessage}`;
+      return;
+    }
+    const currentId = adminAnnouncements[selectedAnnouncementIndex]?.id;
+    adminAnnouncements = adminAnnouncements.filter(announcement => announcement.id !== item.id);
+    if (currentId === item.id) resetAnnouncementEditor();
+    else {
+      selectedAnnouncementIndex = adminAnnouncements.findIndex(announcement => announcement.id === currentId);
+      if (selectedAnnouncementIndex < 0) selectedAnnouncementIndex = null;
+    }
+    renderAdminAnnouncementList();
+  });
 });
 
 function resetAnnouncementEditor() {
   selectedAnnouncementIndex = null;
+  selectedAnnouncementVersion = null;
+  editorBaselines.delete("announcements");
+  updateUnloadGuard();
   document.getElementById("announcementEditorForm").classList.add("hidden");
   document.getElementById("announcementEmptyState").style.display = "grid";
 }
@@ -765,20 +988,28 @@ function resetAnnouncementEditor() {
 let adminNewsletters = [];
 let selectedNewsletterId = null;
 let selectedNewsletterIsNew = false;
+let selectedNewsletterVersion = null;
 let newsletterFilter = "all";
+let newsletterSelectionVersion = 0;
 
 async function loadNewsletterEditor() {
+  await runEditorAction("newsletter", document.getElementById("newNewsletterButton"), document.getElementById("draftStatus"), "Loading…", fetchNewsletterEditor);
+}
+
+async function fetchNewsletterEditor() {
   const generation = adminSessionVersion;
-  const { data, error } = await supabaseClient
+  const { data, error } = await withAdminReadTimeout(signal => supabaseClient
     .from("newsletters")
     .select("id,issue_date,status,title_en,title_es,gathering_en,gathering_es,scripture_en,scripture_es,community_en,community_es,optional_sections,published_at,created_at,updated_at")
-    .order("issue_date", { ascending: false });
+    .abortSignal(signal)
+    .order("issue_date", { ascending: false }));
   if (generation !== adminSessionVersion) return;
 
   if (error) {
     console.error(error);
     adminNewsletters = [];
     renderAdminNewsletterList();
+    document.getElementById("adminNewsletterList").textContent = "Newsletters could not be loaded. Reload this page to try again.";
     return;
   }
 
@@ -831,7 +1062,9 @@ function renderAdminNewsletterList() {
 
   list.querySelectorAll("[data-newsletter-id]").forEach((button) => {
     button.addEventListener("click", () => {
+      if (!confirmDiscardEditor("newsletter")) return;
       selectNewsletter(button.dataset.newsletterId);
+      focusEditorHeading("newsletter");
     });
   });
 }
@@ -845,9 +1078,11 @@ function newsletterStatusLabel(status) {
 function selectNewsletter(id) {
   const item = adminNewsletters.find((newsletter) => newsletter.id === id);
   if (!item) return;
+  ++newsletterSelectionVersion;
 
   selectedNewsletterId = item.id;
   selectedNewsletterIsNew = false;
+  selectedNewsletterVersion = item.updated_at;
 
   document.getElementById("newsletterEmptyState").style.display = "none";
   document.getElementById("newsletterEditorForm").classList.remove("hidden");
@@ -870,11 +1105,18 @@ function selectNewsletter(id) {
   updateNewsletterPreview();
   document.getElementById("draftStatus").textContent = "";
   renderAdminNewsletterList();
+  rememberEditorBaseline("newsletter");
 }
 
-document.getElementById("newNewsletterButton").addEventListener("click", () => {
+document.getElementById("newNewsletterButton").addEventListener("click", (event) => {
+  if (!confirmDiscardEditor("newsletter")) {
+    event.stopImmediatePropagation();
+    return;
+  }
+  ++newsletterSelectionVersion;
   selectedNewsletterId = null;
   selectedNewsletterIsNew = true;
+  selectedNewsletterVersion = null;
 
   document.getElementById("newsletterEmptyState").style.display = "none";
   document.getElementById("newsletterEditorForm").classList.remove("hidden");
@@ -898,6 +1140,8 @@ document.getElementById("newNewsletterButton").addEventListener("click", () => {
   updateNewsletterPreview();
   document.getElementById("draftStatus").textContent = "New unsaved draft.";
   renderAdminNewsletterList();
+  rememberEditorBaseline("newsletter");
+  focusEditorHeading("newsletter");
 });
 
 document.querySelectorAll("[data-editor-lang]").forEach((tab) => {
@@ -976,6 +1220,7 @@ function updateNewsletterStatusUI(status) {
 
 function updateNewsletterPreview() {
   const lang = activeEditorLanguage();
+  document.querySelector(".preview-newsletter")?.setAttribute("lang", lang);
   const isSpanish = lang === "es";
   const data = newsletterFormData();
 
@@ -1040,8 +1285,9 @@ function validateNewsletterForm() {
 }
 
 async function persistNewsletter(targetStatus = null) {
-  if (!authenticatedAdmin) return null;
+  if (!authenticatedAdmin || (!selectedNewsletterId && !selectedNewsletterIsNew)) return null;
   const generation = adminSessionVersion;
+  const selectionVersion = newsletterSelectionVersion;
 
   const data = validateNewsletterForm();
   if (!data) return null;
@@ -1073,63 +1319,61 @@ async function persistNewsletter(targetStatus = null) {
     scripture_es: data.scripture_es,
     community_en: data.community_en,
     community_es: data.community_es,
-
-
-
+    // The optional-section editor supplies data, not a second save implementation.
+    optional_sections: window.SHEKINAH_NEWSLETTER_EDITOR?.collect() ?? existing?.optional_sections ?? [],
     published_at:
       status === "published"
         ? existing?.published_at || new Date().toISOString()
         : null
   };
 
-  const { data: saved, error } = await supabaseClient
-    .from("newsletters")
-    .upsert(payload, { onConflict: "id" })
-    .select("id,status")
+  // An insert lets the database reject a concurrently created issue; an
+  // update requires the selected issue to still exist. Do not upsert here.
+  const isNew = selectedNewsletterIsNew;
+  if (!isNew && !requireEditorVersion(selectedNewsletterVersion, document.getElementById("draftStatus"))) return null;
+  const table = supabaseClient.from("newsletters");
+  const write = isNew
+    ? table.insert(payload)
+    : table.update(payload).eq("id", id).eq("updated_at", selectedNewsletterVersion);
+  const { data: saved, error } = await write
+    .select("id,status,updated_at")
     .single();
   if (generation !== adminSessionVersion) return null;
 
   if (error) {
     console.error(error);
-    document.getElementById("draftStatus").textContent =
-      `Could not save newsletter: ${error.message}`;
+    document.getElementById("draftStatus").textContent = !isNew && error.code === "PGRST116"
+      ? `Could not save newsletter. ${contentConflictMessage}`
+      : error.code === "23505"
+      ? "A newsletter already exists for that issue date. Reload the list to edit it."
+      : `Could not save newsletter: ${error.message}`;
     return null;
   }
 
-  selectedNewsletterId = saved.id;
-  selectedNewsletterIsNew = false;
-  await loadNewsletterEditor();
-  if (generation !== adminSessionVersion) return null;
+  // Keep the exact server timestamp. Parsing it as a JavaScript Date would
+  // discard PostgreSQL's microseconds and weaken the next conflict check.
+  const index = adminNewsletters.findIndex(item => item.id === saved.id);
+  const savedItem = { ...existing, ...payload, ...saved, updated_at: saved.updated_at };
+  if (index >= 0) adminNewsletters[index] = savedItem;
+  else adminNewsletters.push(savedItem);
+  adminNewsletters.sort((a, b) => b.issue_date.localeCompare(a.issue_date));
+  if (selectionVersion !== newsletterSelectionVersion) {
+    renderAdminNewsletterList();
+    return null;
+  }
   selectNewsletter(saved.id);
   return saved;
 }
 
 document.getElementById("saveNewsletterButton").addEventListener("click", async () => {
   const button = document.getElementById("saveNewsletterButton");
-  const status = document.getElementById("issueStatus").value;
-
-  setButtonBusy(
-    button,
-    true,
-    "Saving…",
-    status === "published" ? "Save Live Changes" : "Save Changes"
-  );
-
-  const saved = await persistNewsletter();
-
-  setButtonBusy(
-    button,
-    false,
-    "Saving…",
-    saved?.status === "published" ? "Save Live Changes" : "Save Changes"
-  );
-
-  if (saved) {
-    document.getElementById("draftStatus").textContent =
-      saved.status === "published"
-        ? "Saved. Your changes are live."
-        : "Saved privately in Supabase.";
-  }
+  const status = document.getElementById("draftStatus");
+  await runEditorAction("newsletter", button, status, "Saving…", async () => {
+    const saved = await persistNewsletter();
+    if (saved) status.textContent = saved.status === "published"
+      ? "Saved. Your changes are live."
+      : "Saved privately in Supabase.";
+  });
 });
 
 document.getElementById("publishButton").addEventListener("click", async () => {
@@ -1140,21 +1384,11 @@ document.getElementById("publishButton").addEventListener("click", async () => {
   if (!confirmed) return;
 
   const button = document.getElementById("publishButton");
-  setButtonBusy(button, true, "Publishing…", "Publish Newsletter");
-
-  const saved = await persistNewsletter("published");
-
-  setButtonBusy(
-    button,
-    false,
-    "Publishing…",
-    saved?.status === "published" ? "Update Published Newsletter" : "Publish Newsletter"
-  );
-
-  if (saved) {
-    document.getElementById("draftStatus").textContent =
-      "Published. This newsletter is now public.";
-  }
+  const status = document.getElementById("draftStatus");
+  await runEditorAction("newsletter", button, status, "Publishing…", async () => {
+    const saved = await persistNewsletter("published");
+    if (saved) status.textContent = "Published. This newsletter is now public.";
+  });
 });
 
 document
@@ -1169,16 +1403,11 @@ document
     if (!confirmed) return;
 
     const button = document.getElementById("unpublishNewsletterButton");
-    setButtonBusy(button, true, "Unpublishing…", "Unpublish");
-
-    const saved = await persistNewsletter("ready");
-
-    setButtonBusy(button, false, "Unpublishing…", "Unpublish");
-
-    if (saved) {
-      document.getElementById("draftStatus").textContent =
-        "Unpublished. The issue is now private and marked Ready.";
-    }
+    const status = document.getElementById("draftStatus");
+    await runEditorAction("newsletter", button, status, "Unpublishing…", async () => {
+      const saved = await persistNewsletter("ready");
+      if (saved) status.textContent = "Unpublished. The issue is now private and marked Ready.";
+    });
   });
 
 document.getElementById("deleteNewsletterButton").addEventListener("click", async () => {
@@ -1190,6 +1419,8 @@ document.getElementById("deleteNewsletterButton").addEventListener("click", asyn
   }
 
   if (!selectedNewsletterId) return;
+  const deletedId = selectedNewsletterId;
+  const selectionVersion = newsletterSelectionVersion;
 
   const item = adminNewsletters.find((newsletter) => newsletter.id === selectedNewsletterId);
   const confirmed = window.confirm(
@@ -1198,26 +1429,34 @@ document.getElementById("deleteNewsletterButton").addEventListener("click", asyn
 
   if (!confirmed) return;
 
-  const { error } = await supabaseClient
-    .from("newsletters")
-    .delete()
-    .eq("id", selectedNewsletterId);
-  if (generation !== adminSessionVersion) return;
-
-  if (error) {
-    document.getElementById("draftStatus").textContent =
-      `Could not delete newsletter: ${error.message}`;
-    return;
-  }
-
-  resetNewsletterEditor();
-  await loadNewsletterEditor();
+  const button = document.getElementById("deleteNewsletterButton");
+  const status = document.getElementById("draftStatus");
+  const version = selectedNewsletterVersion;
+  if (!requireEditorVersion(version, status)) return;
+  await runEditorAction("newsletter", button, status, "Deleting…", async () => {
+    const { data, error } = await supabaseClient.from("newsletters")
+      .delete().eq("id", deletedId).eq("updated_at", version).select("id").maybeSingle();
+    if (generation !== adminSessionVersion) return;
+    if (error || data?.id !== deletedId) {
+      status.textContent = error
+        ? "The newsletter was not deleted. Check your connection and try again."
+        : `The newsletter was not deleted. ${contentConflictMessage}`;
+      return;
+    }
+    adminNewsletters = adminNewsletters.filter(newsletter => newsletter.id !== deletedId);
+    if (selectionVersion === newsletterSelectionVersion) resetNewsletterEditor();
+    else renderAdminNewsletterList();
+  });
 });
 
 function resetNewsletterEditor() {
+  ++newsletterSelectionVersion;
   selectedNewsletterId = null;
   selectedNewsletterIsNew = false;
+  selectedNewsletterVersion = null;
   document.getElementById("newsletterEditorForm").classList.add("hidden");
+  editorBaselines.delete("newsletter");
+  updateUnloadGuard();
   document.getElementById("newsletterEmptyState").style.display = "grid";
   renderAdminNewsletterList();
 }

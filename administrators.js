@@ -5,6 +5,8 @@
   let currentUser = null;
   let adminRows = [];
   let ownerGeneration = 0;
+  let listVersion = 0;
+  let invitationOperation = null;
 
   function injectInterface() {
     const nav = document.querySelector(".admin-content-tabs");
@@ -47,7 +49,7 @@
             </label>
             <button class="button button-primary" type="submit">Send Invitation</button>
           </form>
-          <p class="administrator-status" id="administratorInviteStatus"></p>
+          <p class="administrator-status" id="administratorInviteStatus" role="status" aria-live="polite"></p>
           <div class="administrator-warning">
             Owner controls run through a protected Supabase Edge Function. Secret database credentials are never stored in this website.
           </div>
@@ -56,7 +58,7 @@
         <div class="administrator-card">
           <h3>Administrator Access</h3>
           <p>Owners can manage access. Admins can edit church content but cannot manage administrators.</p>
-          <p class="administrator-status" id="administratorListStatus"></p>
+          <p class="administrator-status" id="administratorListStatus" role="status" aria-live="polite"></p>
           <div class="administrator-list" id="administratorList"></div>
         </div>
       </div>
@@ -89,19 +91,21 @@
       return;
     }
     const generation = ownerGeneration;
+    const version = ++listVersion;
 
     status.textContent = "Loading administrators…";
     try {
       const data = await invokeAdminFunction({ action: "list" });
-      if (generation !== ownerGeneration) return;
+      if (generation !== ownerGeneration || version !== listVersion) return;
       adminRows = data?.admins || [];
       status.textContent = `${adminRows.length} ${adminRows.length === 1 ? "administrator" : "administrators"}`;
       renderAdministrators();
+      return adminRows;
     } catch (error) {
-      if (generation !== ownerGeneration) return;
+      if (generation !== ownerGeneration || version !== listVersion) return;
       console.error("Administrator list failed:", error);
       list.innerHTML = "";
-      status.textContent = "Administrator management is not available yet. Deploy the admin-users Edge Function after applying the role migration.";
+      status.textContent = "Unable to load administrators. Check your connection and select Refresh to try again.";
     }
   }
 
@@ -119,6 +123,7 @@
       const isCurrentUser = admin.id === currentUser?.id;
       const item = document.createElement("div");
       item.className = "administrator-item";
+      item.dataset.administratorId = admin.id;
 
       const identity = document.createElement("div");
       identity.className = "administrator-identity";
@@ -151,11 +156,13 @@
       select.addEventListener("change", async () => {
         const generation = ownerGeneration;
         const previousRole = admin.role;
+        const hadFocus = document.activeElement === select;
         select.disabled = true;
         try {
           await invokeAdminFunction({ action: "set-role", userId: admin.id, role: select.value });
           if (generation !== ownerGeneration) return;
           await loadAdministrators();
+          restoreAdministratorFocus(admin.id, "select", hadFocus, generation);
         } catch (error) {
           if (generation !== ownerGeneration) return;
           console.error(error);
@@ -174,12 +181,21 @@
       remove.title = isCurrentUser ? "You cannot remove your own Owner access here." : "Remove administrator access";
       remove.addEventListener("click", async () => {
         const generation = ownerGeneration;
+        const hadFocus = document.activeElement === remove;
         if (!window.confirm(`Remove administrator access for ${admin.email || "this account"}?`)) return;
         remove.disabled = true;
         try {
           await invokeAdminFunction({ action: "remove", userId: admin.id });
           if (generation !== ownerGeneration) return;
-          await loadAdministrators();
+          const remaining = await loadAdministrators();
+          if (generation !== ownerGeneration) return;
+          // Also detect a legacy backend's successful-but-suppressed DELETE.
+          // An authoritative refresh must no longer show the removed account.
+          if (remaining?.some(row => row.id === admin.id)) {
+            document.getElementById("administratorListStatus").textContent =
+              "Removal could not be confirmed. This account still appears in the access list.";
+          }
+          restoreAdministratorFocus(admin.id, "button", hadFocus, generation);
         } catch (error) {
           if (generation !== ownerGeneration) return;
           console.error(error);
@@ -194,8 +210,17 @@
     });
   }
 
+  function restoreAdministratorFocus(userId, selector, hadFocus, generation) {
+    const panel = document.getElementById("administratorsPanel");
+    if (!hadFocus || generation !== ownerGeneration || !panel?.classList.contains("active") || document.activeElement !== document.body) return;
+    const row = Array.from(panel.querySelectorAll(".administrator-item")).find(item => item.dataset.administratorId === userId);
+    const target = row?.querySelector(selector) || document.getElementById("refreshAdministratorsButton");
+    target?.focus({ preventScroll: true });
+  }
+
   async function inviteAdministrator(event) {
     event.preventDefault();
+    if (invitationOperation) return;
     const generation = ownerGeneration;
     const emailInput = document.getElementById("newAdministratorEmail");
     const status = document.getElementById("administratorInviteStatus");
@@ -203,8 +228,26 @@
     const email = emailInput.value.trim().toLowerCase();
     if (!email) return;
 
+    const form = event.currentTarget;
+    const hadFocus = document.activeElement === button || document.activeElement === emailInput;
+    const operation = {
+      release() {
+        if (invitationOperation !== operation) return;
+        invitationOperation = null;
+        emailInput.disabled = false;
+        button.disabled = false;
+        button.textContent = "Send Invitation";
+        form.setAttribute("aria-busy", "false");
+        if (generation === ownerGeneration && hadFocus && document.activeElement === document.body && document.getElementById("administratorsPanel").classList.contains("active")) {
+          emailInput.focus({ preventScroll: true });
+        }
+      }
+    };
+    invitationOperation = operation;
+    emailInput.disabled = true;
     button.disabled = true;
     button.textContent = "Sending…";
+    form.setAttribute("aria-busy", "true");
     status.textContent = "";
 
     try {
@@ -224,13 +267,14 @@
       console.error(error);
       status.textContent = error.message || "Could not add this administrator.";
     } finally {
-      button.disabled = false;
-      button.textContent = "Send Invitation";
+      operation.release();
     }
   }
 
   function clearOwnerInterface() {
     ++ownerGeneration;
+    ++listVersion;
+    invitationOperation?.release();
     currentUser = null;
     ownerClient = null;
     adminRows = [];

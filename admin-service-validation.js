@@ -1,7 +1,7 @@
 /*
-  Defense-in-depth fix for service publishing.
-  This capture-phase handler runs before the legacy admin.js button handler and
-  reports success only when Supabase confirms service_settings.id = 1 was updated.
+  Compatibility validation for cached older administrator bundles.
+  Current admin.js owns verified publishing and editor locking. This handler
+  defers to it when available; older bundles still require a confirmed row update.
 
   The script is loaded only on the admin page after the main admin bundle starts. It
   deliberately reuses admin.js's authenticated Supabase client instead of
@@ -30,6 +30,9 @@
   button.addEventListener(
     "click",
     async (event) => {
+      // Current bundles own validation and editor locking. Retain this handler
+      // only for compatibility with a cached older admin.js.
+      if (typeof saveServiceChanges === "function") return;
       event.preventDefault();
       event.stopImmediatePropagation();
       const generation = adminSessionVersion;

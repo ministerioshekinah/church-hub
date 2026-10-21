@@ -29,7 +29,7 @@ The public site reads current service information, active announcements, and pub
 - Protected Supabase Edge Function for administrator invitations and role changes
 - Bilingual recovery page, Inter and Playfair Display typography, favicon, and public sitemap
 
-See [the October 13 refinement and security review](security/REVIEW-2026-10-13.md) for the change map, verification evidence, and remaining security work.
+See [the October 18 engineering and security sprint](security/SPRINT-2026-10-18.md) for the latest change map, browser evidence, and remaining security work. The [October 13 review](security/REVIEW-2026-10-13.md) records the preceding refinement.
 
 ## Security model
 
@@ -127,8 +127,8 @@ See `ADMINISTRATORS_SETUP.md` for the production administrator-management runboo
 - `style.css` — shared styling
 - `script.js` — public language and Supabase content loading
 - `admin/index.html` — admin portal at `/admin/`
-- `admin.js` — authentication and CMS behavior
-- `admin-service-validation.js` — verifies service row updates before reporting success
+- `admin.js` — authentication, CMS behavior, and verified publishing
+- `admin-service-validation.js` — compatibility validation for older cached administrator bundles
 - `administrators.js` — Owner-only administrator-management UI
 - `supabase-config.js` — public Supabase URL and publishable key only
 - `supabase/functions/admin-users/index.ts` — protected administrator-management Edge Function
@@ -144,13 +144,21 @@ Old `/newsletter.html` and `/admin.html` bookmarks forward to the clean routes w
 
 Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main, and audits both the development dependencies and the pinned browser/Edge Function packages in `security/runtime-dependencies/`.
 
+For rendered browser checks, run `npx playwright install --with-deps chromium` once, then `npm run test:browser`. The suite serves a local copy, intercepts **every** Supabase request, and uses fake content and authentication sessions. Saves, publication, deletion, invitations, and role changes never reach the production backend. The administrator SDK is served from the repository and its integrity is enforced by the browser and checked in the Node suite. CI runs the same suite with Playwright's Chromium, Firefox, and WebKit builds. To run another engine locally, install it with Playwright and set `BROWSER_ENGINE=firefox` or `BROWSER_ENGINE=webkit`.
+
+`CHROMIUM_EXECUTABLE_PATH` can select an existing Chromium binary. `SHEKINAH_TEST_SDK_PATH` is only needed when replaying an older page that loaded the SDK from the CDN; its SHA-384 must still match. Current pages use the vendored SDK and need no CDN request. The JSON report defaults to the ignored `security/local-results/browser-regression.json`; `BROWSER_REPORT_PATH` changes that destination.
+
+The browser fixture also requires OpenSSL. It generates an ephemeral localhost certificate, removes the temporary key files, and serves HTTPS so the production CSP's upgrade rules behave consistently across engines. The test context trusts that loopback certificate; it does not validate the production certificate. CSP and SDK integrity checks remain enabled.
+
+`npm run security:transport` performs six serial TLS handshakes to the public apex/www website endpoints, with public trust roots, SNI, hostname and expiry validation. It records certificate details, negotiated ciphers, and whether obsolete TLS versions receive a protocol rejection. It sends no HTTP requests and does not enumerate ciphers or ports. The separate Public TLS Verification workflow runs when this probe changes or on manual dispatch; a failed client/network handshake is reported as inconclusive, never as proof of server rejection.
+
 `npm run security:live` runs read-only production probes. `tests/database-security.sql` checks live authorization and audit triggers inside an explicit rolled-back transaction; review it before running as a database administrator.
 
 For an existing production project, apply the audit-trigger migration first, deploy the frontend with explicit column lists, and then apply the author-column restriction migration. Do not replay historical migrations. The two new filenames match the versions recorded by the controlled production deployment. Reload an admin tab opened before the rollout so it uses the new query column lists.
 
 The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
 
-See [the October 13 review](security/REVIEW-2026-10-13.md) for current results and remaining account/hosting work. The [October 10 security recheck](security/RECHECK-2026-10-10.md) and [earlier audit record](security/AUDIT-2026-10-10.md) retain the historical checks. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
+See [the October 18 sprint](security/SPRINT-2026-10-18.md) for current results and remaining account/hosting work. The [October 13 review](security/REVIEW-2026-10-13.md), [October 10 security recheck](security/RECHECK-2026-10-10.md), and [earlier audit record](security/AUDIT-2026-10-10.md) retain historical checks. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
 
 ## Church information
 
@@ -172,7 +180,7 @@ The service day and time shown publicly are managed through the admin portal and
 
 ## Website information pages
 
-The privacy policy describes the current website only: hosting and font requests, public content delivery, administrator authentication, local preferences, and provider retention. It makes no claim about the church’s incorporation, nonprofit status, or compliance certification. Update both language versions when collection, providers, or features change; legal review remains recommended.
+The privacy policy describes the current website only: hosting, locally served fonts, public content delivery, administrator authentication, local preferences, and provider retention. It makes no claim about the church’s incorporation, nonprofit status, or compliance certification. Update both language versions when collection, providers, or features change; legal review remains recommended.
 
 Contact and accessibility help currently directs visitors to church leadership in person at the existing published address. No public email, telephone, mailing address, or response deadline has been inferred from Git metadata or private administrator accounts. Add an approved public remote contact method when the church supplies one.
 
@@ -183,3 +191,11 @@ All three information pages work without the content backend and render English 
 The five public pages share a decorative background in `public-glass.css`. Three bounded gradient shapes move using CSS transforms; small screens display two. The layer cannot receive pointer or keyboard input and is hidden from assistive technology. There is no video, canvas, animation dependency, animated blur, or JavaScript render loop.
 
 The bilingual **Background motion** switch in the footer saves a local preference. Motion pauses when the document is hidden or enters the back-forward cache, and resumes only when the visitor's preference permits it. Reduced-motion, reduced-transparency, and forced-color settings override the animation. Without JavaScript the background stays still; print hides it. Privacy and accessibility copy describes the control and preference storage in both languages.
+
+## Original typography
+
+Inter (400/500/600/700) and Playfair Display (600/700) remain unchanged. `assets/fonts/fonts.css` preserves the original Google Fonts face declarations and glyph subsets, referencing locally hosted copies of the same WOFF2 bytes. The two Latin files are preloaded; other subsets load only when needed. `assets/fonts/provenance.json` records source URLs, byte counts, and SHA-256 hashes. Both upstream SIL Open Font Licenses are included. Updating fonts is a deliberate design change: retain the original families and weights unless the owner explicitly approves otherwise.
+
+Administrator layout rules live in `admin-layout.css`, loaded only by `/admin/` immediately after the shared `style.css` and before the administrator extensions. Keep that order when changing styles. Public pages retain shared button/status treatments without downloading the editor layouts.
+
+The administrator SDK in `assets/vendor/` is byte-identical to the previously pinned Supabase 2.112.2 UMD artifact. `provenance.json` records both source locations and hashes; `THIRD_PARTY_NOTICES.txt` retains the licenses of its nine-package npm runtime graph. The admin CSP now permits scripts only from this website. Keep the SDK version, vendored bytes, provenance, HTML integrity attribute, and runtime dependency audit fixture aligned when upgrading.

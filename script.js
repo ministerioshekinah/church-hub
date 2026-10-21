@@ -27,7 +27,7 @@ const translations = {
     contact_intro: "Questions about the church, your privacy, or accessing this website? Here’s how to reach us and get help.",
     contact_document_title: "Contact & Accessibility | Ministerio Cristiano Shekinah",
     information_updated: "Last updated: October 10, 2026",
-    privacy_updated: "Last updated: October 13, 2026",
+    privacy_updated: "Last updated: October 18, 2026",
     get_directions: "Get directions ↗",
     copy_address: "Copy address",
     address_copied: "Address copied. See you soon!",
@@ -47,7 +47,7 @@ const translations = {
     showing_issues: "Showing {shown} of {total} issues",
     copy_issue_link: "Copy issue link",
     link_copied: "Issue link copied.",
-    copy_link_unavailable: "Copy the link from your browser’s address bar.",
+    copy_link_unavailable: "Copy this link:",
     print_issue: "Print newsletter",
     newsletter_tools: "Newsletter tools",
     on_this_page: "On this page",
@@ -124,7 +124,7 @@ const translations = {
     contact_intro: "¿Tienes preguntas sobre la iglesia, tu privacidad o cómo acceder a este sitio? Aquí encontrarás cómo comunicarte con nosotros y recibir ayuda.",
     contact_document_title: "Contacto y accesibilidad | Ministerio Cristiano Shekinah",
     information_updated: "Última actualización: 10 de octubre de 2026",
-    privacy_updated: "Última actualización: 13 de octubre de 2026",
+    privacy_updated: "Última actualización: 18 de octubre de 2026",
     get_directions: "Cómo llegar ↗",
     copy_address: "Copiar dirección",
     address_copied: "Dirección copiada. ¡Nos vemos pronto!",
@@ -144,7 +144,7 @@ const translations = {
     showing_issues: "Mostrando {shown} de {total} boletines",
     copy_issue_link: "Copiar enlace",
     link_copied: "Enlace del boletín copiado.",
-    copy_link_unavailable: "Copia el enlace desde la barra de direcciones de tu navegador.",
+    copy_link_unavailable: "Copia este enlace:",
     print_issue: "Imprimir boletín",
     newsletter_tools: "Herramientas del boletín",
     on_this_page: "En esta página",
@@ -209,6 +209,8 @@ let cachedHomepageIssue = null;
 let archiveVisibleLimit = 6;
 let previousArchiveQuery = "";
 const publicLoadState = { service: "idle", announcements: "idle", newsletters: "idle", preview: "idle" };
+const publicRetryFocus = new Map();
+const publicRetryTargets = { serviceRetry: "services", announcementsRetry: "announcementList", newsletterRetry: "latestNewsletter" };
 
 function publicConfigReady() {
   const cfg = window.SHEKINAH_SUPABASE;
@@ -264,6 +266,10 @@ function applyLanguage(language) {
     const translated = translations[safeLanguage]?.[key];
     if (translated) element.textContent = translated;
   });
+  Object.keys(publicRetryTargets).forEach((id) => {
+    const button = document.getElementById(id);
+    if (button?.disabled) button.textContent = translations[safeLanguage].loading;
+  });
 
   // Keep complete policy text and its links available without HTML injection.
   document.querySelectorAll("[data-language-content]").forEach((element) => {
@@ -307,19 +313,23 @@ async function changeLanguage(language) {
   if (next === pendingLanguage) return;
   pendingLanguage = next;
   const change = ++languageChange;
-  languageAnimation?.cancel();
   const content = document.getElementById("main-content");
+  // Retarget an interrupted fade from its displayed opacity; cancelling first
+  // would flash the entire page back to full brightness on rapid clicks.
+  const fromOpacity = languageAnimation && content ? window.getComputedStyle(content).opacity : "1";
+  languageAnimation?.cancel();
+  languageAnimation = null;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!content?.animate || reduced) { applyLanguage(next); return; }
   try {
-    languageAnimation = content.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, fill: "forwards" });
+    languageAnimation = content.animate([{ opacity: fromOpacity }, { opacity: 0 }], { duration: 90, easing: "ease-out", fill: "forwards" });
     await languageAnimation.finished;
     if (change !== languageChange) return;
     applyLanguage(next);
     languageAnimation.cancel();
     languageAnimation = content.animate(
-      [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }],
-      { duration: 260, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: 180, easing: "ease-out" }
     );
     await languageAnimation.finished;
   } catch { /* A newer choice cancels the previous transition. */ }
@@ -336,10 +346,14 @@ window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",
 
 const menuButton = document.getElementById("menuButton");
 const navMenu = document.getElementById("navMenu");
+const desktopNavigation = window.matchMedia("(min-width: 1101px)");
 
 function updateMenuLabel() {
   if (!menuButton) return;
   const open = menuButton.getAttribute("aria-expanded") === "true";
+  // The closing fade remains visible briefly, but its links must stop being
+  // interactive immediately. Desktop navigation never becomes inert.
+  if (navMenu) navMenu.inert = !desktopNavigation.matches && !open;
   menuButton.setAttribute("aria-label", translations[currentLanguage][open ? "close_navigation" : "open_navigation"]);
 }
 
@@ -381,7 +395,7 @@ if (menuButton && navMenu) {
   document.addEventListener("focusin", (event) => {
     if (!event.target.closest(".site-header")) closeMenu();
   });
-  window.matchMedia("(min-width: 1101px)").addEventListener("change", () => closeMenu());
+  desktopNavigation.addEventListener("change", () => closeMenu());
 }
 
 const year = document.getElementById("year");
@@ -534,8 +548,20 @@ async function loadAnnouncements() {
 function setPublicBusy(id, busy) {
   const button = document.getElementById(id);
   if (!button) return;
+  if (busy) publicRetryFocus.set(id, document.activeElement === button);
   button.disabled = busy;
   button.textContent = translations[currentLanguage][busy ? "loading" : "retry"];
+  if (!busy) {
+    const hadFocus = publicRetryFocus.get(id);
+    publicRetryFocus.delete(id);
+    // A successful retry hides its control. Keep keyboard users at the
+    // recovered content without moving focus away from another chosen control.
+    if (hadFocus && (document.activeElement === document.body || document.activeElement === button)) {
+      const target = button.hidden ? document.getElementById(publicRetryTargets[id]) : button;
+      if (target && target !== button) target.setAttribute("tabindex", "-1");
+      target?.focus({ preventScroll: true });
+    }
+  }
 }
 
 function renderAnnouncementError() {
@@ -783,6 +809,18 @@ function renderInformationContents() {
   contents.replaceChildren(links);
   const wrap = document.getElementById("informationContentsWrap");
   if (wrap) wrap.hidden = false;
+  // Shared policy links must still land on a visible heading when the visitor
+  // has saved the other language or changes language while reading a section.
+  const section = /^#section-(?:en|es)-(\d+)$/.exec(window.location.hash);
+  if (section) {
+    const heading = document.getElementById(`section-${currentLanguage}-${section[1]}`);
+    if (heading && window.location.hash !== `#${heading.id}`) {
+      try {
+        window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search + `#${heading.id}`);
+        heading.scrollIntoView({ block: "start", behavior: "auto" });
+      } catch { /* The policy remains readable when history changes are blocked. */ }
+    }
+  }
 }
 
 function databaseNewsletterToDisplayIssue(row) {
@@ -942,9 +980,19 @@ function initializePublicInteractions() {
     url.searchParams.set("issue", id);
     try {
       await navigator.clipboard.writeText(url.href);
-      if (status) status.textContent = translations[currentLanguage].link_copied;
+      if (status && document.getElementById("latestNewsletter")?.dataset.issueId === id) {
+        status.textContent = translations[currentLanguage].link_copied;
+      }
     } catch {
-      if (status) status.textContent = translations[currentLanguage].copy_link_unavailable;
+      // A missing deep link may display a different, available issue. Offer
+      // that issue's exact URL instead of the stale browser address, and do
+      // not attach an old clipboard result to a newly selected issue.
+      if (status && document.getElementById("latestNewsletter")?.dataset.issueId === id) {
+        const link = document.createElement("a");
+        link.setAttribute("href", url.href);
+        link.textContent = url.href;
+        status.replaceChildren(document.createTextNode(translations[currentLanguage].copy_link_unavailable + " "), link);
+      }
     }
   });
   const header = document.querySelector(".site-header");
@@ -953,20 +1001,28 @@ function initializePublicInteractions() {
   const sectionLinks = Array.from(document.querySelectorAll('.nav a[href^="#"]'));
   const sections = sectionLinks.map((link) => document.getElementById(link.hash.slice(1)));
   let scrollFrame = null;
+  let activeSectionIndex = -1;
 
   function updateScrollState() {
     scrollFrame = null;
-    header?.classList.toggle("is-scrolled", window.scrollY > 20);
-    // Keep the floating control clear of the footer links and Admin button.
-    if (backToTop) backToTop.hidden = window.scrollY < 520 || Boolean(footer && footer.getBoundingClientRect().top < window.innerHeight);
+    // Read all geometry before changing classes/visibility, avoiding forced
+    // layout between individual section measurements during a scroll frame.
+    const scrolled = window.scrollY > 20;
+    const hideBackToTop = window.scrollY < 520 || Boolean(footer && footer.getBoundingClientRect().top < window.innerHeight);
     let activeIndex = 0;
     sections.forEach((section, index) => {
       if (section && section.getBoundingClientRect().top <= 180) activeIndex = index;
     });
-    sectionLinks.forEach((link, index) => {
-      if (index === activeIndex) link.setAttribute("aria-current", "location");
-      else link.removeAttribute("aria-current");
-    });
+    header?.classList.toggle("is-scrolled", scrolled);
+    // Keep the floating control clear of the footer links and Admin button.
+    if (backToTop && backToTop.hidden !== hideBackToTop) backToTop.hidden = hideBackToTop;
+    if (activeSectionIndex !== activeIndex) {
+      sectionLinks.forEach((link, index) => {
+        if (index === activeIndex) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
+      });
+      activeSectionIndex = activeIndex;
+    }
   }
 
   function scheduleScrollUpdate() {
@@ -1025,29 +1081,6 @@ function initializePublicInteractions() {
   window.addEventListener("popstate", () => {
     if (archive && cachedNewsletterIssues) renderNewsletterPage(cachedNewsletterIssues);
   });
-
-
-  const heroCard = document.querySelector(".hero-card");
-  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
-  if (heroCard) {
-    let lightFrame = null;
-    heroCard.addEventListener("pointermove", (event) => {
-      if (reducedMotion.matches || !finePointer.matches) return;
-      if (lightFrame !== null) window.cancelAnimationFrame(lightFrame);
-      lightFrame = window.requestAnimationFrame(() => {
-        const rect = heroCard.getBoundingClientRect();
-        heroCard.style.setProperty("--light-x", `${((event.clientX - rect.left) / rect.width) * 100}%`);
-        heroCard.style.setProperty("--light-y", `${((event.clientY - rect.top) / rect.height) * 100}%`);
-        lightFrame = null;
-      });
-    });
-    heroCard.addEventListener("pointerleave", () => {
-      if (lightFrame !== null) window.cancelAnimationFrame(lightFrame);
-      lightFrame = null;
-      heroCard.style.removeProperty("--light-x");
-      heroCard.style.removeProperty("--light-y");
-    });
-  }
 }
 
 let publicPageStarted = false;

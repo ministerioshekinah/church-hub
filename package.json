@@ -8,9 +8,14 @@
   "scripts": {
     "test": "node --test tests/*.test.cjs",
     "security:live": "node tests/live-security.cjs",
-    "security:test": "node --test tests/edge-security.test.cjs tests/render-security.test.cjs tests/owner-session.test.cjs"
+    "security:test": "node --test tests/edge-security.test.cjs tests/render-security.test.cjs tests/owner-session.test.cjs",
+    "test:browser": "node tests/browser-regression.cjs && node tests/motion-regression.cjs && node tests/browser-history-security.cjs",
+    "security:transport": "node tests/live-transport.cjs"
   },
   "devDependencies": {
-    "linkedom": "0.18.12"
+    "@electric-sql/pglite": "0.5.10",
+    "axe-core": "4.14.0",
+    "linkedom": "0.18.12",
+    "playwright": "1.62.1"
   }
 }
