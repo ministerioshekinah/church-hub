@@ -1,0 +1,35 @@
+{
+  "ref": "shekinah_security_headers",
+  "description": "Shekinah security headers with initial HSTS rollout",
+  "expression": "http.host in {\"mcshekinah.org\" \"www.mcshekinah.org\"}",
+  "action": "rewrite",
+  "action_parameters": {
+    "headers": {
+      "strict-transport-security": {
+        "operation": "set",
+        "value": "max-age=300"
+      },
+      "x-content-type-options": {
+        "operation": "set",
+        "value": "nosniff"
+      },
+      "x-frame-options": {
+        "operation": "set",
+        "value": "DENY"
+      },
+      "content-security-policy": {
+        "operation": "add",
+        "value": "frame-ancestors 'none';"
+      },
+      "referrer-policy": {
+        "operation": "set",
+        "value": "strict-origin-when-cross-origin"
+      },
+      "permissions-policy": {
+        "operation": "set",
+        "value": "camera=(), microphone=(), geolocation=()"
+      }
+    }
+  },
+  "enabled": false
+}
