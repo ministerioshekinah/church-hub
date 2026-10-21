@@ -1,0 +1,16 @@
+[
+  {
+    "ref": "shekinah_static_methods",
+    "description": "Block unsupported methods on the static website only",
+    "expression": "http.host in {\"mcshekinah.org\" \"www.mcshekinah.org\"} and not (http.request.method in {\"GET\" \"HEAD\" \"OPTIONS\"})",
+    "action": "block",
+    "enabled": false
+  },
+  {
+    "ref": "shekinah_sensitive_paths",
+    "description": "Block known repository and environment-file paths on the website",
+    "expression": "http.host in {\"mcshekinah.org\" \"www.mcshekinah.org\"} and (lower(http.request.uri.path) in {\"/.git\" \"/.env\" \"/supabase/.env\"} or starts_with(lower(http.request.uri.path), \"/.git/\") or starts_with(lower(http.request.uri.path), \"/.env.\") or starts_with(lower(http.request.uri.path), \"/supabase/.env.\"))",
+    "action": "block",
+    "enabled": false
+  }
+]

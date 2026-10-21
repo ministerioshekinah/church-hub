@@ -29,6 +29,17 @@ function inspectHeaders(headers, minimumHsts = 300) {
     return directive && /^frame-ancestors\s+'none'\s*$/i.test(directive);
   });
   if (!blocksFrames) issues.push("Enforced Content-Security-Policy must contain frame-ancestors 'none'");
+  const referrer = (headers.get('referrer-policy') || '').toLowerCase().trim();
+  if (!['no-referrer', 'strict-origin-when-cross-origin'].includes(referrer)) {
+    issues.push('Referrer-Policy must prevent cross-origin path and query disclosure');
+  }
+  const permissions = (headers.get('permissions-policy') || '').split(',').map(value => value.trim());
+  for (const feature of ['camera', 'microphone', 'geolocation']) {
+    const directives = permissions.filter(value => new RegExp('^' + feature + '\\s*=', 'i').test(value));
+    if (directives.length !== 1 || !new RegExp('^' + feature + '\\s*=\\s*\\(\\s*\\)$', 'i').test(directives[0])) {
+      issues.push(`Permissions-Policy must contain one ${feature}=() restriction`);
+    }
+  }
   return issues;
 }
 
@@ -63,7 +74,7 @@ async function main() {
           issues.push('Unexpected Content-Type; nosniff could block this resource');
         }
         const headers = Object.fromEntries(['server', 'content-type', 'strict-transport-security',
-          'x-content-type-options', 'x-frame-options', 'content-security-policy', 'location']
+          'x-content-type-options', 'x-frame-options', 'content-security-policy', 'referrer-policy', 'permissions-policy', 'location']
           .map(name => [name, response.headers.get(name)]));
         await response.body?.cancel();
         results[index] = { url: target.url, status: response.status, pass: issues.length === 0, issues, headers };
