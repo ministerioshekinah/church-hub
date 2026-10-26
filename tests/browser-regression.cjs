@@ -98,7 +98,7 @@ async function check(name,fn) {
   await check('Service notices: a missing translation never hides a cancellation or invents a different weekday',()=>journey({lang:'es'},async({page,state,goto})=>{
     Object.assign(state.data.service_settings[0],{day_en:'Wednesday',day_es:'',service_label_en:'Evening service',service_label_es:'',special_message_en:'No service this Wednesday.',special_message_es:''});
     await goto('/');
-    assert.equal(await page.locator('#visitServiceDay').innerText(),'Wednesday');
+    assert.equal(await page.locator('#visitServiceDay').innerText(),'WEDNESDAY');
     assert.equal(await page.locator('#visitServiceDay').getAttribute('lang'),'en');
     assert.equal(await page.locator('#specialServiceMessage').innerText(),'No service this Wednesday.');
     assert.equal(await page.locator('#specialServiceMessage').getAttribute('lang'),'en');
