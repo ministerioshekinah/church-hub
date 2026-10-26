@@ -24,13 +24,15 @@
   <link rel="stylesheet" href="/assets/fonts/fonts.css?v=1.0" />
 
   <link rel="stylesheet" href="/style.css?v=9.3" />
-  <link rel="stylesheet" href="/public-glass.css?v=4.6" />
-  <script src="/supabase-config.js?v=11.6" defer></script>
-  <script src="/script.js?v=15.4" defer></script>
+  <link rel="stylesheet" href="/public-glass.css?v=4.7" />
+  <script src="/supabase-config.js?v=11.7" defer></script>
+  <script src="/visit-calendar.js?v=1.0" defer></script>
+  <script src="/script.js?v=15.5" defer></script>
+  <script src="/public-startup.js?v=1.0" defer></script>
   <link rel="stylesheet" href="/footer.css?v=2.0" />
-  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.1" /></noscript>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/print.css?v=1.1" media="print" />
+  <link rel="stylesheet" href="/print.css?v=1.2" media="print" />
 </head>
 <body data-page="home">
   <div class="ambient-background" aria-hidden="true">
@@ -71,6 +73,17 @@
   </header>
 
   <main id="main-content" tabindex="-1">
+    <section class="public-startup-notice container" id="publicStartupNotice" role="status" hidden>
+      <p lang="en">This page did not finish loading. Reload it to see current service information and church updates.</p>
+      <p lang="es">Esta página no terminó de cargar. Vuelve a cargarla para ver la información actual del servicio y las novedades de la iglesia.</p>
+      <button class="button button-secondary" id="reloadPublicPage" type="button"><span lang="en">Reload page</span><span aria-hidden="true"> / </span><span lang="es">Volver a cargar</span></button>
+    </section>
+    <noscript>
+      <div class="public-startup-notice container">
+        <p lang="en">Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.</p>
+        <p lang="es">Activa JavaScript y vuelve a cargar para ver los detalles actuales del servicio, los anuncios y los boletines. Aún puedes usar la navegación y leer nuestras páginas de información.</p>
+      </div>
+    </noscript>
     <section class="hero" id="home">
       <div class="container hero-grid">
         <div>
@@ -202,6 +215,14 @@
           <h3 data-i18n="service_begins">Service begins at</h3>
           <p class="big-time" id="visitServiceTime">3:00 PM</p>
           <p id="specialServiceMessage" data-i18n="welcome_message">We look forward to welcoming you.</p>
+          <div class="visit-calendar" id="visitCalendar" hidden>
+            <p class="next-service-label" data-i18n="next_scheduled_service">Next scheduled service</p>
+            <p class="next-service-date"><time id="nextServiceDate"></time></p>
+            <p class="service-timezone" data-i18n="los_angeles_time">Los Angeles time</p>
+            <button class="button button-secondary" id="downloadServiceCalendar" type="button" data-i18n="save_service_date" hidden>Save the date</button>
+            <p class="calendar-note" data-i18n="calendar_note">Save one service to your calendar. Check announcements for schedule changes.</p>
+            <p class="calendar-status" id="calendarStatus" role="status" aria-live="polite"></p>
+          </div>
           <button class="button button-secondary retry-button" id="serviceRetry" type="button" data-i18n="retry" hidden>Try again</button>
         </div>
       </div>

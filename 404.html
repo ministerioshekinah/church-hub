@@ -15,13 +15,14 @@
   <link rel="stylesheet" href="/assets/fonts/fonts.css?v=1.0" />
 
   <link rel="stylesheet" href="/style.css?v=9.3" />
-  <link rel="stylesheet" href="/public-glass.css?v=4.6" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.7" />
   <link rel="stylesheet" href="/footer.css?v=2.0" />
   <link rel="stylesheet" href="/information.css?v=2.1" />
-  <script src="/script.js?v=15.4" defer></script>
-  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <script src="/script.js?v=15.5" defer></script>
+  <script src="/public-startup.js?v=1.0" defer></script>
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.1" /></noscript>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/print.css?v=1.1" media="print" />
+  <link rel="stylesheet" href="/print.css?v=1.2" media="print" />
 </head>
 <body class="information-page" data-page="not-found">
   <div class="ambient-background" aria-hidden="true">
@@ -61,6 +62,17 @@
     </div>
   </header>
   <main id="main-content" tabindex="-1" class="not-found-main">
+    <section class="public-startup-notice container" id="publicStartupNotice" role="status" hidden>
+      <p lang="en">This page did not finish loading. Reload it to see current service information and church updates.</p>
+      <p lang="es">Esta página no terminó de cargar. Vuelve a cargarla para ver la información actual del servicio y las novedades de la iglesia.</p>
+      <button class="button button-secondary" id="reloadPublicPage" type="button"><span lang="en">Reload page</span><span aria-hidden="true"> / </span><span lang="es">Volver a cargar</span></button>
+    </section>
+    <noscript>
+      <div class="public-startup-notice container">
+        <p lang="en">Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.</p>
+        <p lang="es">Activa JavaScript y vuelve a cargar para ver los detalles actuales del servicio, los anuncios y los boletines. Aún puedes usar la navegación y leer nuestras páginas de información.</p>
+      </div>
+    </noscript>
     <div class="container not-found-card">
       <span class="not-found-number" aria-hidden="true">404</span>
       <p class="eyebrow" data-i18n="not_found_label">Page not found</p>

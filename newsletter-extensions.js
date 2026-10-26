@@ -76,6 +76,11 @@
     return section[isSpanish ? "body_es" : "body_en"] || section.body_en || "";
   }
 
+  function optionalHeadingLanguage(section, language) {
+    // A named English fallback differs from a translated default heading.
+    return language === "es" && section.title_en && !section.title_es ? "en" : language;
+  }
+
   function initAdminExtensions() {
     if (typeof newsletterFormData !== "function" || typeof persistNewsletter !== "function") {
       return;
@@ -322,8 +327,8 @@
 
       container.innerHTML = `
         <span class="tag">${escapeHtml(translations[currentLanguage].latest_issue)}</span>
-        <h2>${escapeHtml(title)}</h2>
-        <p class="issue-date">${escapeHtml(date)}</p>
+        <h2 lang="${localizedContentLanguage(issue, "title")}">${escapeHtml(title)}</h2>
+        <p class="issue-date" lang="${localizedContentLanguage(issue, "date")}">${escapeHtml(date)}</p>
         ${
           banner
             ? `
@@ -331,8 +336,8 @@
                 <span>${escapeHtml(
                   currentLanguage === "es" ? "Importante" : "Important"
                 )}</span>
-                <h3>${escapeHtml(optionalHeading(banner, currentLanguage))}</h3>
-                <p>${escapeHtml(optionalBody(banner, currentLanguage))}</p>
+                <h3 lang="${optionalHeadingLanguage(banner, currentLanguage)}">${escapeHtml(optionalHeading(banner, currentLanguage))}</h3>
+                <p lang="${localizedContentLanguage(banner, "body")}">${escapeHtml(optionalBody(banner, currentLanguage))}</p>
               </section>
             `
             : ""
@@ -345,8 +350,8 @@
 
             return `
               <section class="newsletter-section">
-                <h3>${escapeHtml(heading)}</h3>
-                <p>${escapeHtml(body)}</p>
+                <h3 lang="${localizedContentLanguage(section, "heading")}">${escapeHtml(heading)}</h3>
+                <p lang="${localizedContentLanguage(section, "body")}">${escapeHtml(body)}</p>
               </section>
             `;
           })
@@ -355,8 +360,8 @@
           .map(
             (section) => `
               <section class="newsletter-section newsletter-optional-section">
-                <h3>${escapeHtml(optionalHeading(section, currentLanguage))}</h3>
-                <p>${escapeHtml(optionalBody(section, currentLanguage))}</p>
+                <h3 lang="${optionalHeadingLanguage(section, currentLanguage)}">${escapeHtml(optionalHeading(section, currentLanguage))}</h3>
+                <p lang="${localizedContentLanguage(section, "body")}">${escapeHtml(optionalBody(section, currentLanguage))}</p>
               </section>
             `
           )

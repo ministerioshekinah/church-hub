@@ -69,6 +69,77 @@ async function check(name,fn) {
     await page.locator('#copyNewsletterLink').click();assert.match(await page.evaluate(()=>window.__testClipboard[0]),/\/newsletter\/\?issue=test-issue-0$/);
     await page.locator('#printNewsletter').click();assert.equal(await page.evaluate(()=>window.__testPrints),1);
   }));
+  await check('Visit calendar: a real download preserves the next Los Angeles service across DST',()=>journey({lang:'es',viewport:{width:320,height:900}},async({page,state,goto})=>{
+    await page.clock.setFixedTime(new Date('2026-10-26T21:00:00Z'));
+    await goto('/');
+    assert.match(await page.locator('#nextServiceDate').innerText(),/domingo.*1.*noviembre.*2026/);
+    assert.equal(await page.locator('#nextServiceDate').getAttribute('datetime'),'2026-11-01T23:00:00.000Z');
+    const requestCount=state.requests.filter(r=>r.url.includes('/rest/v1/')).length;
+    const downloadPromise=page.waitForEvent('download');
+    await page.locator('#downloadServiceCalendar').click();
+    const download=await downloadPromise;
+    assert.equal(download.suggestedFilename(),'shekinah-service-2026-11-01.ics');
+    const content=fs.readFileSync(await download.path(),'utf8').replace(/\r\n /g,'');
+    assert.match(content,/DTSTART:20261101T230000Z/);assert.match(content,/SUMMARY:Servicio Dominical/);
+    assert.match(content,/LOCATION:2149 W Washington Blvd\\, Los Angeles\\, CA 90018/);
+    assert.match(await page.locator('#calendarStatus').innerText(),/Archivo de calendario listo/);
+    assert.equal(state.requests.filter(r=>r.url.includes('/rest/v1/')).length,requestCount);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }));
+  await check('Visit calendar: an unavailable optional bundle and special schedule retain the core visit details',async()=>{
+    for(const scenario of ['bundle','notice','offline'])await journey({},async({page,state,context,goto})=>{
+      if(scenario==='bundle')await context.route('**/visit-calendar.js?*',route=>route.abort());
+      if(scenario==='notice')state.data.service_settings[0].special_message_en='Please check our holiday announcement.';
+      if(scenario==='offline')state.offline=true;
+      await goto('/');assert(await page.locator('#visitCalendar').isHidden());
+      if(scenario!=='offline'){assert.equal(await page.locator('#visitServiceTime').innerText(),'3:00 PM');assert(await page.locator('#copyAddress').isVisible());}
+    });
+  });
+  await check('Service notices: a missing translation never hides a cancellation or invents a different weekday',()=>journey({lang:'es'},async({page,state,goto})=>{
+    Object.assign(state.data.service_settings[0],{day_en:'Wednesday',day_es:'',service_label_en:'Evening service',service_label_es:'',special_message_en:'No service this Wednesday.',special_message_es:''});
+    await goto('/');
+    assert.equal(await page.locator('#visitServiceDay').innerText(),'WEDNESDAY');
+    assert.equal(await page.locator('#visitServiceDay').getAttribute('lang'),'en');
+    assert.equal(await page.locator('#specialServiceMessage').innerText(),'No service this Wednesday.');
+    assert.equal(await page.locator('#specialServiceMessage').getAttribute('lang'),'en');
+    assert(await page.locator('#visitCalendar').isHidden());
+    await page.locator('[data-lang="en"]').click();
+    assert.equal(await page.locator('#specialServiceMessage').innerText(),'No service this Wednesday.');
+    assert(await page.locator('#visitCalendar').isHidden());
+  }));
+  await check('Visit calendar: downloading after an idle service boundary refreshes the displayed date',()=>journey({},async({page,goto})=>{
+    await page.clock.setFixedTime(new Date('2026-10-25T21:59:00Z'));
+    await goto('/');
+    assert.equal(await page.locator('#nextServiceDate').getAttribute('datetime'),'2026-10-25T22:00:00.000Z');
+    await page.clock.setFixedTime(new Date('2026-10-25T22:01:00Z'));
+    const downloadPromise=page.waitForEvent('download');
+    await page.locator('#downloadServiceCalendar').click();
+    const download=await downloadPromise;
+    assert.equal(download.suggestedFilename(),'shekinah-service-2026-11-01.ics');
+    assert.equal(await page.locator('#nextServiceDate').getAttribute('datetime'),'2026-11-01T23:00:00.000Z');
+  }));
+  await check('Newsletter reading: direct sections, keyboard focus, body search, neighbors and browser history',()=>journey({viewport:{width:320,height:900}},async({page,state,goto})=>{
+    state.data.newsletters[1].community_es='Únete a la comida comunitaria.';
+    state.data.newsletters[1].optional_sections=[{type:'custom',title_en:'A special section',body_en:'Welcome, neighbors.'}];
+    await goto('/newsletter/?issue=test-issue-1#newsletter-section-4');
+    assert(await page.locator('#newsletter-section-4').evaluate(e=>e===document.activeElement));
+    await page.locator('#newsletterContents a').first().click();
+    assert(await page.locator('#newsletter-section-1').evaluate(e=>e===document.activeElement));
+    await page.locator('#issuePagination a').first().click();
+    assert.equal(await page.locator('#latestNewsletter').getAttribute('data-issue-id'),'test-issue-0');
+    await page.goBack();
+    assert.equal(await page.locator('#latestNewsletter').getAttribute('data-issue-id'),'test-issue-1');
+    await page.locator('#browseNewsletterArchive').click();
+    assert(await page.locator('#newsletterArchivePanel').evaluate(e=>e===document.activeElement));
+    await page.locator('#archiveSearch').fill('no such published issue');
+    assert.equal(await page.locator('.archive-item').count(),0);
+    await page.locator('#clearArchiveSearch').click();assert(await page.locator('#archiveSearch').evaluate(e=>e===document.activeElement));
+    await page.locator('#issuePagination a').first().click();
+    await page.locator('#archiveSearch').fill('unete a la comida');
+    assert.equal(await page.locator('.archive-item').count(),1);
+    await page.locator('.archive-item').click();assert.equal(await page.locator('#latestNewsletter').getAttribute('data-issue-id'),'test-issue-1');
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }));
   await check('Missing issue and untrusted CMS text remain harmless text',()=>journey({},async({page,state,goto})=>{
     const payload='<img src=x onerror="window.__unsafe=true">';state.data.newsletters[0].title_en=payload;
     await goto('/newsletter/?issue=%3Cscript%3Ebad%3C/script%3E');
@@ -154,6 +225,53 @@ async function check(name,fn) {
   await check('Without JavaScript: policy translations and mobile navigation remain readable',()=>journey({javascript:false},async({page,goto})=>{
     await goto('/privacy/');assert(await page.locator('[data-language-content="en"]').isVisible());assert(await page.locator('[data-language-content="es"]').isVisible());
     assert(await page.locator('#navMenu').isVisible());assert.equal(await page.locator('#menuButton').isVisible(),false);
+  }));
+  await check('Public startup recovery: missing application code keeps bilingual help and mobile links usable',async()=>{
+    for(const route of ['/','/newsletter/','/contact/'])await journey({viewport:{width:320,height:900}},async({page,context,goto})=>{
+      const block=route=>route.abort();
+      await context.route('**/script.js?*',block);
+      await goto(route);
+      assert(await page.locator('#publicStartupNotice').isVisible());
+      assert(await page.locator('#navMenu').isVisible());
+      assert(await page.locator('#menuButton').isHidden());
+      assert.equal(await page.locator('[aria-busy="true"]').count(),0);
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      await context.unroute('**/script.js?*',block);
+      await page.locator('#reloadPublicPage').click();
+      await page.waitForFunction(()=>window.SHEKINAH_PUBLIC_READY===true);
+      await page.locator('#publicStartupNotice').waitFor({state:'hidden'});
+      assert(await page.locator('#menuButton').isVisible());
+      if(route==='/newsletter/')await page.waitForFunction(()=>document.querySelector('#latestNewsletter')?.dataset.issueId);
+    });
+  });
+  await check('Without JavaScript: live-content loading labels are replaced by bilingual guidance',()=>journey({javascript:false,viewport:{width:320,height:900}},async({page,goto})=>{
+    for(const route of ['/','/newsletter/']) {
+      await goto(route);
+      // Text locators deliberately skip NOSCRIPT; inspect the rendered fallback directly.
+      const guidance=page.locator('noscript .public-startup-notice');
+      assert(await guidance.isVisible());
+      assert.equal(await guidance.locator('p[lang="en"]').innerText(),'Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.');
+      assert(await guidance.locator('p[lang="es"]').isVisible());
+      assert.match(await guidance.locator('p[lang="es"]').innerText(),/^Activa JavaScript y vuelve a cargar/);
+      assert(await page.locator('#navMenu').isVisible());
+      if(route==='/'){assert(await page.locator('#heroServiceTime').isHidden());assert(await page.locator('#announcementList').isHidden());}
+      else assert(await page.locator('#latestNewsletter').isHidden());
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    }
+  }));
+  await check('Public startup recovery: a partial initialization cannot leave the fallback menu inert',()=>journey({viewport:{width:320,height:900}},async({page,state,context,goto})=>{
+    const source=fs.readFileSync(path.resolve(__dirname,'../script.js'),'utf8').replace('  initializeAmbientBackground();','  throw new Error("intentional startup fixture");');
+    await context.route('**/script.js?*',route=>route.fulfill({contentType:'text/javascript',body:source}));
+    await goto('/');
+    assert(await page.locator('#publicStartupNotice').isVisible());
+    assert(state.errors.some(message=>String(message).includes('intentional startup fixture')));
+    state.errors.length=0;
+    await page.locator('#publicStartupNotice p[lang="en"]').click();
+    const visit=page.locator('#navMenu a[href="#visit"]');
+    await visit.focus();assert(await visit.evaluate(element=>element===document.activeElement));
+    await page.keyboard.press('Enter');
+    assert.match(page.url(),/#visit$/);
+    assert.equal(await page.locator('#navMenu').getAttribute('inert'),null);
   }));
   await check('Original fonts load locally; the public page makes no font-provider requests',()=>journey({},async({page,state,goto})=>{
     await goto();const loaded=await page.evaluate(()=>[...document.fonts].filter(f=>f.status==='loaded').map(f=>f.family));

@@ -25,11 +25,11 @@
 
   <link rel="stylesheet" href="/style.css?v=9.3" />
   <link rel="stylesheet" href="/newsletter-extensions.css?v=2.1" />
-  <link rel="stylesheet" href="/public-glass.css?v=4.6" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.7" />
   <link rel="stylesheet" href="/footer.css?v=2.0" />
-  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.1" /></noscript>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/print.css?v=1.1" media="print" />
+  <link rel="stylesheet" href="/print.css?v=1.2" media="print" />
 </head>
 <body data-page="newsletter">
   <div class="ambient-background" aria-hidden="true">
@@ -70,6 +70,17 @@
   </header>
 
   <main id="main-content" tabindex="-1">
+    <section class="public-startup-notice container" id="publicStartupNotice" role="status" hidden>
+      <p lang="en">This page did not finish loading. Reload it to see current service information and church updates.</p>
+      <p lang="es">Esta página no terminó de cargar. Vuelve a cargarla para ver la información actual del servicio y las novedades de la iglesia.</p>
+      <button class="button button-secondary" id="reloadPublicPage" type="button"><span lang="en">Reload page</span><span aria-hidden="true"> / </span><span lang="es">Volver a cargar</span></button>
+    </section>
+    <noscript>
+      <div class="public-startup-notice container">
+        <p lang="en">Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.</p>
+        <p lang="es">Activa JavaScript y vuelve a cargar para ver los detalles actuales del servicio, los anuncios y los boletines. Aún puedes usar la navegación y leer nuestras páginas de información.</p>
+      </div>
+    </noscript>
     <section class="newsletter-hero">
       <div class="container">
         <p class="eyebrow" data-i18n="stay_connected">Stay connected</p>
@@ -88,21 +99,30 @@
             <div class="newsletter-tools" id="newsletterTools" role="group" aria-label="Newsletter tools" data-i18n-aria-label="newsletter_tools" hidden>
               <button class="utility-button" id="copyNewsletterLink" type="button" data-i18n="copy_issue_link">Copy issue link</button>
               <button class="utility-button" id="printNewsletter" type="button" data-i18n="print_issue">Print newsletter</button>
+              <a class="utility-button" id="browseNewsletterArchive" href="#newsletterArchivePanel" data-i18n="browse_issues" hidden>Browse issues</a>
             </div>
           </div>
           <p class="tool-status" id="newsletterToolStatus" role="status" aria-live="polite"></p>
           <p class="selection-notice" id="newsletterSelectionNotice" role="status" hidden></p>
+          <nav class="newsletter-contents" id="newsletterContentsWrap" aria-label="In this issue" data-i18n-aria-label="in_this_issue" hidden>
+            <p class="mini-label" data-i18n="in_this_issue">In this issue</p>
+            <div id="newsletterContents"></div>
+          </nav>
           <article class="full-newsletter" id="latestNewsletter" tabindex="-1" aria-busy="true">
             <p data-i18n="loading_newsletter">Loading newsletter…</p>
           </article>
+          <p class="newsletter-visit-prompt"><span data-i18n="planning_a_visit">Planning a visit?</span> <a href="/#visit" data-i18n="view_current_service">See current service details</a>.</p>
+          <nav class="issue-pagination" id="issuePagination" aria-label="More newsletters" data-i18n-aria-label="more_newsletters" hidden></nav>
           <button class="button button-secondary retry-button" id="newsletterRetry" type="button" data-i18n="retry" hidden>Try again</button>
         </div>
 
-        <aside>
+        <aside id="newsletterArchivePanel" tabindex="-1">
           <p class="eyebrow" data-i18n="browse_issues">Browse issues</p>
           <div class="archive-search-wrap" id="archiveSearchWrap" hidden>
             <label for="archiveSearch" data-i18n="search_issues">Search issues</label>
-            <input type="search" id="archiveSearch" maxlength="120" autocomplete="off" />
+            <p class="archive-search-help" id="archiveSearchHelp" data-i18n="search_issues_hint">Find a title, date, or words from an issue.</p>
+            <input type="search" id="archiveSearch" maxlength="120" autocomplete="off" enterkeyhint="search" aria-describedby="archiveSearchHelp" aria-controls="newsletterArchive" />
+            <button class="utility-button archive-clear" id="clearArchiveSearch" type="button" data-i18n="clear_search" hidden>Clear search</button>
           </div>
           <p class="archive-count" id="archiveCount" role="status" aria-live="polite"></p>
           <div class="archive-list" id="newsletterArchive">
@@ -139,8 +159,9 @@
     </div>
   </footer>
 
-  <script src="/supabase-config.js?v=11.6"></script>
-  <script src="/script.js?v=15.4"></script>
-  <script src="/newsletter-extensions.js?v=4.3"></script>
+  <script src="/supabase-config.js?v=11.7"></script>
+  <script src="/script.js?v=15.5"></script>
+  <script src="/newsletter-extensions.js?v=4.4"></script>
+  <script src="/public-startup.js?v=1.0"></script>
 </body>
 </html>

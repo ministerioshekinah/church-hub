@@ -1,4 +1,4 @@
-window.SHEKINAH_PUBLIC_READY = true;
+window.SHEKINAH_PUBLIC_READY = false;
 
 const translations = {
   en: {
@@ -35,6 +35,12 @@ const translations = {
     share_visit: "Share church details",
     visit_details_copied: "Church details copied. Paste them into a message to share.",
     address_unavailable: "The address is temporarily unavailable. Please try again.",
+    next_scheduled_service: "Next scheduled service",
+    los_angeles_time: "Los Angeles time",
+    save_service_date: "Save the date",
+    calendar_note: "Save one service to your calendar. Check announcements for schedule changes.",
+    calendar_ready: "Calendar file ready. Open it to save this service.",
+    calendar_unavailable: "We couldn’t prepare the calendar file. Use the service details above.",
     newsletter_empty_title: "No published newsletter yet",
     newsletter_empty_copy: "Check back for the next Ministerio Cristiano Shekinah update.",
     retry: "Try again",
@@ -42,6 +48,15 @@ const translations = {
     archived_issue: "From the archive",
     browse_issues: "Browse issues",
     search_issues: "Search issues",
+    search_issues_hint: "Find a title, date, or words from an issue.",
+    clear_search: "Clear search",
+    in_this_issue: "In this issue",
+    more_newsletters: "More newsletters",
+    newer_issue: "Newer issue",
+    older_issue: "Older issue",
+    newsletter_document_title: "Newsletter | Ministerio Cristiano Shekinah",
+    planning_a_visit: "Planning a visit?",
+    view_current_service: "See current service details",
     no_matching_issues: "No other issues match your search.",
     no_other_issues: "You’re reading the only published issue. More updates will appear here.",
     issue_count: "issues to explore",
@@ -135,6 +150,12 @@ const translations = {
     share_visit: "Compartir información de la iglesia",
     visit_details_copied: "Información copiada. Pégala en un mensaje para compartirla.",
     address_unavailable: "La dirección no está disponible por el momento. Inténtalo de nuevo.",
+    next_scheduled_service: "Próximo servicio programado",
+    los_angeles_time: "Hora de Los Ángeles",
+    save_service_date: "Guardar la fecha",
+    calendar_note: "Guarda un servicio en tu calendario. Consulta los anuncios por si hay cambios de horario.",
+    calendar_ready: "Archivo de calendario listo. Ábrelo para guardar este servicio.",
+    calendar_unavailable: "No pudimos preparar el archivo de calendario. Consulta la información del servicio arriba.",
     newsletter_empty_title: "Aún no hay un boletín publicado",
     newsletter_empty_copy: "Vuelve pronto para la próxima actualización de Ministerio Cristiano Shekinah.",
     retry: "Intentar de nuevo",
@@ -142,6 +163,15 @@ const translations = {
     archived_issue: "Del archivo",
     browse_issues: "Explora los boletines",
     search_issues: "Buscar boletines",
+    search_issues_hint: "Busca un título, una fecha o palabras de un boletín.",
+    clear_search: "Borrar búsqueda",
+    in_this_issue: "En este boletín",
+    more_newsletters: "Más boletines",
+    newer_issue: "Boletín más reciente",
+    older_issue: "Boletín anterior",
+    newsletter_document_title: "Boletín | Ministerio Cristiano Shekinah",
+    planning_a_visit: "¿Planeas visitarnos?",
+    view_current_service: "Consulta los detalles actuales del servicio",
     no_matching_issues: "No hay otros boletines que coincidan con tu búsqueda.",
     no_other_issues: "Estás leyendo el único boletín publicado. Aquí aparecerán las próximas novedades.",
     issue_count: "boletines para explorar",
@@ -214,6 +244,8 @@ let cachedNewsletterIssues = null;
 let cachedHomepageIssue = null;
 let archiveVisibleLimit = 6;
 let previousArchiveQuery = "";
+let newsletterSelectionQuery = null;
+let newsletterInitialAnchorHandled = false;
 const publicLoadState = { service: "idle", announcements: "idle", newsletters: "idle", preview: "idle" };
 const publicRetryFocus = new Map();
 const publicRetryTargets = { serviceRetry: "services", announcementsRetry: "announcementList", newsletterRetry: "latestNewsletter" };
@@ -464,18 +496,23 @@ function formatPublicServiceTime(timeValue) {
 let currentVisitDetails = null;
 let visitActionGeneration = 0;
 
+function serviceField(service, field, fallback) {
+  for (const language of [currentLanguage, currentLanguage === "es" ? "en" : "es"]) {
+    const value = service[`${field}_${language}`];
+    if (typeof value === "string" && value.trim()) return { value: value.trim(), language };
+  }
+  return { value: fallback, language: currentLanguage };
+}
+
 function renderServiceSettings(service) {
   const retry = document.getElementById("serviceRetry");
   if (retry) retry.hidden = true;
   const isSpanish = currentLanguage === "es";
-  const serviceLabel =
-    service[isSpanish ? "service_label_es" : "service_label_en"] ||
-    (isSpanish ? "Servicio Dominical" : "Sunday Service");
-  const day =
-    service[isSpanish ? "day_es" : "day_en"] ||
-    (isSpanish ? "Domingo" : "Sunday");
-  const specialMessage =
-    service[isSpanish ? "special_message_es" : "special_message_en"];
+  const labelField = serviceField(service, "service_label", isSpanish ? "Servicio" : "Church service");
+  const dayField = serviceField(service, "day", isSpanish ? "Día por confirmar" : "Day to be confirmed");
+  const messageField = serviceField(service, "special_message", translations[currentLanguage].welcome_message);
+  const serviceLabel = labelField.value;
+  const day = dayField.value;
 
   const displayTime =
     formatPublicServiceTime(service.service_time) ||
@@ -496,6 +533,8 @@ function renderServiceSettings(service) {
   if (sectionTime) sectionTime.textContent = displayTime;
   if (visitDay) visitDay.textContent = day;
   if (visitTime) visitTime.textContent = displayTime;
+  for (const element of [heroLabel, sectionLabel]) element?.setAttribute("lang", labelField.language);
+  visitDay?.setAttribute("lang", dayField.language);
 
   const address = typeof service.address === "string" ? service.address.trim() : "";
   currentVisitDetails = address && address.length <= 1000 ? { address, day, time: displayTime } : null;
@@ -505,13 +544,15 @@ function renderServiceSettings(service) {
   const summaryDay = document.getElementById("heroServiceDay");
   const summaryTime = document.getElementById("heroSummaryTime");
   if (summaryDay) summaryDay.textContent = day;
+  summaryDay?.setAttribute("lang", dayField.language);
   if (summaryTime) summaryTime.textContent = displayTime;
   renderVisitDirections();
 
   if (message) {
-    message.textContent =
-      specialMessage || translations[currentLanguage].welcome_message;
+    message.textContent = messageField.value;
+    message.setAttribute("lang", messageField.language);
   }
+  renderVisitCalendar(service);
 }
 
 function renderServiceUnavailable() {
@@ -519,6 +560,7 @@ function renderServiceUnavailable() {
   ++visitActionGeneration;
   const summary = document.getElementById("heroServiceSummary");
   if (summary) summary.hidden = true;
+  renderVisitCalendar(null);
   renderVisitDirections();
   const retry = document.getElementById("serviceRetry");
   if (retry) retry.hidden = false;
@@ -528,7 +570,18 @@ function renderServiceUnavailable() {
   });
 
   const message = document.getElementById("specialServiceMessage");
-  if (message) message.textContent = translations[currentLanguage].service_error;
+  if (message) {
+    message.textContent = translations[currentLanguage].service_error;
+    message.setAttribute("lang", currentLanguage);
+  }
+  for (const id of ["heroServiceLabel", "serviceSectionLabel", "visitServiceDay"]) {
+    const element = document.getElementById(id);
+    if (!element) continue;
+    element.textContent = id === "visitServiceDay"
+      ? currentLanguage === "es" ? "Día por confirmar" : "Day to be confirmed"
+      : currentLanguage === "es" ? "Servicio" : "Church service";
+    element.setAttribute("lang", currentLanguage);
+  }
 }
 
 function renderVisitDirections() {
@@ -554,6 +607,36 @@ function renderVisitDirections() {
   });
   const status = document.getElementById("copyStatus");
   if (status) status.textContent = "";
+}
+
+let calendarRefreshTimer = null;
+function renderVisitCalendar(service, now = new Date()) {
+  clearTimeout(calendarRefreshTimer);
+  calendarRefreshTimer = null;
+  const wrap = document.getElementById("visitCalendar");
+  const date = document.getElementById("nextServiceDate");
+  const button = document.getElementById("downloadServiceCalendar");
+  const status = document.getElementById("calendarStatus");
+  if (!wrap || !date || !button) return;
+  wrap.hidden = true;
+  button.hidden = true;
+  date.textContent = "";
+  date.removeAttribute("datetime");
+  if (status) status.textContent = "";
+  const api = window.SHEKINAH_VISIT_CALENDAR;
+  const start = api?.nextService(service, now);
+  if (!start || !currentVisitDetails) return;
+  try {
+    date.textContent = new Intl.DateTimeFormat(currentLanguage === "es" ? "es-US" : "en-US", {
+      weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: api.timeZone
+    }).format(start);
+    date.setAttribute("datetime", start.toISOString());
+    wrap.hidden = false;
+    button.hidden = typeof Blob !== "function" || typeof URL.createObjectURL !== "function";
+    if (!document.hidden) {
+      calendarRefreshTimer = setTimeout(() => renderVisitCalendar(cachedService), Math.min(start.getTime() - Date.now() + 1000, 86400000));
+    }
+  } catch { /* The published service information remains usable without Intl. */ }
 }
 
 // ------------------------------------------------------------
@@ -645,9 +728,9 @@ function renderAnnouncements(announcements) {
 
       return `
         <article class="announcement-card">
-          ${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}
-          <h3>${escapeHtml(title)}</h3>
-          <p>${escapeHtml(description)}</p>
+          ${tag ? `<span class="tag" lang="${localizedContentLanguage(announcement, "tag")}">${escapeHtml(tag)}</span>` : ""}
+          <h3 lang="${localizedContentLanguage(announcement, "title")}">${escapeHtml(title)}</h3>
+          <p lang="${localizedContentLanguage(announcement, "description")}">${escapeHtml(description)}</p>
         </article>
       `;
     })
@@ -686,6 +769,10 @@ async function loadNewsletters() {
     cachedNewsletterIssues = issues;
     publicLoadState.newsletters = "ready";
     renderNewsletterPage(issues);
+    if (!newsletterInitialAnchorHandled) {
+      newsletterInitialAnchorHandled = true;
+      restoreNewsletterFragment();
+    }
   } catch (error) {
     console.error("Unable to load newsletters:", error);
     cachedNewsletterIssues = null;
@@ -707,6 +794,8 @@ function renderNewsletterError() {
   const notice = document.getElementById("newsletterSelectionNotice");
   if (notice) notice.hidden = true;
   if (article) delete article.dataset.issueId;
+  renderNewsletterReadingTools([], null);
+  document.title = translations[currentLanguage].newsletter_document_title;
   ["newsletterTools", "archiveSearchWrap", "showMoreIssues"].forEach(id => {
     const element = document.getElementById(id);
     if (element) element.hidden = true;
@@ -722,6 +811,7 @@ function renderNewsletterPage(issues) {
 
   const params = new URLSearchParams(window.location.search);
   const requestedId = params.get("issue");
+  newsletterSelectionQuery = requestedId;
   const selectedIssue =
     issues.find((issue) => issue.id === requestedId) || issues[0];
   const selectionNotice = document.getElementById("newsletterSelectionNotice");
@@ -747,6 +837,8 @@ function renderNewsletterPage(issues) {
     archiveContainer.innerHTML = "";
     const count = document.getElementById("archiveCount");
     if (count) count.textContent = "";
+    renderNewsletterReadingTools([], null);
+    document.title = translations[currentLanguage].newsletter_document_title;
     return;
   }
 
@@ -759,17 +851,89 @@ function renderNewsletterPage(issues) {
   if (label) label.textContent = issueLabel;
   document.title = `${selectedIssue[`title_${currentLanguage}`] || selectedIssue.title_en} | Shekinah`;
   renderNewsletterArchive(issues, selectedIssue.id);
+  renderNewsletterReadingTools(issues, selectedIssue.id);
+}
+
+function renderNewsletterReadingTools(issues, selectedId) {
+  const article = document.getElementById("latestNewsletter");
+  const contents = document.getElementById("newsletterContents");
+  const wrap = document.getElementById("newsletterContentsWrap");
+  const pagination = document.getElementById("issuePagination");
+  const browse = document.getElementById("browseNewsletterArchive");
+  if (browse) browse.hidden = !selectedId || issues.length < 2;
+  if (contents && wrap) {
+    const links = document.createDocumentFragment();
+    if (selectedId) article?.querySelectorAll("section h3").forEach((heading, index) => {
+      heading.id = `newsletter-section-${index + 1}`;
+      heading.setAttribute("tabindex", "-1");
+      const link = document.createElement("a");
+      link.href = `#${heading.id}`;
+      link.textContent = heading.textContent;
+      if (heading.hasAttribute("lang")) link.setAttribute("lang", heading.getAttribute("lang"));
+      links.appendChild(link);
+    });
+    contents.replaceChildren(links);
+    wrap.hidden = contents.children.length < 2;
+  }
+  if (pagination) {
+    const links = document.createDocumentFragment();
+    const index = issues.findIndex(issue => issue.id === selectedId);
+    if (index !== -1) for (const [offset, label] of [[-1, "newer_issue"], [1, "older_issue"]]) {
+      const issue = issues[index + offset];
+      if (!issue) continue;
+      const link = document.createElement("a");
+      link.className = "issue-neighbor";
+      link.href = `/newsletter/?issue=${encodeURIComponent(issue.id)}`;
+      link.dataset.newsletterIssue = "";
+      const direction = document.createElement("span");
+      direction.textContent = translations[currentLanguage][label];
+      const title = document.createElement("strong");
+      title.textContent = issue[`title_${currentLanguage}`] || issue.title_en;
+      title.setAttribute("lang", localizedContentLanguage(issue, "title"));
+      link.append(direction, title);
+      links.appendChild(link);
+    }
+    pagination.replaceChildren(links);
+    pagination.hidden = !pagination.children.length;
+  }
+}
+
+function restoreNewsletterFragment() {
+  if (!/^#newsletter-section-\d+$/.test(window.location.hash)) return;
+  const heading = document.getElementById(window.location.hash.slice(1));
+  if (!heading) return;
+  heading.focus({ preventScroll: true });
+  heading.scrollIntoView({ behavior: "auto", block: "start" });
+}
+
+const newsletterSearchText = new WeakMap();
+function normalizeArchiveText(value) {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+function searchableNewsletterText(issue) {
+  if (!newsletterSearchText.has(issue)) {
+    const values = [issue.title_en, issue.title_es, issue.date_en, issue.date_es, issue.issue_date];
+    for (const section of [...(issue.sections || []), ...(issue.optional_sections || [])]) {
+      // Empty template headings are not content. Indexing them would make a
+      // search for "community" match every issue, even an empty section.
+      if (!String(section.body_en || section.body_es || "").trim()) continue;
+      values.push(section.heading_en, section.heading_es, section.title_en, section.title_es, section.body_en, section.body_es);
+    }
+    newsletterSearchText.set(issue, normalizeArchiveText(values.join(" ")));
+  }
+  return newsletterSearchText.get(issue);
 }
 
 function renderNewsletterArchive(issues, selectedId) {
   const archiveContainer = document.getElementById("newsletterArchive");
   if (!archiveContainer) return;
   const search = document.getElementById("archiveSearch");
-  const normalize = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const query = normalize(search?.value.trim());
+  const query = normalizeArchiveText(search?.value.trim());
+  const clear = document.getElementById("clearArchiveSearch");
+  if (clear) clear.hidden = !search?.value;
   if (query !== previousArchiveQuery) { archiveVisibleLimit = 6; previousArchiveQuery = query; }
   const otherIssues = issues.filter(issue => issue.id !== selectedId);
-  const matchingIssues = otherIssues.filter(issue => !query || normalize([issue.title_en, issue.title_es, issue.date_en, issue.date_es].join(" ")).includes(query));
+  const matchingIssues = otherIssues.filter(issue => !query || searchableNewsletterText(issue).includes(query));
   const visibleIssues = matchingIssues.slice(0, archiveVisibleLimit);
   const moreButton = document.getElementById("showMoreIssues");
   if (moreButton) moreButton.hidden = visibleIssues.length >= matchingIssues.length;
@@ -788,8 +952,8 @@ function renderNewsletterArchive(issues, selectedId) {
 
         return `
           <a class="archive-item" href="/newsletter/?issue=${encodeURIComponent(issue.id)}">
-            <strong>${escapeHtml(title)}</strong>
-            <span>${escapeHtml(date)}</span>
+            <strong lang="${localizedContentLanguage(issue, "title")}">${escapeHtml(title)}</strong>
+            <span lang="${localizedContentLanguage(issue, "date")}">${escapeHtml(date)}</span>
           </a>
         `;
       })
@@ -825,10 +989,12 @@ function renderHomepageNewsletter() {
   const badge = document.getElementById("homepageNewsletterBadge");
   if (!title || !date || !link) return;
   date.textContent = "";
+  title.removeAttribute("lang");
   link.href = "/newsletter/";
   if (cachedHomepageIssue) {
     if (badge) badge.textContent = translations[currentLanguage].latest_issue;
     title.textContent = cachedHomepageIssue[`title_${currentLanguage}`] || cachedHomepageIssue.title_en;
+    title.setAttribute("lang", localizedContentLanguage(cachedHomepageIssue, "title"));
     const issueDate = new Date(`${cachedHomepageIssue.issue_date}T12:00:00`);
     if (!Number.isNaN(issueDate.getTime())) date.textContent = new Intl.DateTimeFormat(currentLanguage === "es" ? "es-US" : "en-US", { month: "long", day: "numeric", year: "numeric" }).format(issueDate);
     link.href = `/newsletter/?issue=${encodeURIComponent(cachedHomepageIssue.id)}`;
@@ -890,6 +1056,7 @@ function databaseNewsletterToDisplayIssue(row) {
 
   return {
     id: row.id,
+    issue_date: row.issue_date,
     date_en: dateEn,
     date_es: dateEs,
     title_en: row.title_en,
@@ -926,8 +1093,8 @@ function renderNewsletter(issue, container) {
 
   container.innerHTML = `
     <span class="tag">${escapeHtml(translations[currentLanguage].latest_issue)}</span>
-    <h2>${escapeHtml(title)}</h2>
-    <p class="issue-date">${escapeHtml(date)}</p>
+    <h2 lang="${localizedContentLanguage(issue, "title")}">${escapeHtml(title)}</h2>
+    <p class="issue-date" lang="${localizedContentLanguage(issue, "date")}">${escapeHtml(date)}</p>
     ${sections
       .map((section) => {
         const heading =
@@ -937,13 +1104,17 @@ function renderNewsletter(issue, container) {
 
         return `
           <section class="newsletter-section">
-            <h3>${escapeHtml(heading)}</h3>
-            <p>${escapeHtml(body)}</p>
+            <h3 lang="${localizedContentLanguage(section, "heading")}">${escapeHtml(heading)}</h3>
+            <p lang="${localizedContentLanguage(section, "body")}">${escapeHtml(body)}</p>
           </section>
         `;
       })
       .join("")}
   `;
+}
+
+function localizedContentLanguage(item, field) {
+  return currentLanguage === "es" && !item?.[`${field}_es`] ? "en" : currentLanguage;
 }
 
 function escapeHtml(value = "") {
@@ -1011,8 +1182,57 @@ function initializePublicInteractions() {
   document.getElementById("serviceRetry")?.addEventListener("click", loadServiceSettings);
   document.getElementById("announcementsRetry")?.addEventListener("click", loadAnnouncements);
   document.getElementById("newsletterRetry")?.addEventListener("click", loadNewsletters);
+  document.getElementById("downloadServiceCalendar")?.addEventListener("click", () => {
+    const status = document.getElementById("calendarStatus");
+    let url;
+    let link;
+    try {
+      const now = new Date();
+      const calendar = window.SHEKINAH_VISIT_CALENDAR?.calendarFile(cachedService, currentLanguage, now);
+      // Background tabs can throttle the refresh timer. Keep the displayed
+      // date and the exported occurrence tied to the same current instant.
+      renderVisitCalendar(cachedService, now);
+      if (!calendar) {
+        return;
+      }
+      url = URL.createObjectURL(new Blob([calendar.content], { type: "text/calendar;charset=utf-8" }));
+      link = document.createElement("a");
+      link.href = url;
+      link.download = calendar.filename;
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      if (status) status.textContent = translations[currentLanguage].calendar_ready;
+    } catch {
+      if (status) status.textContent = translations[currentLanguage].calendar_unavailable;
+    } finally {
+      link?.remove();
+      if (url) setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+  });
+  if (document.getElementById("visitCalendar")) {
+    document.addEventListener("visibilitychange", () => renderVisitCalendar(cachedService));
+    window.addEventListener("pageshow", () => renderVisitCalendar(cachedService));
+    window.addEventListener("pagehide", () => { clearTimeout(calendarRefreshTimer); calendarRefreshTimer = null; });
+  }
   document.getElementById("archiveSearch")?.addEventListener("input", () => {
     if (cachedNewsletterIssues) renderNewsletterArchive(cachedNewsletterIssues, document.getElementById("latestNewsletter")?.dataset.issueId);
+  });
+  document.getElementById("clearArchiveSearch")?.addEventListener("click", () => {
+    const input = document.getElementById("archiveSearch");
+    if (!input) return;
+    input.value = "";
+    if (cachedNewsletterIssues) renderNewsletterArchive(cachedNewsletterIssues, document.getElementById("latestNewsletter")?.dataset.issueId);
+    input.focus();
+  });
+  document.getElementById("newsletterContents")?.addEventListener("click", (event) => {
+    const link = event.target.closest('a[href^="#newsletter-section-"]');
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    document.getElementById(link.hash.slice(1))?.focus({ preventScroll: true });
+  });
+  document.getElementById("browseNewsletterArchive")?.addEventListener("click", (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    document.getElementById("newsletterArchivePanel")?.focus({ preventScroll: true });
   });
   document.getElementById("showMoreIssues")?.addEventListener("click", () => {
     const firstNewIndex = document.querySelectorAll("#newsletterArchive .archive-item").length;
@@ -1135,8 +1355,8 @@ function initializePublicInteractions() {
   shareButton?.addEventListener("click", () => shareOrCopyVisit(true));
 
   const archive = document.getElementById("newsletterArchive");
-  archive?.addEventListener("click", (event) => {
-    const link = event.target.closest("a.archive-item");
+  document.getElementById("main-content")?.addEventListener("click", (event) => {
+    const link = event.target.closest("a.archive-item, a[data-newsletter-issue]");
     if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const requestedId = new URL(link.href).searchParams.get("issue");
     if (!cachedNewsletterIssues?.some((issue) => issue.id === requestedId)) return;
@@ -1155,7 +1375,11 @@ function initializePublicInteractions() {
     }
   });
   window.addEventListener("popstate", () => {
-    if (archive && cachedNewsletterIssues) renderNewsletterPage(cachedNewsletterIssues);
+    // Moving between section anchors should not replace the focused article.
+    if (archive && cachedNewsletterIssues && new URLSearchParams(window.location.search).get("issue") !== newsletterSelectionQuery) {
+      renderNewsletterPage(cachedNewsletterIssues);
+      restoreNewsletterFragment();
+    }
   });
 }
 
@@ -1166,6 +1390,7 @@ function startPublicPage() {
   initializePublicPage();
   initializePublicInteractions();
   initializeAmbientBackground();
+  window.SHEKINAH_PUBLIC_READY = true;
 }
 // All deferred extensions register before the single initial content request.
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startPublicPage, { once: true });

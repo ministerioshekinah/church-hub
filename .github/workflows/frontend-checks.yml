@@ -50,3 +50,8 @@ jobs:
         run: npm run test:browser
         env:
           BROWSER_ENGINE: ${{ matrix.browser }}
+      - name: Verify the extended-session harness
+        if: matrix.browser == 'chromium'
+        run: node tests/browser-endurance.cjs
+        env:
+          ENDURANCE_MINUTES: '0.1'

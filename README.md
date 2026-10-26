@@ -15,9 +15,13 @@ The public site reads current service information, active announcements, and pub
 - Slow lava-lamp background in matching light/dark colors, with a saved footer motion switch
 - Live service day and time
 - Apple Maps and Google Maps directions
+- Service addresses and map links follow the current published homepage settings
+- Bilingual visit sharing, next-service dates in Los Angeles time, and single-date calendar downloads
 - Public announcements
 - Newsletter archive
 - Searchable bilingual archive, issue sharing, printable newsletters, and content retry controls
+- Newsletter section shortcuts, older/newer issue links, and accent-insensitive search within published issue text
+- Bilingual startup recovery when application code cannot load, plus useful navigation without JavaScript
 - Bilingual privacy policy, terms of use, and contact/accessibility help
 - Footer information links opposite the Admin button
 - Private admin portal
@@ -167,6 +171,26 @@ See [the October 18 sprint](security/SPRINT-2026-10-18.md) for current results a
 Los Angeles, CA 90018
 
 The service day and time shown publicly are managed through the admin portal and may change for special services.
+
+### Visit calendar
+
+The homepage calculates the next occurrence of the regular weekly service in `America/Los_Angeles`. The display and `.ics` file use the same published Supabase row as the address and directions. `visit-calendar.js` uses the browser's timezone database, validates both language versions of the day, and verifies the resulting local time across daylight-saving changes.
+
+A custom or conflicting day, invalid time, ambiguous DST time, missing address, or nonempty special-service notice suppresses the calculated reminder. The published schedule and special notice remain readable. The calendar file contains one date, no inferred end time, no subscription, and no automatic updates. It tells visitors to check announcements before coming. Text is escaped and folded according to [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545.html). No calendar connector is required.
+
+If a service field or notice is available in only one language, both language views keep that published text visible and mark its actual language for assistive technology. Missing weekdays display “Day to be confirmed” rather than assuming Sunday.
+
+### Newsletter reading and recovery
+
+Issue navigation and search operate on already loaded published content. Search covers both languages, dates, and nonempty section text; it does not index empty template headings. Section links work after asynchronous loading and preserve keyboard focus. English fallback fields carry their actual language for assistive technology on Spanish pages.
+
+`public-startup.js` provides an independent bilingual reload notice if the main public bundle cannot initialize. Its fallback exposes ordinary mobile navigation and hides unresolved loading placeholders. Information pages remain readable without the content backend; without JavaScript, both policy translations are available.
+
+### Extended browser verification
+
+`ENDURANCE_MINUTES=120 node tests/browser-endurance.cjs` keeps two isolated Chromium visitor sessions open for at least two hours. It repeatedly exercises language, appearance, navigation, archive search/history, clipboard feedback, and calendar downloads. It checks that these interactions do not refetch the backend and that retained DOM nodes, listeners, and JavaScript heap remain bounded. All backend traffic is intercepted by local fixtures. This is a long-session regression check, not a count of independent security vulnerabilities.
+
+The **Extended Website Stability** workflow runs on manual dispatch or an explicitly marked branch commit containing `[extended-check]`. It does not run automatically for ordinary main-branch deployments. Standard Chromium CI exercises a short smoke run of the same harness.
 
 ## Technology
 
