@@ -141,6 +141,10 @@
     }
     const allowed = await host.verify(data.user.id);
     if (!isCurrent(operation)) return false;
+    if (allowed === null) {
+      status.textContent = "Administrator access could not be verified. Check your connection and try again.";
+      return false;
+    }
     if (!allowed) {
       host.invalidate("This account is not authorized for church administration.");
       return false;

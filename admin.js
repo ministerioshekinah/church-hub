@@ -179,6 +179,36 @@ async function withAdminReadTimeout(request) {
   }
 }
 
+async function fetchAdminRequest(input, options = {}) {
+  const address = typeof input === "string" ? input : input?.url || input?.href;
+  const method = String(options.method || input?.method || "GET").toUpperCase();
+  let identityRead = false;
+  try {
+    const url = new URL(address);
+    identityRead = method === "GET" && url.origin === new URL(window.SHEKINAH_SUPABASE.url).origin && url.pathname === "/auth/v1/user";
+  } catch { /* Preserve the native fetch error for malformed requests. */ }
+  if (!identityRead) return fetch(input, options);
+
+  // Auth's getUser has no AbortSignal parameter. Bound only its read request;
+  // do not automatically cancel/retry password, token, email or sign-out writes.
+  const controller = new AbortController();
+  const source = options.signal || input?.signal;
+  let deadline;
+  const cleanup = () => { clearTimeout(deadline); source?.removeEventListener("abort", abort); };
+  const abort = () => { cleanup(); controller.abort(); };
+  deadline = setTimeout(abort, 10000);
+  source?.addEventListener("abort", abort, { once: true });
+  if (source?.aborted) abort();
+  try {
+    // Keep the deadline through response-body consumption as well as headers.
+    // A successful small read retains its timer for at most ten seconds.
+    return await fetch(input, { ...options, signal: controller.signal });
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+}
+
 function configIsReady() {
   const cfg = window.SHEKINAH_SUPABASE;
   return Boolean(
@@ -254,15 +284,16 @@ function setButtonBusy(button, busy, busyText, normalText) {
 }
 
 async function verifyAdmin(userId) {
-  const { data, error } = await supabaseClient
+  const { data, error } = await withAdminReadTimeout(signal => supabaseClient
     .from("admin_users")
     .select("user_id")
     .eq("user_id", userId)
-    .maybeSingle();
+    .abortSignal(signal)
+    .maybeSingle());
 
   if (error) {
     console.error("Admin verification failed:", error);
-    return false;
+    return null;
   }
 
   return Boolean(data?.user_id);
@@ -279,11 +310,18 @@ async function restoreAuthenticatedAdmin() {
     const linkMessage = window.SHEKINAH_ACCOUNT?.linkUnavailableMessage();
     showLogin();
     if (linkMessage) adminMessage.textContent = linkMessage;
+    else if (error && error.name !== "AuthSessionMissingError") adminMessage.textContent = "Your session could not be verified. Check your connection and sign in again.";
     return;
   }
 
   const allowed = await verifyAdmin(data.user.id);
   if (generation !== adminSessionVersion) return;
+
+  if (allowed === null) {
+    showLogin();
+    adminMessage.textContent = "Administrator access could not be verified. Check your connection and sign in again.";
+    return;
+  }
 
   if (!allowed) {
     await supabaseClient.auth.signOut();
@@ -336,6 +374,7 @@ async function initializeAuth() {
     window.SHEKINAH_SUPABASE.url,
     window.SHEKINAH_SUPABASE.publishableKey,
     {
+      global: { fetch: fetchAdminRequest },
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -364,7 +403,14 @@ async function initializeAuth() {
     if (event === "SIGNED_OUT") showLogin();
     else window.SHEKINAH_ACCOUNT?.authEvent(event, session);
   });
-  await restoreAuthenticatedAdmin();
+  const generation = adminSessionVersion;
+  try {
+    await restoreAuthenticatedAdmin();
+  } catch {
+    if (generation !== adminSessionVersion) return;
+    showLogin();
+    adminMessage.textContent = "Secure sign-in could not finish loading. Check your connection and reload this page.";
+  }
 }
 
 passwordToggle.addEventListener("click", () => {
@@ -419,6 +465,13 @@ loginForm.addEventListener("submit", async (event) => {
 
     const allowed = await verifyAdmin(verified.user.id);
     if (generation !== adminSessionVersion) return;
+
+    if (allowed === null) {
+      showLogin();
+      adminMessage.textContent = "Administrator access could not be verified. Check your connection and sign in again.";
+      emailInput.focus();
+      return;
+    }
 
     if (!allowed) {
       await supabaseClient.auth.signOut();

@@ -144,6 +144,15 @@ test('Account: a thrown network error unlocks the form without logging passwords
   assert.deepEqual(p.reports.errors,[]);
 });
 
+test('Account: an unavailable membership read preserves the form for retry without submitting a password',async()=>{
+  const p=await account();p.run('allow=null');submit(p);await settle();
+  assert.match(status(p),/access could not be verified/);
+  assert.equal(p.document.getElementById('accountSavePassword').disabled,false);
+  assert.equal(p.document.getElementById('accountNewPassword').value,secret);
+  assert.equal(p.document.getElementById('accountTab').hidden,false);
+  assert.deepEqual(calls(p),['identity','membership']);
+});
+
 test('Account: clear, sign-out, and history-cache cleanup erase and conceal password fields',async()=>{
   const p=await account();
   for(const mode of ['clear','logout','history']){
