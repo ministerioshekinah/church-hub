@@ -363,6 +363,22 @@ async function check(name,fn) {
     assert.match(await page.locator('#newsletterToolStatus').innerText(),/Copia este enlace/);
     assert.equal(new URL(await page.locator('#newsletterToolStatus a').getAttribute('href')).searchParams.get('issue'),'test-issue-0');
   }));
+  await check('Visit planning: changed address, translated summary and share fallback stay consistent on mobile',()=>journey({lang:'es'},async({page,state,goto})=>{
+    state.data.service_settings[0].address='10 New Street & Suite 4, Los Angeles';
+    await goto();
+    const addresses=await page.locator('[data-service-address]').allTextContents();
+    assert(addresses.length===3&&addresses.every(x=>x==='10 New Street & Suite 4, Los Angeles'));
+    assert.equal(await page.locator('#heroServiceDay').innerText(),'Domingo');
+    for(const provider of ['apple','google']){
+      const href=await page.locator(`[data-map-provider="${provider}"]`).getAttribute('href');
+      assert.equal(new URL(href).searchParams.get(provider==='apple'?'daddr':'destination'),state.data.service_settings[0].address);
+    }
+    await page.evaluate(()=>Object.defineProperty(navigator,'share',{value:undefined,configurable:true}));
+    await page.locator('#shareVisit').click();
+    assert.match(await page.locator('#copyStatus').innerText(),/Información copiada/);
+    assert((await page.evaluate(()=>window.__testClipboard.at(-1))).includes(state.data.service_settings[0].address));
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }));
   await check('Newsletter creation: another tab’s new issue cannot be overwritten by a stale draft',()=>journey({},async p=>{
     await login(p);const {page,state}=p;await page.locator('[data-admin-section="newsletter"]').click();await page.locator('#newNewsletterButton').click();
     await page.locator('#issueDate').fill('2026-11-01');await page.locator('#titleEn').fill('My unsaved draft');

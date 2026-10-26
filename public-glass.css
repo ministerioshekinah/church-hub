@@ -584,6 +584,17 @@ main :is(section[id], [id][tabindex="-1"]) { scroll-margin-top: 126px; }
 .visit-section { border-radius: 42px 42px 0 0; }
 .visit-card { border-radius: 30px; }
 .visit-address { font-size: 1.1rem; line-height: 1.8; }
+.visit-address, [data-service-address] { overflow-wrap: anywhere; }
+.service-summary {
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  max-width: 100%; margin: 4px 0 12px; padding: 10px 15px;
+  border: 1px solid #7e986c4d; border-radius: 18px;
+  background: #94ae7412; color: var(--glass-muted); font-size: .85rem;
+}
+.service-summary[hidden] { display: none; }
+.service-summary-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: currentColor; }
+[data-map-provider][aria-disabled="true"] { opacity: .6; cursor: default; }
+#shareVisit { font: inherit; }
 .newsletter-heading-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 12px; }
 .newsletter-heading-row > .eyebrow { margin: 0; }
 .newsletter-tools { display: flex; flex-wrap: wrap; gap: 8px; }
