@@ -46,7 +46,7 @@ async function page(name = 'index.html', options = {}) {
     };
     return {from:table=>({insert:payload=>query(table,'insert',payload),update:payload=>query(table,'update',payload),delete:()=>query(table,'delete')})};
   }`);
-  if(name==='admin/index.html') {run(read('theme.js'));run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));}
+  if(name==='admin/index.html') {run(read('theme.js'));if(!options.withoutReview)run(read('admin-content-review.js'));run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));}
   else {run(read('theme.js'));run(read('supabase-config.js'));if(name==='index.html')run(read('visit-calendar.js'));run(read('script.js'));if(name==='newsletter/index.html')run(read('newsletter-extensions.js'));}
   if(options.boot!==false) {document.dispatchEvent(new Event('DOMContentLoaded'));await new Promise(r=>setImmediate(r));Object.defineProperty(document,'readyState',{value:'complete',configurable:true});}
   return {document,browser,location,reports,storage,media,Event,run};
