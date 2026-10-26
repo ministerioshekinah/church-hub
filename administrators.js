@@ -6,6 +6,7 @@
   let adminRows = [];
   let ownerGeneration = 0;
   let listVersion = 0;
+  let listOperation = null;
   let invitationOperation = null;
 
   function injectInterface() {
@@ -41,17 +42,17 @@
       <div class="administrator-layout">
         <div class="administrator-card">
           <h3>Add Administrator</h3>
-          <p>Invite someone by email. New people are added as content administrators by default.</p>
+          <p>Enter an email address. Existing accounts get access; new accounts receive an invitation. New access starts as Admin, and existing roles stay unchanged.</p>
           <form class="administrator-form" id="inviteAdministratorForm">
             <label>
               Email address
-              <input id="newAdministratorEmail" type="email" autocomplete="email" placeholder="name@example.com" required />
+              <input id="newAdministratorEmail" type="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required />
             </label>
-            <button class="button button-primary" type="submit">Send Invitation</button>
+            <button class="button button-primary" type="submit">Add Administrator</button>
           </form>
           <p class="administrator-status" id="administratorInviteStatus" role="status" aria-live="polite"></p>
           <div class="administrator-warning">
-            Owner controls run through a protected Supabase Edge Function. Secret database credentials are never stored in this website.
+            Only Owners can change access. Removing access leaves the person's account intact.
           </div>
         </div>
 
@@ -74,15 +75,28 @@
     document.getElementById("inviteAdministratorForm").addEventListener("submit", inviteAdministrator);
   }
 
-  async function invokeAdminFunction(body) {
+  async function invokeAdminFunction(body, options = {}) {
     if (!ownerClient || !currentUser || authenticatedAdmin?.id !== currentUser.id) throw new Error("Please verify your Owner session again.");
-    const { data, error } = await ownerClient.functions.invoke(FUNCTION_NAME, { body });
+    const { data, error } = await ownerClient.functions.invoke(FUNCTION_NAME, { body, ...options });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
     return data;
   }
 
-  async function loadAdministrators() {
+  function setListBusy(busy) {
+    const refresh = document.getElementById("refreshAdministratorsButton");
+    const list = document.getElementById("administratorList");
+    if (refresh) {
+      refresh.disabled = busy;
+      refresh.textContent = busy ? "Refreshing…" : "Refresh";
+    }
+    if (list) {
+      list.toggleAttribute("inert", busy);
+      list.setAttribute("aria-busy", String(busy));
+    }
+  }
+
+  function loadAdministrators(force = false) {
     const list = document.getElementById("administratorList");
     const status = document.getElementById("administratorListStatus");
     if (!list || !status) return;
@@ -90,23 +104,51 @@
       clearOwnerInterface();
       return;
     }
+    if (listOperation && force !== true) return listOperation.promise;
+    listOperation?.controller.abort();
     const generation = ownerGeneration;
     const version = ++listVersion;
-
+    const refresh = document.getElementById("refreshAdministratorsButton");
+    const hadFocus = document.activeElement === refresh;
+    const operation = { controller: new AbortController(), promise: null };
+    listOperation = operation;
+    setListBusy(true);
     status.textContent = "Loading administrators…";
-    try {
-      const data = await invokeAdminFunction({ action: "list" });
-      if (generation !== ownerGeneration || version !== listVersion) return;
-      adminRows = data?.admins || [];
-      status.textContent = `${adminRows.length} ${adminRows.length === 1 ? "administrator" : "administrators"}`;
-      renderAdministrators();
-      return adminRows;
-    } catch (error) {
-      if (generation !== ownerGeneration || version !== listVersion) return;
-      console.error("Administrator list failed:", error);
-      list.innerHTML = "";
-      status.textContent = "Unable to load administrators. Check your connection and select Refresh to try again.";
-    }
+    let rejectAbort;
+    const aborted = new Promise((_, reject) => { rejectAbort = () => reject(new Error("Administrator list read cancelled.")); });
+    operation.controller.signal.addEventListener("abort", rejectAbort, { once: true });
+    const deadline = setTimeout(() => operation.controller.abort(), 10000);
+    operation.promise = (async () => {
+      try {
+        // Only this read has a deadline. Invitations and role/removal writes
+        // must not be automatically cancelled or retried after an uncertain result.
+        const data = await Promise.race([
+          invokeAdminFunction({ action: "list" }, { signal: operation.controller.signal }),
+          aborted,
+        ]);
+        if (generation !== ownerGeneration || version !== listVersion) return;
+        if (!Array.isArray(data?.admins)) throw new Error("Invalid administrator list response.");
+        adminRows = data.admins;
+        status.textContent = `${adminRows.length} ${adminRows.length === 1 ? "administrator" : "administrators"}`;
+        renderAdministrators();
+        return adminRows;
+      } catch (error) {
+        if (generation !== ownerGeneration || version !== listVersion) return;
+        console.error("Administrator list failed:", error);
+        adminRows = [];
+        list.replaceChildren();
+        status.textContent = "Unable to load administrators. Check your connection and select Refresh to try again.";
+      } finally {
+        clearTimeout(deadline);
+        operation.controller.signal.removeEventListener("abort", rejectAbort);
+        if (listOperation === operation) {
+          listOperation = null;
+          setListBusy(false);
+          if (hadFocus && generation === ownerGeneration && document.getElementById("administratorsPanel")?.classList.contains("active") && document.activeElement === document.body) refresh.focus({ preventScroll: true });
+        }
+      }
+    })();
+    return operation.promise;
   }
 
   function renderAdministrators() {
@@ -161,7 +203,7 @@
         try {
           await invokeAdminFunction({ action: "set-role", userId: admin.id, role: select.value });
           if (generation !== ownerGeneration) return;
-          await loadAdministrators();
+          await loadAdministrators(true);
           restoreAdministratorFocus(admin.id, "select", hadFocus, generation);
         } catch (error) {
           if (generation !== ownerGeneration) return;
@@ -187,7 +229,7 @@
         try {
           await invokeAdminFunction({ action: "remove", userId: admin.id });
           if (generation !== ownerGeneration) return;
-          const remaining = await loadAdministrators();
+          const remaining = await loadAdministrators(true);
           if (generation !== ownerGeneration) return;
           // Also detect a legacy backend's successful-but-suppressed DELETE.
           // An authoritative refresh must no longer show the removed account.
@@ -236,7 +278,7 @@
         invitationOperation = null;
         emailInput.disabled = false;
         button.disabled = false;
-        button.textContent = "Send Invitation";
+        button.textContent = "Add Administrator";
         form.setAttribute("aria-busy", "false");
         if (generation === ownerGeneration && hadFocus && document.activeElement === document.body && document.getElementById("administratorsPanel").classList.contains("active")) {
           emailInput.focus({ preventScroll: true });
@@ -246,7 +288,7 @@
     invitationOperation = operation;
     emailInput.disabled = true;
     button.disabled = true;
-    button.textContent = "Sending…";
+    button.textContent = "Adding…";
     form.setAttribute("aria-busy", "true");
     status.textContent = "";
 
@@ -261,7 +303,7 @@
       } else {
         status.textContent = "Existing Supabase account authorized as an Admin.";
       }
-      await loadAdministrators();
+      await loadAdministrators(true);
     } catch (error) {
       if (generation !== ownerGeneration) return;
       console.error(error);
@@ -274,6 +316,9 @@
   function clearOwnerInterface() {
     ++ownerGeneration;
     ++listVersion;
+    listOperation?.controller.abort();
+    listOperation = null;
+    setListBusy(false);
     invitationOperation?.release();
     currentUser = null;
     ownerClient = null;
