@@ -1,6 +1,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {page}=require('./helpers.cjs');
+const http=require('node:http');
+const {once}=require('node:events');
 
 async function fixture(){
   const p=await page('admin/index.html');
@@ -20,6 +22,26 @@ test('Auth read deadline: a stalled identity body can be aborted after headers a
   p.run('[...timers.values()][0].callback()');
   assert.equal(p.run('fetches[0].options.signal.aborted'),true);
   assert.equal(p.run('timers.size'),0);
+});
+
+test('Auth read deadline: the native fetch body rejects when a local server sends headers but never finishes JSON',async()=>{
+  const server=http.createServer((request,response)=>{
+    assert.equal(request.url,'/auth/v1/user');
+    response.writeHead(200,{'Content-Type':'application/json'});
+    response.write('{"id":');
+  });
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  try {
+    const p=await fixture();p.browser.fixtureNativeFetch=fetch;
+    p.run(`window.SHEKINAH_SUPABASE.url='http://127.0.0.1:${server.address().port}';fetch=(input,options)=>window.fixtureNativeFetch(input,options);`);
+    const response=await p.run(`fetchAdminRequest(window.SHEKINAH_SUPABASE.url+'/auth/v1/user')`);
+    const body=response.json();
+    p.run('[...timers.values()][0].callback()');
+    await assert.rejects(body,{name:'AbortError'});
+    assert.equal(p.run('timers.size'),0);
+  } finally {
+    server.closeAllConnections();await new Promise(resolve=>server.close(resolve));
+  }
 });
 
 test('Auth read deadline: writes, other endpoints and other origins keep their original fetch semantics',async()=>{

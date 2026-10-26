@@ -28,12 +28,15 @@ The public site reads current service information, active announcements, and pub
 - Coordinated light/dark admin workspace with keyboard tabs and sign-out cleanup
 - Announcement create / edit / publish / hide / delete
 - Newsletter draft / edit / publish / unpublish / delete
+- Visible unsaved-edit status and an advisory newsletter checklist for starter text and missing translations
+- A published-issue link and Spanish editor previews that match public fallback behavior
+- Administrator password setup, password changes and an explicit forgotten-password request
 - Owner / Admin roles
 - Owner-only administrator management
 - Protected Supabase Edge Function for administrator invitations and role changes
 - Bilingual recovery page, Inter and Playfair Display typography, favicon, and public sitemap
 
-See [the October 18 engineering and security sprint](security/SPRINT-2026-10-18.md) for the latest change map, browser evidence, and remaining security work. The [October 13 review](security/REVIEW-2026-10-13.md) records the preceding refinement.
+See [the October 26 release record](security/RELEASE-2026-10-26.md) for current deployment and verification evidence, and [operational follow-up](security/OPERATIONS-FOLLOW-UP.md) for remaining work. The [October 18 sprint](security/SPRINT-2026-10-18.md) and [October 13 review](security/REVIEW-2026-10-13.md) preserve historical findings.
 
 ## Security model
 
@@ -64,6 +67,9 @@ For a new project, apply the committed migrations **in order**:
 6. `supabase/migrations/20260817225828_add_newsletter_optional_sections.sql`
 7. `supabase/migrations/20261010195851_secure_content_audit_fields.sql`
 8. `supabase/migrations/20261010200704_restrict_content_author_columns.sql`
+9. `supabase/migrations/20261018202726_fix_admin_removal_trigger.sql`
+
+This is the ordered **new-project bootstrap** sequence, not a command to replay migration history on an existing project. The live October 26 administrator-removal repair is recorded by Supabase as `20261026205057_fix_admin_removal_trigger`; its function body matches the ninth repository migration. Preserve both histories and verify catalog state before any existing-project migration. Do not reapply earlier migrations just to make their filenames match.
 
 Then:
 
@@ -132,6 +138,8 @@ See `ADMINISTRATORS_SETUP.md` for the production administrator-management runboo
 - `script.js` — public language and Supabase content loading
 - `admin/index.html` — admin portal at `/admin/`
 - `admin.js` — authentication, CMS behavior, and verified publishing
+- `admin-content-review.js` — local newsletter review guidance; no content is sent to another service
+- `admin-account.js` — verified own-account password setup and explicit recovery requests
 - `admin-service-validation.js` — compatibility validation for older cached administrator bundles
 - `administrators.js` — Owner-only administrator-management UI
 - `supabase-config.js` — public Supabase URL and publishable key only
@@ -146,7 +154,7 @@ Old `/newsletter.html` and `/admin.html` bookmarks forward to the clean routes w
 
 ## Verification and staged updates
 
-Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main, and audits both the development dependencies and the pinned browser/Edge Function packages in `security/runtime-dependencies/`.
+Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The Node suite limits itself to four worker processes so machines with many logical CPUs do not start an unnecessarily large worker pool. Check the final test/pass/fail totals; an exit code alone is not a complete test transcript. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main, and audits both the development dependencies and the pinned browser/Edge Function packages in `security/runtime-dependencies/`.
 
 For rendered browser checks, run `npx playwright install --with-deps chromium` once, then `npm run test:browser`. The suite serves a local copy, intercepts **every** Supabase request, and uses fake content and authentication sessions. Saves, publication, deletion, invitations, and role changes never reach the production backend. The administrator SDK is served from the repository and its integrity is enforced by the browser and checked in the Node suite. CI runs the same suite with Playwright's Chromium, Firefox, and WebKit builds. To run another engine locally, install it with Playwright and set `BROWSER_ENGINE=firefox` or `BROWSER_ENGINE=webkit`.
 
@@ -162,7 +170,7 @@ For an existing production project, apply the audit-trigger migration first, dep
 
 The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
 
-See [the October 18 sprint](security/SPRINT-2026-10-18.md) for current results and remaining account/hosting work. The [October 13 review](security/REVIEW-2026-10-13.md), [October 10 security recheck](security/RECHECK-2026-10-10.md), and [earlier audit record](security/AUDIT-2026-10-10.md) retain historical checks. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
+See [the October 26 release record](security/RELEASE-2026-10-26.md) for current results and [operational follow-up](security/OPERATIONS-FOLLOW-UP.md) for remaining account/hosting work. Earlier dated audit records remain historical snapshots. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
 
 ## Church information
 
