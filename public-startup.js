@@ -10,6 +10,16 @@
     stylesheet.rel = "stylesheet";
     stylesheet.href = "/no-script.css?v=1.1";
     document.head.appendChild(stylesheet);
+    // A partially initialized menu may still be inert, and its old document
+    // listeners may close it again. Fresh ordinary links remain usable even
+    // when those incomplete handlers retain a reference to the original nav.
+    const navigation = document.getElementById("navMenu");
+    if (navigation) {
+      const recoveredNavigation = navigation.cloneNode(true);
+      recoveredNavigation.inert = false;
+      recoveredNavigation.removeAttribute("inert");
+      navigation.replaceWith(recoveredNavigation);
+    }
     document.querySelectorAll('[aria-busy="true"]').forEach(element => element.setAttribute("aria-busy", "false"));
     ["heroServiceTime", "serviceSectionTime", "visitServiceTime"].forEach(id => {
       const element = document.getElementById(id);

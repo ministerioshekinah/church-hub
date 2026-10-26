@@ -4,12 +4,14 @@ const vm = require('node:vm');
 const {parseHTML} = require('linkedom');
 const {read, page} = require('./helpers.cjs');
 
-function startup(name,ready=false) {
+function startup(name,ready=false,partialMenu=false) {
   const {document,Event} = parseHTML(read(name));
   Object.defineProperty(document,'readyState',{value:'complete'});
   let reloads=0;
+  const originalNavigation=document.getElementById('navMenu');
+  if(partialMenu)originalNavigation.setAttribute('inert','');
   vm.runInNewContext(read('public-startup.js'),{document,window:{SHEKINAH_PUBLIC_READY:ready,location:{reload(){reloads++;}}}});
-  return {document,Event,reloads:()=>reloads};
+  return {document,Event,originalNavigation,reloads:()=>reloads};
 }
 
 test('Public startup: a missing application exposes bilingual recovery and a working reload control',()=>{
@@ -23,6 +25,17 @@ test('Public startup: a missing application exposes bilingual recovery and a wor
   assert.equal(p.document.querySelector('link[href="/no-script.css?v=1.1"]').getAttribute('rel'),'stylesheet');
   assert.equal(p.document.querySelectorAll('[aria-busy="true"]').length,0);
   assert.equal(p.document.getElementById('heroServiceTime').textContent,'—');
+});
+
+test('Public startup: a partially initialized inert menu is replaced by usable ordinary links',()=>{
+  const p=startup('index.html',false,true);
+  const recovered=p.document.getElementById('navMenu');
+  assert.notEqual(recovered,p.originalNavigation);
+  assert.equal(recovered.hasAttribute('inert'),false);
+  assert.equal(recovered.inert,false);
+  p.originalNavigation.setAttribute('inert','');
+  assert.equal(recovered.hasAttribute('inert'),false);
+  assert.equal(recovered.querySelectorAll('a[href]').length,5);
 });
 
 test('Public startup: successful application startup leaves the recovery notice hidden',async()=>{

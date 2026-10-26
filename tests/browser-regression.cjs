@@ -242,6 +242,20 @@ async function check(name,fn) {
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     }
   }));
+  await check('Public startup recovery: a partial initialization cannot leave the fallback menu inert',()=>journey({viewport:{width:320,height:900}},async({page,state,context,goto})=>{
+    const source=fs.readFileSync(path.resolve(__dirname,'../script.js'),'utf8').replace('  initializeAmbientBackground();','  throw new Error("intentional startup fixture");');
+    await context.route('**/script.js?*',route=>route.fulfill({contentType:'text/javascript',body:source}));
+    await goto('/');
+    assert(await page.locator('#publicStartupNotice').isVisible());
+    assert(state.errors.some(message=>String(message).includes('intentional startup fixture')));
+    state.errors.length=0;
+    await page.locator('#publicStartupNotice p[lang="en"]').click();
+    const visit=page.locator('#navMenu a[href="#visit"]');
+    await visit.focus();assert(await visit.evaluate(element=>element===document.activeElement));
+    await page.keyboard.press('Enter');
+    assert.match(page.url(),/#visit$/);
+    assert.equal(await page.locator('#navMenu').getAttribute('inert'),null);
+  }));
   await check('Original fonts load locally; the public page makes no font-provider requests',()=>journey({},async({page,state,goto})=>{
     await goto();const loaded=await page.evaluate(()=>[...document.fonts].filter(f=>f.status==='loaded').map(f=>f.family));
     assert(loaded.some(f=>f.includes('Inter')));assert(loaded.some(f=>f.includes('Playfair Display')));
