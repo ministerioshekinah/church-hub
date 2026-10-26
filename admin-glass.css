@@ -97,6 +97,14 @@
 .admin-body .editor-content-review ul { list-style: none; padding: 0; margin: 8px 0; }
 .admin-body .editor-review-link { display: block; width: 100%; min-height: 44px; border: 0; border-radius: 8px; padding: 10px 8px; background: transparent; color: var(--admin-ink); font: inherit; font-size: .85rem; line-height: 1.6; text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; overflow-wrap: anywhere; }
 .admin-body .editor-review-link:hover { background: var(--admin-field); }
+.admin-body .account-password-card { max-width: 640px; }
+.admin-body .account-password-card .editor-helper { margin: 0; line-height: 1.65; }
+.admin-body .account-setup-notice { padding: 16px; margin: 0 0 24px; border: 1px solid var(--admin-edge); border-radius: 16px; background: var(--admin-soft); color: var(--admin-ink); line-height: 1.65; }
+.admin-body .account-reveal { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.admin-body .account-reveal input { width: 20px; height: 20px; min-height: 20px; flex: 0 0 20px; accent-color: #526744; }
+.admin-body .account-reauthentication { display: grid; gap: 16px; padding: 18px; border: 1px solid var(--admin-edge); border-radius: 16px; background: var(--admin-soft); }
+.admin-body .account-password-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.admin-body .account-recovery-toggle { min-height: 44px; margin-top: 12px; padding: 8px 0; border: 0; background: transparent; color: var(--admin-ink); font: inherit; font-size: .85rem; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .admin-topbar { -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 }

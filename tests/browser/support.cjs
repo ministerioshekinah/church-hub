@@ -78,6 +78,7 @@ async function createPage(browser,site,options={}) {
     {id:'22222222-2222-4222-8222-222222222222',email:'editor@example.test',role:'admin'}];
   const jwt=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,role:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test-signature';
   await context.addInitScript(({options})=>{
+    if(options.noWebLocks)Object.defineProperty(navigator,'locks',{value:undefined,configurable:true});
     if(options.blockStorage) {
       Storage.prototype.getItem=()=>{throw Error('Storage unavailable')};
       Storage.prototype.setItem=()=>{throw Error('Storage unavailable')};
@@ -101,14 +102,37 @@ async function createPage(browser,site,options={}) {
     if(url.hostname==='nhzxlsjwsvyimozubbho.supabase.co') {
       if(state.offline)return route.abort('failed');
       if(state.delay)await new Promise(resolve=>setTimeout(resolve,state.delay));
-      const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS'};
+      const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+        // The real Auth SDK exposes modern error codes only with the version
+        // response header. Keep fixtures faithful to the hosted Auth API.
+        'X-Supabase-Api-Version':'2024-01-01','Access-Control-Expose-Headers':'X-Supabase-Api-Version'};
       const reply=(body,status=200)=>route.fulfill({status,headers,contentType:'application/json',body:JSON.stringify(body)});
       if(req.method()==='OPTIONS')return reply({});
       if(url.pathname==='/auth/v1/token') {
         if(state.signInError)return reply({code:'invalid_credentials',message:'Invalid login credentials'},400);
+        if(url.searchParams.get('grant_type')==='password'&&state.fixturePassword&&JSON.parse(req.postData()||'{}').password!==state.fixturePassword)return reply({code:'invalid_credentials',message:'Invalid fixture password'},400);
         return reply({access_token:jwt,refresh_token:'test-refresh',expires_in:3600,token_type:'bearer',user});
       }
-      if(url.pathname==='/auth/v1/user')return reply(user);
+      if(url.pathname==='/auth/v1/user') {
+        if(req.method()==='PUT') {
+          if(state.passwordError)return reply(state.passwordError,422);
+          const attributes=JSON.parse(req.postData()||'{}');
+          state.passwordChanges=(state.passwordChanges||0)+1;
+          // Fictional fixture credentials only. This handler never forwards to Auth.
+          state.fixturePassword=attributes.password;
+          return reply(user);
+        }
+        if(state.identityUnavailable)return reply({code:'bad_jwt',message:'Fixture session expired'},401);
+        return reply(user);
+      }
+      if(url.pathname==='/auth/v1/reauthenticate') {
+        state.verificationRequests=(state.verificationRequests||0)+1;
+        return reply(state.verificationError||{},state.verificationError?429:200);
+      }
+      if(url.pathname==='/auth/v1/recover') {
+        state.recoveryRequests=(state.recoveryRequests||0)+1;
+        return reply(state.recoveryError||{},state.recoveryError?422:200);
+      }
       if(url.pathname==='/auth/v1/logout')return route.fulfill({status:204,headers});
       if(url.pathname==='/functions/v1/admin-users') {
         const action=JSON.parse(req.postData()||'{}');
@@ -177,7 +201,12 @@ async function createPage(browser,site,options={}) {
   page.on('requestfailed',request=>state.failedRequests.push({url:request.url(),error:request.failure()?.errorText}));
   page.on('console',message=>{if(message.type()==='error')state.consoleErrors.push(message.text());});
   page.on('dialog',dialog=>dialog.accept());
-  return {page,state,context,close:()=>context.close(),async goto(route='/'){
+  return {page,state,context,close:()=>context.close(),async authLanding(type){
+    if(!['invite','recovery'].includes(type))throw Error('Unsupported fixture link type');
+    const fragment=new URLSearchParams({access_token:jwt,refresh_token:'test-refresh',expires_in:'3600',token_type:'bearer',type});
+    await page.goto(site.url+'/admin/#'+fragment,{waitUntil:'networkidle'});
+    await page.waitForFunction(()=>document.fonts.status==='loaded');
+  },async goto(route='/'){
     await page.goto(site.url+route,{waitUntil:'networkidle'});
     // A no-JavaScript journey must not depend on an evaluated promise (which
     // Firefox cannot settle in that context). Other journeys have a bounded wait.

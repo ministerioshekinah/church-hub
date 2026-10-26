@@ -201,6 +201,7 @@ function showLogin() {
   updateUnloadGuard();
   serviceVersion = null;
   window.SHEKINAH_OWNER?.clear();
+  window.SHEKINAH_ACCOUNT?.clear();
   adminAnnouncements = [];
   adminNewsletters = [];
   selectedAnnouncementIndex = null;
@@ -227,6 +228,8 @@ async function showDashboard(user) {
   rememberEditorBaseline("service");
   loginView.classList.add("hidden");
   dashboard.classList.add("visible");
+  window.SHEKINAH_ACCOUNT?.authenticated(user);
+  syncAdminTabs();
   window.SHEKINAH_OWNER?.refresh();
 
   await Promise.all([
@@ -237,6 +240,7 @@ async function showDashboard(user) {
 }
 
 function setLoginBusy(isBusy) {
+  window.SHEKINAH_ACCOUNT?.loginBusy(isBusy);
   const submitButton = loginForm.querySelector('button[type="submit"]');
   submitButton.disabled = isBusy;
   emailInput.disabled = isBusy;
@@ -272,7 +276,9 @@ async function restoreAuthenticatedAdmin() {
   if (generation !== adminSessionVersion) return;
 
   if (error || !data?.user) {
+    const linkMessage = window.SHEKINAH_ACCOUNT?.linkUnavailableMessage();
     showLogin();
+    if (linkMessage) adminMessage.textContent = linkMessage;
     return;
   }
 
@@ -333,15 +339,30 @@ async function initializeAuth() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        // The pinned SDK makes locking opt-in. Serialize session updates and
+        // sign-out so a delayed password response cannot restore a signed-out
+        // session. Web Locks also coordinate other tabs on this origin.
+        lock: typeof navigator.locks?.request === "function"
+          ? window.supabase.navigatorLock
+          : window.supabase.processLock
       }
     }
   );
 
   // Subscribe before restoring content: a sign-out in another tab must
   // invalidate every pending private read during startup too.
-  supabaseClient.auth.onAuthStateChange((event) => {
+  window.SHEKINAH_ACCOUNT?.connect({
+    client: supabaseClient,
+    identity: () => authenticatedAdmin,
+    generation: () => adminSessionVersion,
+    verify: verifyAdmin,
+    invalidate(message) { showLogin(); adminMessage.textContent = message; },
+    open() { selectAdminSection(document.getElementById("accountTab")); }
+  });
+  supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_OUT") showLogin();
+    else window.SHEKINAH_ACCOUNT?.authEvent(event, session);
   });
   await restoreAuthenticatedAdmin();
 }
