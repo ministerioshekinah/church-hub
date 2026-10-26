@@ -106,9 +106,25 @@ async function createPage(browser,site,options={}) {
       if(req.method()==='OPTIONS')return reply({});
       if(url.pathname==='/auth/v1/token') {
         if(state.signInError)return reply({code:'invalid_credentials',message:'Invalid login credentials'},400);
+        if(url.searchParams.get('grant_type')==='password'&&state.fixturePassword&&JSON.parse(req.postData()||'{}').password!==state.fixturePassword)return reply({code:'invalid_credentials',message:'Invalid fixture password'},400);
         return reply({access_token:jwt,refresh_token:'test-refresh',expires_in:3600,token_type:'bearer',user});
       }
-      if(url.pathname==='/auth/v1/user')return reply(user);
+      if(url.pathname==='/auth/v1/user') {
+        if(req.method()==='PUT') {
+          if(state.passwordError)return reply(state.passwordError,422);
+          const attributes=JSON.parse(req.postData()||'{}');
+          state.passwordChanges=(state.passwordChanges||0)+1;
+          // Fictional fixture credentials only. This handler never forwards to Auth.
+          state.fixturePassword=attributes.password;
+          return reply(user);
+        }
+        if(state.identityUnavailable)return reply({code:'bad_jwt',message:'Fixture session expired'},401);
+        return reply(user);
+      }
+      if(url.pathname==='/auth/v1/reauthenticate') {
+        state.verificationRequests=(state.verificationRequests||0)+1;
+        return reply(state.verificationError||{},state.verificationError?429:200);
+      }
       if(url.pathname==='/auth/v1/logout')return route.fulfill({status:204,headers});
       if(url.pathname==='/functions/v1/admin-users') {
         const action=JSON.parse(req.postData()||'{}');
@@ -177,7 +193,12 @@ async function createPage(browser,site,options={}) {
   page.on('requestfailed',request=>state.failedRequests.push({url:request.url(),error:request.failure()?.errorText}));
   page.on('console',message=>{if(message.type()==='error')state.consoleErrors.push(message.text());});
   page.on('dialog',dialog=>dialog.accept());
-  return {page,state,context,close:()=>context.close(),async goto(route='/'){
+  return {page,state,context,close:()=>context.close(),async authLanding(type){
+    if(!['invite','recovery'].includes(type))throw Error('Unsupported fixture link type');
+    const fragment=new URLSearchParams({access_token:jwt,refresh_token:'test-refresh',expires_in:'3600',token_type:'bearer',type});
+    await page.goto(site.url+'/admin/#'+fragment,{waitUntil:'networkidle'});
+    await page.waitForFunction(()=>document.fonts.status==='loaded');
+  },async goto(route='/'){
     await page.goto(site.url+route,{waitUntil:'networkidle'});
     // A no-JavaScript journey must not depend on an evaluated promise (which
     // Firefox cannot settle in that context). Other journeys have a bounded wait.

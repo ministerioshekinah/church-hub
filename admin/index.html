@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/footer.css?v=2.0" />
   <link rel="stylesheet" href="/administrators.css?v=1.1" />
   <link rel="stylesheet" href="/newsletter-extensions.css?v=2.1" />
-  <link rel="stylesheet" href="/admin-glass.css?v=1.4" />
+  <link rel="stylesheet" href="/admin-glass.css?v=1.5" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/print.css?v=1.1" media="print" />
 </head>
@@ -129,6 +129,7 @@
           <button class="admin-content-tab" type="button" data-admin-section="newsletter">
             Newsletter
           </button>
+          <button class="admin-content-tab" id="accountTab" type="button" data-admin-section="account" hidden>Account</button>
         </nav>
 
         <!-- SERVICE SETTINGS -->
@@ -508,6 +509,45 @@
           </div>
         </section>
 
+        <section class="admin-content-section" data-admin-panel="account">
+          <div class="section-admin-heading">
+            <div>
+              <p class="eyebrow">Your sign-in</p>
+              <h2>Account password</h2>
+              <p id="accountIdentity"></p>
+            </div>
+          </div>
+          <div class="admin-card account-password-card">
+            <p class="account-setup-notice" id="accountSetupNotice" hidden>Welcome back. Choose a password so you can sign in without this email link next time.</p>
+            <form class="admin-form" id="accountPasswordForm" method="post" aria-describedby="accountPasswordHelp">
+              <p class="editor-helper" id="accountPasswordHelp">Use a unique password with at least 12 characters. A password manager can help you create and save one.</p>
+              <label>Current password
+                <input id="accountCurrentPassword" type="password" autocomplete="current-password" aria-describedby="accountCurrentPasswordHelp" disabled />
+              </label>
+              <p class="editor-helper" id="accountCurrentPasswordHelp">Leave this blank if you arrived using an invitation or password recovery link.</p>
+              <label>New password
+                <input id="accountNewPassword" type="password" autocomplete="new-password" minlength="12" required aria-describedby="accountPasswordHelp accountPasswordStatus" disabled />
+              </label>
+              <label>Confirm new password
+                <input id="accountConfirmPassword" type="password" autocomplete="new-password" minlength="12" required aria-describedby="accountPasswordStatus" disabled />
+              </label>
+              <label class="account-reveal"><input id="accountShowPasswords" type="checkbox" disabled /> Show passwords</label>
+              <div class="account-reauthentication" id="accountReauthentication" hidden>
+                <p class="editor-helper">Confirm this change with a verification code sent to your account email.</p>
+                <button class="button admin-button-secondary" id="accountSendCode" type="button" disabled>Send verification code</button>
+                <label>Verification code
+                  <input id="accountVerificationCode" type="text" autocomplete="one-time-code" inputmode="numeric" disabled />
+                </label>
+              </div>
+              <div class="account-password-actions">
+                <button class="button button-primary" id="accountSavePassword" type="submit" disabled>Save password</button>
+                <button class="button admin-button-secondary" id="accountClearPassword" type="button" disabled>Clear fields</button>
+              </div>
+              <p class="draft-status" id="accountPasswordStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+            </form>
+          </div>
+        </section>
+
         <div class="admin-backend-note live">
           <strong>Live backend connected.</strong>
           Service changes publish immediately. Announcements and newsletters can be managed as live, hidden, draft, or published content.
@@ -536,6 +576,7 @@
   <script src="/assets/vendor/supabase-2.112.2.js" integrity="sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd" crossorigin="anonymous"></script>
   <script src="/supabase-config.js?v=11.7"></script>
   <script src="/admin-content-review.js?v=1.0"></script>
-  <script src="/admin.js?v=10.12"></script>
+  <script src="/admin-account.js?v=1.0"></script>
+  <script src="/admin.js?v=10.13"></script>
 </body>
 </html>
