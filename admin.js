@@ -357,6 +357,21 @@ window.addEventListener("pageshow", (event) => {
   window.location.reload();
 });
 
+function handleAdminAuthChange(event, session) {
+  // Auth callbacks remain synchronous. A different account must not inherit
+  // private drafts or Owner UI from a previously verified identity in this tab.
+  if (event === "SIGNED_OUT") {
+    showLogin();
+    return;
+  }
+  if (authenticatedAdmin && session?.user?.id && session.user.id !== authenticatedAdmin.id) {
+    showLogin();
+    adminMessage.textContent = "Your signed-in account changed. Reload this page to verify the current account.";
+    return;
+  }
+  window.SHEKINAH_ACCOUNT?.authEvent(event, session);
+}
+
 async function initializeAuth() {
   if (!configIsReady()) {
     loginForm.querySelector('button[type="submit"]').disabled = true;
@@ -389,7 +404,7 @@ async function initializeAuth() {
     }
   );
 
-  // Subscribe before restoring content: a sign-out in another tab must
+  // Subscribe before restoring content: session changes in another tab must
   // invalidate every pending private read during startup too.
   window.SHEKINAH_ACCOUNT?.connect({
     client: supabaseClient,
@@ -399,10 +414,7 @@ async function initializeAuth() {
     invalidate(message) { showLogin(); adminMessage.textContent = message; },
     open() { selectAdminSection(document.getElementById("accountTab")); }
   });
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT") showLogin();
-    else window.SHEKINAH_ACCOUNT?.authEvent(event, session);
-  });
+  supabaseClient.auth.onAuthStateChange(handleAdminAuthChange);
   const generation = adminSessionVersion;
   try {
     await restoreAuthenticatedAdmin();

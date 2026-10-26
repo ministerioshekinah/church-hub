@@ -123,7 +123,7 @@ async function createPage(browser,site,options={}) {
           return reply(user);
         }
         if(state.identityUnavailable)return reply({code:'bad_jwt',message:'Fixture session expired'},401);
-        return reply(user);
+        return reply(state.identityUser||user);
       }
       if(url.pathname==='/auth/v1/reauthenticate') {
         state.verificationRequests=(state.verificationRequests||0)+1;
