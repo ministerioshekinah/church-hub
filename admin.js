@@ -28,6 +28,8 @@ let serviceVersion = null;
 const editorOperations = new Map();
 const editorBaselines = new Map();
 let unloadGuardActive = false;
+let newsletterReviewQueued = false;
+let newsletterReviewSignature = null;
 
 function editorKey(section) {
   if (!authenticatedAdmin) return null;
@@ -60,7 +62,19 @@ function warnBeforeLeaving(event) {
 }
 
 function updateUnloadGuard() {
-  const dirty = ["service", "announcements", "newsletter"].some(hasUnsavedEditorChanges);
+  let dirty = false;
+  for (const section of ["service", "announcements", "newsletter"]) {
+    const changed = hasUnsavedEditorChanges(section);
+    dirty ||= changed;
+    const indicator = document.querySelector(`[data-editor-change-state="${section}"]`);
+    const unsavedNewIssue = section === "newsletter" && authenticatedAdmin && selectedNewsletterIsNew;
+    const message = changed ? "Unsaved changes" : unsavedNewIssue ? "Not saved yet" : "";
+    if (indicator) {
+      if (indicator.textContent !== message) indicator.textContent = message;
+      indicator.hidden = !message;
+    }
+  }
+  scheduleNewsletterReview();
   if (dirty === unloadGuardActive) return;
   unloadGuardActive = dirty;
   if (dirty) window.addEventListener("beforeunload", warnBeforeLeaving);
@@ -122,6 +136,7 @@ async function runEditorAction(section, button, status, busyText, action) {
       } else if (section === "newsletter" && (selectedNewsletterId || selectedNewsletterIsNew)) {
         updateNewsletterStatusUI(document.getElementById("issueStatus").value);
       }
+      scheduleNewsletterReview();
       // WebKit may retain focus on the button until the now-hidden editor is
       // laid out. Restore that focus too, without taking it from another control.
       if (generation === adminSessionVersion && hadFocus && (document.activeElement === document.body || document.activeElement === button) && panel.classList.contains("active") && dashboard.classList.contains("visible")) {
@@ -1200,6 +1215,73 @@ function newsletterFormData() {
   };
 }
 
+function scheduleNewsletterReview() {
+  if (newsletterReviewQueued) return;
+  newsletterReviewQueued = true;
+  // The optional editor populates its fields after the main editor in the
+  // same task. Read the completed form once, without saving private drafts.
+  Promise.resolve().then(() => {
+    newsletterReviewQueued = false;
+    refreshNewsletterReview();
+  });
+}
+
+function refreshNewsletterReview() {
+  const panel = document.getElementById("newsletterReview");
+  const summary = document.getElementById("newsletterReviewSummary");
+  const list = document.getElementById("newsletterReviewList");
+  if (!panel || !summary || !list) return;
+  if (!authenticatedAdmin || (!selectedNewsletterId && !selectedNewsletterIsNew) || !window.SHEKINAH_CONTENT_REVIEW?.review) {
+    panel.hidden = true;
+    summary.textContent = "";
+    list.replaceChildren();
+    newsletterReviewSignature = null;
+    return;
+  }
+  const cards = Array.from(document.querySelectorAll("#optionalSectionList [data-optional-id]"));
+  const optional = cards.map(card => ({
+    type: card.dataset.optionalType,
+    ...Object.fromEntries(["title_en", "title_es", "body_en", "body_es"].map(field => [field, card.querySelector(`[data-field="${field}"]`)?.value || ""]))
+  }));
+  const items = window.SHEKINAH_CONTENT_REVIEW.review(newsletterFormData(), optional);
+  const signature = JSON.stringify(items);
+  const message = items.length ? `${items.length} ${items.length === 1 ? "item" : "items"} to review.` : "No editorial reminders. Check both previews before publishing.";
+  panel.hidden = false;
+  if (summary.textContent !== message) summary.textContent = message;
+  if (signature !== newsletterReviewSignature) {
+    newsletterReviewSignature = signature;
+    list.replaceChildren(...items.map(item => {
+      const row = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "editor-review-link";
+      button.textContent = item.message;
+      button.dataset.reviewKind = item.kind;
+      button.addEventListener("click", () => {
+        if (editorOperations.has("newsletter") || !authenticatedAdmin) return;
+        if (item.language) document.querySelector(`[data-editor-lang="${item.language}"]`)?.click();
+        const field = Number.isInteger(item.index)
+          ? document.querySelectorAll("#optionalSectionList [data-optional-id]")[item.index]?.querySelector(`[data-field="${item.field}"]`)
+          : document.getElementById(item.field);
+        field?.focus();
+      });
+      row.appendChild(button);
+      return row;
+    }));
+  }
+  list.hidden = !items.length;
+  list.querySelectorAll("button").forEach(button => { button.disabled = editorOperations.has("newsletter"); });
+}
+
+function updatePublishedNewsletterLink() {
+  const link = document.getElementById("viewPublishedNewsletter");
+  if (!link) return;
+  const published = authenticatedAdmin && selectedNewsletterId && document.getElementById("issueStatus").value === "published";
+  link.hidden = !published;
+  if (published) link.setAttribute("href", `/newsletter/?issue=${encodeURIComponent(selectedNewsletterId)}`);
+  else link.removeAttribute("href");
+}
+
 function updateNewsletterStatusUI(status) {
   document.getElementById("issueStatus").value = status;
 
@@ -1216,17 +1298,23 @@ function updateNewsletterStatusUI(status) {
   unpublishButton.style.display = status === "published" ? "" : "none";
   saveButton.textContent =
     status === "published" ? "Save Live Changes" : "Save Changes";
+  updatePublishedNewsletterLink();
 }
 
 function updateNewsletterPreview() {
+  scheduleNewsletterReview();
   const lang = activeEditorLanguage();
   document.querySelector(".preview-newsletter")?.setAttribute("lang", lang);
   const isSpanish = lang === "es";
   const data = newsletterFormData();
 
-  document.getElementById("previewTitle").textContent =
-    (isSpanish ? data.title_es : data.title_en) ||
-    (isSpanish ? "Boletín de Ministerio Cristiano Shekinah" : "Ministerio Cristiano Shekinah Newsletter");
+  function previewText(id, english, spanish, empty) {
+    const element = document.getElementById(id);
+    element.textContent = (isSpanish ? spanish || english : english) || empty;
+    element.setAttribute("lang", isSpanish && !spanish && english ? "en" : lang);
+  }
+  previewText("previewTitle", data.title_en, data.title_es,
+    isSpanish ? "Boletín de Ministerio Cristiano Shekinah" : "Ministerio Cristiano Shekinah Newsletter");
 
   document.getElementById("previewGatheringHeading").textContent =
     isSpanish ? "Reunión del Domingo" : "Sunday Gathering";
@@ -1235,15 +1323,12 @@ function updateNewsletterPreview() {
   document.getElementById("previewCommunityHeading").textContent =
     isSpanish ? "Actualización de la Comunidad" : "Community Update";
 
-  document.getElementById("previewGathering").textContent =
-    (isSpanish ? data.gathering_es : data.gathering_en) ||
-    (isSpanish ? "El contenido aparecerá aquí." : "Your content will appear here.");
-  document.getElementById("previewScripture").textContent =
-    (isSpanish ? data.scripture_es : data.scripture_en) ||
-    (isSpanish ? "La escritura aparecerá aquí." : "Your scripture will appear here.");
-  document.getElementById("previewCommunity").textContent =
-    (isSpanish ? data.community_es : data.community_en) ||
-    (isSpanish ? "La actualización aparecerá aquí." : "Your community update will appear here.");
+  previewText("previewGathering", data.gathering_en, data.gathering_es,
+    isSpanish ? "El contenido aparecerá aquí." : "Your content will appear here.");
+  previewText("previewScripture", data.scripture_en, data.scripture_es,
+    isSpanish ? "La escritura aparecerá aquí." : "Your scripture will appear here.");
+  previewText("previewCommunity", data.community_en, data.community_es,
+    isSpanish ? "La actualización aparecerá aquí." : "Your community update will appear here.");
 
   document.getElementById("previewDate").textContent =
     data.issue_date
@@ -1454,6 +1539,8 @@ function resetNewsletterEditor() {
   selectedNewsletterId = null;
   selectedNewsletterIsNew = false;
   selectedNewsletterVersion = null;
+  updatePublishedNewsletterLink();
+  refreshNewsletterReview();
   document.getElementById("newsletterEditorForm").classList.add("hidden");
   editorBaselines.delete("newsletter");
   updateUnloadGuard();

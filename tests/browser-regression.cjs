@@ -646,14 +646,14 @@ async function check(name,fn) {
     await login(p);const {page}=p;
     for(const editor of [
       {section:'announcements',item:'[data-announcement-index="0"]',heading:'#announcementEditorHeading',next:'.announcement-lang-tab[data-announcement-lang="en"]',create:'#addAnnouncementButton',field:'#announcementTitleEn'},
-      {section:'newsletter',item:'[data-newsletter-id="test-issue-0"]',heading:'#newsletterEditorHeading',next:'#issueDate, [data-editor-lang="en"]',create:'#newNewsletterButton',field:'#titleEn'}
+      {section:'newsletter',item:'[data-newsletter-id="test-issue-0"]',heading:'#newsletterEditorHeading',next:'#viewPublishedNewsletter',create:'#newNewsletterButton',field:'#titleEn'}
     ]){
       await page.locator(`[data-admin-section="${editor.section}"]`).click();
       await page.locator(editor.item).focus();await page.keyboard.press('Enter');
       assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement),'Selection must enter the editor');
       const box=await page.locator(editor.heading).boundingBox();assert(box.y>=0&&box.y+box.height<=900,'Editor heading must be visible');
-      // Firefox/WebKit skip the read-only date field; both native destinations
-      // are inside the editor and must remain reachable from its heading.
+      // A selected newsletter first exposes its published preview link; an
+      // announcement first exposes its language control.
       await page.keyboard.press('Tab');assert(await page.locator(editor.next).evaluateAll(elements=>elements.includes(document.activeElement)),'Tab must continue into the editor: '+JSON.stringify(await page.evaluate(()=>({id:document.activeElement.id,tag:document.activeElement.tagName,html:document.activeElement.outerHTML.slice(0,350)}))));
       await page.locator(editor.create).focus();await page.keyboard.press('Enter');assert(await page.locator(editor.heading).evaluate(e=>e===document.activeElement));
       await page.locator(editor.field).fill('Keep this draft');
@@ -678,6 +678,67 @@ async function check(name,fn) {
     assert.equal(await page.locator('[data-field="body_en"]').inputValue(),'Keep Last');
     await page.locator('[data-remove-optional]').focus();await page.keyboard.press('Enter');assert(await add.evaluate(e=>e===document.activeElement));
     await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>v.id)}),[]);
+  }));
+  for(const [theme,width] of [['light',1280],['dark',320]])await check(`Editorial review: ${theme} ${width}px reminders are accessible, focus the translation, and remain advisory`,()=>journey({theme,viewport:{width,height:1000}},async p=>{
+    const {page,state}=p;
+    Object.assign(state.data.newsletters[0],{scripture_en:"Add this week's scripture passage here.",scripture_es:'Agrega aquí el pasaje bíblico de esta semana.',community_en:'Add church news, reminders, ministry updates, or upcoming activities here.',community_es:'Agrega aquí noticias de la iglesia, recordatorios, actualizaciones de ministerios o próximas actividades.'});
+    await login(p);await page.locator('[data-admin-section="newsletter"]').click();await page.locator('[data-newsletter-id="test-issue-0"]').click();
+    assert.equal(await page.locator('[data-review-kind="template"]').count(),4);
+    assert.equal(await page.locator('#viewPublishedNewsletter').getAttribute('href'),'/newsletter/?issue=test-issue-0');
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))}),[]);
+    if(process.env.BROWSER_SCREENSHOT_DIR&&engine==='chromium'){
+      fs.mkdirSync(process.env.BROWSER_SCREENSHOT_DIR,{recursive:true});
+      await page.locator('#newsletterEditorHeading').evaluate(element=>element.scrollIntoView({block:'start'}));
+      await page.screenshot({path:path.join(process.env.BROWSER_SCREENSHOT_DIR,`editor-review-${theme}-${width}.png`)});
+    }
+    await page.locator('[data-review-kind="template"]').nth(1).focus();await page.keyboard.press('Enter');
+    assert(await page.locator('#scriptureEs').evaluate(element=>element===document.activeElement));
+    await page.keyboard.type('Texto de prueba para revisar.');
+    assert.equal(await page.locator('[data-review-kind="template"]').count(),3);
+    assert.equal(await page.locator('[data-editor-change-state="newsletter"]').innerText(),'Unsaved changes');
+    await page.locator('#saveNewsletterButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('Your changes are live'));
+    assert(await page.locator('[data-editor-change-state="newsletter"]').isHidden());
+    assert.equal(await page.locator('[data-review-kind="template"]').count(),3,'Review reminders never silently rewrite or block the saved message');
+    assert(state.data.newsletters[0].scripture_es.includes('Texto de prueba'));
+    await page.locator('#unpublishNewsletterButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('Unpublished'));
+    assert(await page.locator('#viewPublishedNewsletter').isHidden());
+    assert.equal(await page.locator('#viewPublishedNewsletter').getAttribute('href'),null);
+  }));
+  await check('Editorial review: optional translations and hidden extra banners point to the current section',()=>journey({},async p=>{
+    await login(p);const {page}=p;await page.locator('[data-admin-section="newsletter"]').click();await page.locator('[data-newsletter-id="test-issue-0"]').click();
+    for(const body of ['First important message','Second important message']){
+      await page.locator('[data-add-optional="important_announcement"]').click();await page.locator('[data-optional-id]').last().locator('[data-field="body_en"]').fill(body);
+    }
+    assert.equal(await page.locator('[data-review-kind="hidden"]').count(),2);
+    await page.locator('[data-review-kind="translation"]').last().click();
+    assert.equal(await page.evaluate(()=>document.activeElement.dataset.field),'body_es');
+    assert.equal(await page.locator('[data-optional-id]').last().locator('[data-field="body_es"]').evaluate(element=>element===document.activeElement),true);
+    await page.keyboard.type('Segundo anuncio importante.');
+    await page.locator('[data-remove-optional]').first().click();
+    assert.equal(await page.locator('[data-review-kind="hidden"]').count(),0);
+    assert.equal(await page.locator('[data-review-kind="translation"]').count(),0);
+  }));
+  await check('Editorial review: Spanish preview matches the public fallback and draft notices clear on logout',()=>journey({},async p=>{
+    p.state.data.newsletters[0].scripture_es='';await login(p);const {page}=p;
+    await page.locator('[data-admin-section="newsletter"]').click();await page.locator('[data-newsletter-id="test-issue-0"]').click();
+    await page.locator('[data-editor-lang="es"]').click();
+    assert.equal(await page.locator('#previewScripture').innerText(),'Weekly scripture.');assert.equal(await page.locator('#previewScripture').getAttribute('lang'),'en');
+    await page.locator('#newNewsletterButton').click();assert.equal(await page.locator('[data-editor-change-state="newsletter"]').innerText(),'Not saved yet');
+    await page.locator('[data-review-kind="required"]').first().click();assert(await page.locator('#issueDate').evaluate(element=>element===document.activeElement));
+    await page.locator('#signOutButton').click();await page.locator('#adminLoginView').waitFor({state:'visible'});
+    assert.equal(await page.locator('#newsletterReviewList').innerText(),'');assert.equal(await page.locator('#viewPublishedNewsletter').getAttribute('href'),null);
+    assert(await page.locator('[data-editor-change-state="newsletter"]').isHidden());
+  }));
+  await check('Editorial review: a missing optional bundle preserves publication and unsaved-state feedback',()=>journey({},async p=>{
+    await p.context.route('**/admin-content-review.js?*',route=>route.abort());await login(p);const {page}=p;
+    await page.locator('#serviceLabelEn').fill('Service fixture update');assert.equal(await page.locator('[data-editor-change-state="service"]').innerText(),'Unsaved changes');
+    await page.locator('#saveServiceButton').click();await page.waitForFunction(()=>document.querySelector('#serviceDraftStatus').textContent.startsWith('Published.'));
+    assert(await page.locator('[data-editor-change-state="service"]').isHidden());
+    await page.locator('[data-admin-section="newsletter"]').click();await page.locator('[data-newsletter-id="test-issue-0"]').click();
+    assert(await page.locator('#newsletterReview').isHidden());await page.locator('#titleEn').fill('Updated fixture title');
+    await page.locator('#saveNewsletterButton').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('Your changes are live'));
+    assert.equal(p.state.data.newsletters[0].title_en,'Updated fixture title');
   }));
   const report={checkedAt:new Date().toISOString(),engine,browser:browser.version(),mode:'local site and entirely mocked backend; no production writes',filter:process.env.BROWSER_TEST_FILTER||null,passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
   const output=process.env.BROWSER_REPORT_PATH||path.resolve(__dirname,'../security/local-results/browser-regression.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
