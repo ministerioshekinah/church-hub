@@ -1,0 +1,1771 @@
+{
+  "recordedAt": "2026-10-26T23:15:10.343Z",
+  "repository": "ministerioshekinah/church-hub",
+  "scope": "Security, usability, accessibility and regression checks. Counts are test executions, not independent vulnerabilities or penetration tests.",
+  "productionWritesDuringAutomatedBrowserTests": false,
+  "ci": {
+    "runId": 40417477856,
+    "url": "https://github.com/ministerioshekinah/church-hub/actions/runs/40417477856",
+    "sourceCommit": "549fcd7d8ebbac96cba0770d0dfdddf8a4e7b3b9",
+    "mergeCommit": "1a7163998234fc7166cf62354addfb7ccc7fdc31",
+    "node": {
+      "jobId": 121903287194,
+      "passed": 305,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "cases": [
+        {
+          "name": "Account: #type=invite selects setup only after verified administrator identity",
+          "passed": true,
+          "durationMs": 96.244279
+        },
+        {
+          "name": "Account: #type=recovery selects setup only after verified administrator identity",
+          "passed": true,
+          "durationMs": 33.243796
+        },
+        {
+          "name": "Account: normal sign-in stays in the current editor until Account is selected",
+          "passed": true,
+          "durationMs": 25.185258
+        },
+        {
+          "name": "Account: an SDK recovery event opens setup without calling Auth from its callback",
+          "passed": true,
+          "durationMs": 23.174855
+        },
+        {
+          "name": "Account: short or mismatched passwords fail locally with field focus and no request",
+          "passed": true,
+          "durationMs": 35.442168
+        },
+        {
+          "name": "Account: a password change verifies identity and membership and clears every secret after a confirmed response",
+          "passed": true,
+          "durationMs": 38.224326
+        },
+        {
+          "name": "Account: identity failure cannot reach the password mutation",
+          "passed": true,
+          "durationMs": 17.329867
+        },
+        {
+          "name": "Account: different identity cannot reach the password mutation",
+          "passed": true,
+          "durationMs": 34.267592
+        },
+        {
+          "name": "Account: revoked membership cannot reach the password mutation",
+          "passed": true,
+          "durationMs": 26.827373
+        },
+        {
+          "name": "Account: weak_password is explained without displaying the backend message or claiming success",
+          "passed": true,
+          "durationMs": 17.259685
+        },
+        {
+          "name": "Account: same_password is explained without displaying the backend message or claiming success",
+          "passed": true,
+          "durationMs": 22.878661
+        },
+        {
+          "name": "Account: unknown_error is explained without displaying the backend message or claiming success",
+          "passed": true,
+          "durationMs": 19.479747
+        },
+        {
+          "name": "Account: reauthentication sends a code only after explicit action and submits that nonce with the password",
+          "passed": true,
+          "durationMs": 24.476786
+        },
+        {
+          "name": "Account: invalid verification codes can be retried without requesting another email automatically",
+          "passed": true,
+          "durationMs": 9.29465
+        },
+        {
+          "name": "Account: an incomplete success response cannot claim that the password was saved",
+          "passed": true,
+          "durationMs": 12.748148
+        },
+        {
+          "name": "Account: concurrent submits share one operation and a late identity response after logout cannot write",
+          "passed": true,
+          "durationMs": 15.573316
+        },
+        {
+          "name": "Account: an old password response cannot overwrite the next account screen or unlock its request",
+          "passed": true,
+          "durationMs": 18.51801
+        },
+        {
+          "name": "Account: a thrown network error unlocks the form without logging passwords",
+          "passed": true,
+          "durationMs": 13.0179
+        },
+        {
+          "name": "Account: an unavailable membership read preserves the form for retry without submitting a password",
+          "passed": true,
+          "durationMs": 13.08878
+        },
+        {
+          "name": "Account: clear, sign-out, and history-cache cleanup erase and conceal password fields",
+          "passed": true,
+          "durationMs": 29.949926
+        },
+        {
+          "name": "Recovery request: opening the form clears the sign-in password, prefills email, and never sends automatically",
+          "passed": true,
+          "durationMs": 13.792875
+        },
+        {
+          "name": "Recovery request: a submitted address uses the fixed church redirect and no password payload",
+          "passed": true,
+          "durationMs": 13.774088
+        },
+        {
+          "name": "Recovery request: unknown-account and success responses present the same message",
+          "passed": true,
+          "durationMs": 16.690336
+        },
+        {
+          "name": "Recovery request: over_email_send_rate_limit is retryable and never displays raw provider text",
+          "passed": true,
+          "durationMs": 22.248841
+        },
+        {
+          "name": "Recovery request: over_request_rate_limit is retryable and never displays raw provider text",
+          "passed": true,
+          "durationMs": 31.622351
+        },
+        {
+          "name": "Recovery request: server_error is retryable and never displays raw provider text",
+          "passed": true,
+          "durationMs": 18.912151
+        },
+        {
+          "name": "Recovery request: duplicate submits are suppressed and cancelling ignores a late response",
+          "passed": true,
+          "durationMs": 23.52113
+        },
+        {
+          "name": "Recovery request: sign-in busy state and authenticated state cannot send from a hidden recovery form",
+          "passed": true,
+          "durationMs": 21.98448
+        },
+        {
+          "name": "Recovery request: a network exception leaves a clear retry path without logging sensitive data",
+          "passed": true,
+          "durationMs": 17.610809
+        },
+        {
+          "name": "Editorial review: exact bilingual starter copy is flagged without rewriting the draft",
+          "passed": true,
+          "durationMs": 3.656777
+        },
+        {
+          "name": "Editorial review: missing translations describe the actual public fallback in each direction",
+          "passed": true,
+          "durationMs": 0.66044
+        },
+        {
+          "name": "Editorial review: an entirely empty message is different from intentionally empty sections",
+          "passed": true,
+          "durationMs": 0.406306
+        },
+        {
+          "name": "Editorial review: required fields, optional headings and malformed optional data are handled safely",
+          "passed": true,
+          "durationMs": 0.51557
+        },
+        {
+          "name": "Editorial review: duplicate important banners are evaluated in each language with English fallback",
+          "passed": true,
+          "durationMs": 0.320697
+        },
+        {
+          "name": "Editorial editor: reminders focus the correct language and preserve the selected field while typing",
+          "passed": true,
+          "durationMs": 136.143563
+        },
+        {
+          "name": "Editorial editor: optional reminders follow the current section after add/remove operations",
+          "passed": true,
+          "durationMs": 74.483285
+        },
+        {
+          "name": "Editorial editor: pending save locks reminders and a successful save clears the dirty indicator",
+          "passed": true,
+          "durationMs": 49.367037
+        },
+        {
+          "name": "Editorial editor: reminders do not block saving and the published link is fixed-origin and cleared on logout",
+          "passed": true,
+          "durationMs": 52.040693
+        },
+        {
+          "name": "Editorial editor: a missing review bundle retains core editing and saving",
+          "passed": true,
+          "durationMs": 20.295554
+        },
+        {
+          "name": "Editorial editor: a new issue is visibly unsaved and has no public link",
+          "passed": true,
+          "durationMs": 28.075326
+        },
+        {
+          "name": "Editorial editor: Spanish preview follows public English fallback and declares the spoken language",
+          "passed": true,
+          "durationMs": 31.100487
+        },
+        {
+          "name": "Identity change: SIGNED_IN for another account clears private data without an Auth call",
+          "passed": true,
+          "durationMs": 104.886986
+        },
+        {
+          "name": "Identity change: TOKEN_REFRESHED for another account clears private data without an Auth call",
+          "passed": true,
+          "durationMs": 48.576255
+        },
+        {
+          "name": "Identity change: USER_UPDATED for another account clears private data without an Auth call",
+          "passed": true,
+          "durationMs": 49.120047
+        },
+        {
+          "name": "Identity change: PASSWORD_RECOVERY for another account clears private data without an Auth call",
+          "passed": true,
+          "durationMs": 45.562195
+        },
+        {
+          "name": "Identity refresh: events for the same account preserve private work and its verified identity",
+          "passed": true,
+          "durationMs": 33.741794
+        },
+        {
+          "name": "Unverified identity: an Auth event alone cannot open the dashboard or grant content access",
+          "passed": true,
+          "durationMs": 32.112354
+        },
+        {
+          "name": "Identity change: a late prior-account verification cannot restore the old dashboard",
+          "passed": true,
+          "durationMs": 40.34507
+        },
+        {
+          "name": "Startup identity change: an earlier getUser response cannot authorize after another account event",
+          "passed": true,
+          "durationMs": 22.49522
+        },
+        {
+          "name": "Startup identity change: a late membership response cannot authorize the previous account",
+          "passed": true,
+          "durationMs": 23.293873
+        },
+        {
+          "name": "Verified replacement identity: a fresh matching verification can open the new account after cleanup",
+          "passed": true,
+          "durationMs": 24.082364
+        },
+        {
+          "name": "Auth read deadline: a stalled identity body can be aborted after headers arrive",
+          "passed": true,
+          "durationMs": 67.046675
+        },
+        {
+          "name": "Auth read deadline: writes, other endpoints and other origins keep their original fetch semantics",
+          "passed": true,
+          "durationMs": 28.245606
+        },
+        {
+          "name": "Auth read deadline: caller cancellation and an already aborted request are preserved",
+          "passed": true,
+          "durationMs": 19.793872
+        },
+        {
+          "name": "Auth read deadline: network rejection clears its timer and retains the original error",
+          "passed": true,
+          "durationMs": 27.903938
+        },
+        {
+          "name": "Membership read: verified, absent and unavailable responses remain distinct and use an abort signal",
+          "passed": true,
+          "durationMs": 9.131909
+        },
+        {
+          "name": "Membership outage: startup stays signed out, gives retry guidance and does not revoke a valid session",
+          "passed": true,
+          "durationMs": 30.752405
+        },
+        {
+          "name": "Auth startup exception: an SDK lock or initialization failure exposes usable recovery guidance",
+          "passed": true,
+          "durationMs": 24.633715
+        },
+        {
+          "name": "Real Auth SDK: process-lock fallback prevents a delayed password response restoring a signed-out session",
+          "passed": true,
+          "durationMs": 70.63387
+        },
+        {
+          "name": "Content languages: Spanish pages mark English newsletter fallbacks for assistive technology",
+          "passed": true,
+          "durationMs": 75.89241
+        },
+        {
+          "name": "Content languages: announcement fields and homepage preview retain their actual language",
+          "passed": true,
+          "durationMs": 36.005823
+        },
+        {
+          "name": "Service language: an English-only schedule and cancellation remain visible in Spanish",
+          "passed": true,
+          "durationMs": 44.047642
+        },
+        {
+          "name": "Service language: a Spanish-only schedule and notice remain visible in English",
+          "passed": true,
+          "durationMs": 17.420821
+        },
+        {
+          "name": "Service language: missing weekdays never invent a Sunday schedule",
+          "passed": true,
+          "durationMs": 21.83003
+        },
+        {
+          "name": "Content versions: service refuses an unversioned write and preserves its draft",
+          "passed": true,
+          "durationMs": 96.20208
+        },
+        {
+          "name": "Content versions: service uses each returned timestamp without losing microseconds",
+          "passed": true,
+          "durationMs": 91.710168
+        },
+        {
+          "name": "Content versions: service cannot silently downgrade after an incomplete server response",
+          "passed": true,
+          "durationMs": 42.020592
+        },
+        {
+          "name": "Content versions: announcements refuses an unversioned write and preserves its draft",
+          "passed": true,
+          "durationMs": 31.910027
+        },
+        {
+          "name": "Content versions: announcements uses each returned timestamp without losing microseconds",
+          "passed": true,
+          "durationMs": 54.089165
+        },
+        {
+          "name": "Content versions: announcements cannot silently downgrade after an incomplete server response",
+          "passed": true,
+          "durationMs": 44.409305
+        },
+        {
+          "name": "Content versions: newsletter refuses an unversioned write and preserves its draft",
+          "passed": true,
+          "durationMs": 43.427188
+        },
+        {
+          "name": "Content versions: newsletter uses each returned timestamp without losing microseconds",
+          "passed": true,
+          "durationMs": 48.891532
+        },
+        {
+          "name": "Content versions: newsletter cannot silently downgrade after an incomplete server response",
+          "passed": true,
+          "durationMs": 37.225735
+        },
+        {
+          "name": "Content versions: signing out clears all captured versions",
+          "passed": true,
+          "durationMs": 36.321373
+        },
+        {
+          "name": "Database: migration repairs a silently suppressed content-admin deletion",
+          "passed": true,
+          "durationMs": 4071.121331
+        },
+        {
+          "name": "Database: deleting the final Owner remains forbidden",
+          "passed": true,
+          "durationMs": 11.347084
+        },
+        {
+          "name": "Database: demoting the final Owner remains forbidden",
+          "passed": true,
+          "durationMs": 6.608781
+        },
+        {
+          "name": "Database: another Owner allows a confirmed removal",
+          "passed": true,
+          "durationMs": 10.915882
+        },
+        {
+          "name": "Database: another Owner allows demotion and ordinary promotions still work",
+          "passed": true,
+          "durationMs": 7.652833
+        },
+        {
+          "name": "Database: a bulk delete cannot remove the last Owner or partially revoke others",
+          "passed": true,
+          "durationMs": 7.781793
+        },
+        {
+          "name": "Database: a bulk demotion is atomic and leaves the Owners intact",
+          "passed": true,
+          "durationMs": 7.896777
+        },
+        {
+          "name": "Database: the repair preserves trigger, private privileges and account data when repeated",
+          "passed": true,
+          "durationMs": 10.096759
+        },
+        {
+          "name": "Database + Edge: the handler detects the original trigger failure before the repair is applied",
+          "passed": true,
+          "durationMs": 101.322969
+        },
+        {
+          "name": "Database + Edge: the repaired trigger confirms actual access removal through the handler",
+          "passed": true,
+          "durationMs": 11.040972
+        },
+        {
+          "name": "RLS: anon nonmembers see public content only and cannot write",
+          "passed": true,
+          "durationMs": 4361.711791
+        },
+        {
+          "name": "RLS: authenticated nonmembers see public content only and cannot write",
+          "passed": true,
+          "durationMs": 26.204096
+        },
+        {
+          "name": "RLS: revocation immediately removes private reads and writes for the same authenticated identity",
+          "passed": true,
+          "durationMs": 38.950312
+        },
+        {
+          "name": "RLS: content administrators cannot manage membership or read author UUID columns",
+          "passed": true,
+          "durationMs": 24.184269
+        },
+        {
+          "name": "RLS: privileged account management retains least privilege over church content",
+          "passed": true,
+          "durationMs": 23.124849
+        },
+        {
+          "name": "RLS: deleting an Auth fixture account cascades to membership without retaining access",
+          "passed": true,
+          "durationMs": 22.018802
+        },
+        {
+          "name": "RLS: an Auth cascade cannot delete the final Owner account",
+          "passed": true,
+          "durationMs": 21.203506
+        },
+        {
+          "name": "Edge: unauthenticated caller",
+          "passed": true,
+          "durationMs": 53.462463
+        },
+        {
+          "name": "Edge: ordinary authenticated user",
+          "passed": true,
+          "durationMs": 2.272055
+        },
+        {
+          "name": "Edge: content administrator cannot manage accounts",
+          "passed": true,
+          "durationMs": 2.375177
+        },
+        {
+          "name": "Edge: owner lookup failure fails closed",
+          "passed": true,
+          "durationMs": 1.916524
+        },
+        {
+          "name": "Edge: GET cannot list administrators",
+          "passed": true,
+          "durationMs": 1.958182
+        },
+        {
+          "name": "Edge: PUT cannot perform actions",
+          "passed": true,
+          "durationMs": 1.937263
+        },
+        {
+          "name": "Edge: DELETE cannot perform actions",
+          "passed": true,
+          "durationMs": 1.712685
+        },
+        {
+          "name": "Edge: foreign browser origin",
+          "passed": true,
+          "durationMs": 1.385266
+        },
+        {
+          "name": "Edge: null origin",
+          "passed": true,
+          "durationMs": 3.384595
+        },
+        {
+          "name": "Edge: lookalike site origin",
+          "passed": true,
+          "durationMs": 7.963771
+        },
+        {
+          "name": "Edge: text body rejected",
+          "passed": true,
+          "durationMs": 2.073908
+        },
+        {
+          "name": "Edge: JSONP content type rejected",
+          "passed": true,
+          "durationMs": 8.155067
+        },
+        {
+          "name": "Edge: malformed JSON",
+          "passed": true,
+          "durationMs": 1.470886
+        },
+        {
+          "name": "Edge: null body",
+          "passed": true,
+          "durationMs": 1.084077
+        },
+        {
+          "name": "Edge: array body",
+          "passed": true,
+          "durationMs": 1.218876
+        },
+        {
+          "name": "Edge: scalar body",
+          "passed": true,
+          "durationMs": 1.44603
+        },
+        {
+          "name": "Edge: missing action",
+          "passed": true,
+          "durationMs": 1.291492
+        },
+        {
+          "name": "Edge: nonstring action",
+          "passed": true,
+          "durationMs": 1.968161
+        },
+        {
+          "name": "Edge: oversized body",
+          "passed": true,
+          "durationMs": 1.434759
+        },
+        {
+          "name": "Edge: unknown action",
+          "passed": true,
+          "durationMs": 1.654127
+        },
+        {
+          "name": "Edge: invalid invite address",
+          "passed": true,
+          "durationMs": 1.211553
+        },
+        {
+          "name": "Edge: email header injection",
+          "passed": true,
+          "durationMs": 1.324533
+        },
+        {
+          "name": "Edge: oversized invite address",
+          "passed": true,
+          "durationMs": 1.282656
+        },
+        {
+          "name": "Edge: nonstrings cannot become email",
+          "passed": true,
+          "durationMs": 1.257979
+        },
+        {
+          "name": "Edge: role must be allowlisted",
+          "passed": true,
+          "durationMs": 7.41993
+        },
+        {
+          "name": "Edge: role target must be UUID",
+          "passed": true,
+          "durationMs": 1.235077
+        },
+        {
+          "name": "Edge: remove target must be UUID",
+          "passed": true,
+          "durationMs": 1.183612
+        },
+        {
+          "name": "Edge: self-demotion blocked",
+          "passed": true,
+          "durationMs": 10.272926
+        },
+        {
+          "name": "Edge: self-removal blocked",
+          "passed": true,
+          "durationMs": 3.440411
+        },
+        {
+          "name": "Edge: missing removal target",
+          "passed": true,
+          "durationMs": 1.459013
+        },
+        {
+          "name": "Edge: successful owner list is never cached",
+          "passed": true,
+          "durationMs": 2.188541
+        },
+        {
+          "name": "Edge: internal auth errors do not reach caller",
+          "passed": true,
+          "durationMs": 1.439958
+        },
+        {
+          "name": "Edge: invites default to content admin even if role is injected",
+          "passed": true,
+          "durationMs": 3.754944
+        },
+        {
+          "name": "Edge: already-authorized owner is not demoted by invite",
+          "passed": true,
+          "durationMs": 1.548841
+        },
+        {
+          "name": "Edge: an owner may change another administrator role",
+          "passed": true,
+          "durationMs": 1.461899
+        },
+        {
+          "name": "Edge: an owner may remove another content administrator",
+          "passed": true,
+          "durationMs": 1.507074
+        },
+        {
+          "name": "Edge: a silently suppressed deletion cannot report revoked administrator access",
+          "passed": true,
+          "durationMs": 2.378744
+        },
+        {
+          "name": "Edge: a removal response must identify the requested administrator",
+          "passed": true,
+          "durationMs": 2.525217
+        },
+        {
+          "name": "Edge: authentication middleware required and CORS constrained",
+          "passed": true,
+          "durationMs": 1.702998
+        },
+        {
+          "name": "Fonts: self-hosted bytes match the original provider files and retain both licensed families",
+          "passed": true,
+          "durationMs": 4.894113
+        },
+        {
+          "name": "Information: a shared section follows the visible language and preserves its query",
+          "passed": true,
+          "durationMs": 106.915906
+        },
+        {
+          "name": "Information: unrecognized section hashes cannot create redirects or selectors",
+          "passed": true,
+          "durationMs": 34.152569
+        },
+        {
+          "name": "Announcement deletion: a delayed response removes its captured ID and preserves another selection",
+          "passed": true,
+          "durationMs": 109.672665
+        },
+        {
+          "name": "Announcement deletion: a zero-row response cannot report success or remove local content",
+          "passed": true,
+          "durationMs": 51.384618
+        },
+        {
+          "name": "Announcement actions: a thrown network error unlocks the editor and provides retry feedback",
+          "passed": true,
+          "durationMs": 49.931255
+        },
+        {
+          "name": "Newsletter deletion: a zero-row response cannot report success or remove local content",
+          "passed": true,
+          "durationMs": 44.771098
+        },
+        {
+          "name": "Newsletter actions: a thrown network error unlocks the editor and provides retry feedback",
+          "passed": true,
+          "durationMs": 40.626841
+        },
+        {
+          "name": "Announcement actions: save and publish cannot overlap while a request is pending",
+          "passed": true,
+          "durationMs": 42.274014
+        },
+        {
+          "name": "Announcement save: a late response cannot replace a different open draft",
+          "passed": true,
+          "durationMs": 35.76604
+        },
+        {
+          "name": "Newsletter deletion: a late response preserves another open issue",
+          "passed": true,
+          "durationMs": 33.828523
+        },
+        {
+          "name": "Newsletter save: another selection survives a delayed save (base editor)",
+          "passed": true,
+          "durationMs": 26.742307
+        },
+        {
+          "name": "Newsletter save: another selection survives a delayed save (optional editor)",
+          "passed": true,
+          "durationMs": 51.647988
+        },
+        {
+          "name": "Newsletter persistence: optional sections use the same guarded writer",
+          "passed": true,
+          "durationMs": 45.483373
+        },
+        {
+          "name": "Editor session: an old request cannot unlock a newer signed-in operation",
+          "passed": true,
+          "durationMs": 23.211423
+        },
+        {
+          "name": "Editor focus: a hidden button retaining focus returns to the new-item control",
+          "passed": true,
+          "durationMs": 48.091293
+        },
+        {
+          "name": "Editor focus: a different focused control is preserved",
+          "passed": true,
+          "durationMs": 22.69014
+        },
+        {
+          "name": "Service publishing: the primary bundle rejects zero-row updates without the compatibility extension",
+          "passed": true,
+          "durationMs": 34.673307
+        },
+        {
+          "name": "Service publishing: repeated clicks share one operation and preserve the captured form",
+          "passed": true,
+          "durationMs": 66.057364
+        },
+        {
+          "name": "Service publishing: an old completion cannot unlock the next authenticated save",
+          "passed": true,
+          "durationMs": 105.550319
+        },
+        {
+          "name": "Newsletter reset: a closed editor cannot recreate a deleted issue from stale form values",
+          "passed": true,
+          "durationMs": 58.178426
+        },
+        {
+          "name": "History privacy: entering the history cache clears drafts, password, and Owner directory",
+          "passed": true,
+          "durationMs": 121.769734
+        },
+        {
+          "name": "History privacy: an ordinary pageshow does not erase an active editor or reload",
+          "passed": true,
+          "durationMs": 31.079806
+        },
+        {
+          "name": "History privacy: a persisted pageshow scrubs synchronously and reloads without reusing the old client",
+          "passed": true,
+          "durationMs": 20.228733
+        },
+        {
+          "name": "History privacy: a late content read cannot refill the frozen document after pagehide",
+          "passed": true,
+          "durationMs": 24.095615
+        },
+        {
+          "name": "History privacy: an old identity restore cannot reopen the cleared document after pageshow",
+          "passed": true,
+          "durationMs": 33.22828
+        },
+        {
+          "name": "Theme: first visit follows system dark appearance",
+          "passed": true,
+          "durationMs": 74.921884
+        },
+        {
+          "name": "Theme: saved preference overrides system appearance",
+          "passed": true,
+          "durationMs": 34.505946
+        },
+        {
+          "name": "Theme: switch persists dark then light with accessible state",
+          "passed": true,
+          "durationMs": 30.294604
+        },
+        {
+          "name": "Theme: blocked browser storage leaves both switches functional",
+          "passed": true,
+          "durationMs": 19.357512
+        },
+        {
+          "name": "Theme: newsletter includes the same theme control",
+          "passed": true,
+          "durationMs": 12.562314
+        },
+        {
+          "name": "Language: English to Spanish uses a short fade without moving the reading surface",
+          "passed": true,
+          "durationMs": 36.445083
+        },
+        {
+          "name": "Language: Spanish to English also animates",
+          "passed": true,
+          "durationMs": 50.001546
+        },
+        {
+          "name": "Language: rapid changes always end on the latest choice",
+          "passed": true,
+          "durationMs": 58.575953
+        },
+        {
+          "name": "Language: reduced motion changes immediately without animation",
+          "passed": true,
+          "durationMs": 31.654904
+        },
+        {
+          "name": "Language: no animation API still permits switching",
+          "passed": true,
+          "durationMs": 30.531514
+        },
+        {
+          "name": "Navigation: Escape closes mobile menu and restores focus",
+          "passed": true,
+          "durationMs": 23.746024
+        },
+        {
+          "name": "Newsletter: one initial request includes optional sections",
+          "passed": true,
+          "durationMs": 67.958763
+        },
+        {
+          "name": "Newsletter: selection and back navigation use cache without scroll jump",
+          "passed": true,
+          "durationMs": 29.259098
+        },
+        {
+          "name": "Newsletter: Ctrl-click retains normal link behavior",
+          "passed": true,
+          "durationMs": 22.491852
+        },
+        {
+          "name": "Newsletter: language changes translate optional sections without refetch",
+          "passed": true,
+          "durationMs": 17.926419
+        },
+        {
+          "name": "Information: privacy restores preferences and switches the complete document in both directions",
+          "passed": true,
+          "durationMs": 61.550505
+        },
+        {
+          "name": "Information: terms restores preferences and switches the complete document in both directions",
+          "passed": true,
+          "durationMs": 64.884109
+        },
+        {
+          "name": "Information: contact restores preferences and switches the complete document in both directions",
+          "passed": true,
+          "durationMs": 54.882971
+        },
+        {
+          "name": "Information: blocked storage and reduced motion keep help available in either language",
+          "passed": true,
+          "durationMs": 34.790369
+        },
+        {
+          "name": "Newsletter reader: section shortcuts include optional headings and move keyboard focus",
+          "passed": true,
+          "durationMs": 113.659591
+        },
+        {
+          "name": "Newsletter reader: neighbors move through chronological issues and preserve normal modified links",
+          "passed": true,
+          "durationMs": 32.627572
+        },
+        {
+          "name": "Newsletter reader: history and section hash changes do not rebuild a focused article unnecessarily",
+          "passed": true,
+          "durationMs": 17.546885
+        },
+        {
+          "name": "Newsletter reader: a directly opened section link resolves after async content arrives",
+          "passed": true,
+          "durationMs": 17.425509
+        },
+        {
+          "name": "Newsletter reader: search matches English, Spanish, accents, body text and issue dates",
+          "passed": true,
+          "durationMs": 21.099652
+        },
+        {
+          "name": "Newsletter reader: empty results and language changes keep the search query usable",
+          "passed": true,
+          "durationMs": 21.398167
+        },
+        {
+          "name": "Newsletter reader: empty, single-issue and failed states hide irrelevant navigation",
+          "passed": true,
+          "durationMs": 14.650317
+        },
+        {
+          "name": "Newsletter reader: hostile CMS titles remain plain text in every new navigation surface",
+          "passed": true,
+          "durationMs": 15.795397
+        },
+        {
+          "name": "Owner session: verified owner controls use the primary authenticated client",
+          "passed": true,
+          "durationMs": 86.038901
+        },
+        {
+          "name": "Owner session: content admins do not receive owner controls",
+          "passed": true,
+          "durationMs": 41.952606
+        },
+        {
+          "name": "Owner session: signing out clears private list content and selected owner state",
+          "passed": true,
+          "durationMs": 39.370654
+        },
+        {
+          "name": "Owner session: delayed role verification cannot restore access after sign-out",
+          "passed": true,
+          "durationMs": 39.210256
+        },
+        {
+          "name": "Owner session: a late list response cannot expose administrator emails after sign-out",
+          "passed": true,
+          "durationMs": 31.751895
+        },
+        {
+          "name": "Owner session: returning owner can refresh controls after a new sign-in",
+          "passed": true,
+          "durationMs": 30.977584
+        },
+        {
+          "name": "Owner invitation: pending input stays stable and duplicate submissions are ignored",
+          "passed": true,
+          "durationMs": 25.763386
+        },
+        {
+          "name": "Owner invitation: a failed request preserves the email and releases the form",
+          "passed": true,
+          "durationMs": 20.626442
+        },
+        {
+          "name": "Owner invitation: an old response cannot unlock a new session invitation",
+          "passed": true,
+          "durationMs": 38.550428
+        },
+        {
+          "name": "Owner list: an older refresh cannot replace the latest access list",
+          "passed": true,
+          "durationMs": 25.312097
+        },
+        {
+          "name": "Admin session: signing out clears draft fields, previews, and in-memory content",
+          "passed": true,
+          "durationMs": 35.825921
+        },
+        {
+          "name": "Admin session: a late content response cannot refill the editor after sign-out",
+          "passed": true,
+          "durationMs": 30.980299
+        },
+        {
+          "name": "Admin session: a delayed session restore cannot reopen a signed-out dashboard",
+          "passed": true,
+          "durationMs": 19.746646
+        },
+        {
+          "name": "Admin sign-in: an old completion cannot leave logout locked or unlock a newer attempt",
+          "passed": true,
+          "durationMs": 20.843306
+        },
+        {
+          "name": "Admin session: pending announcement save cannot restore private form content after sign-out",
+          "passed": true,
+          "durationMs": 24.064296
+        },
+        {
+          "name": "Admin session: pending newsletter save cannot restore a signed-out editor",
+          "passed": true,
+          "durationMs": 52.88855
+        },
+        {
+          "name": "Admin publishing: saving a live announcement retains the correct visible status",
+          "passed": true,
+          "durationMs": 27.74932
+        },
+        {
+          "name": "Admin publishing: service validation rejects an empty or impossible time before writing",
+          "passed": true,
+          "durationMs": 53.314588
+        },
+        {
+          "name": "Admin publishing: service succeeds only after the intended row is returned",
+          "passed": true,
+          "durationMs": 17.386537
+        },
+        {
+          "name": "Admin session: service verification cannot publish after sign-out during identity check",
+          "passed": true,
+          "durationMs": 20.952017
+        },
+        {
+          "name": "Sharing: denied clipboard offers the displayed issue URL in en, even after a missing deep link",
+          "passed": true,
+          "durationMs": 62.510569
+        },
+        {
+          "name": "Sharing: denied clipboard offers the displayed issue URL in es, even after a missing deep link",
+          "passed": true,
+          "durationMs": 19.26493
+        },
+        {
+          "name": "Sharing: a delayed success cannot label another issue",
+          "passed": true,
+          "durationMs": 19.472987
+        },
+        {
+          "name": "Sharing: a delayed failure cannot label another issue",
+          "passed": true,
+          "durationMs": 23.615793
+        },
+        {
+          "name": "Sharing: fallback links encode CMS IDs and never create executable markup",
+          "passed": true,
+          "durationMs": 16.680554
+        },
+        {
+          "name": "Public startup: a missing application exposes bilingual recovery and a working reload control",
+          "passed": true,
+          "durationMs": 45.196299
+        },
+        {
+          "name": "Public startup: a partially initialized inert menu is replaced by usable ordinary links",
+          "passed": true,
+          "durationMs": 14.640026
+        },
+        {
+          "name": "Public startup: successful application startup leaves the recovery notice hidden",
+          "passed": true,
+          "durationMs": 30.994104
+        },
+        {
+          "name": "Public startup: recovery is present on all public routes and avoids external services",
+          "passed": true,
+          "durationMs": 33.547984
+        },
+        {
+          "name": "Homepage: real latest issue is linked and translated without refetching",
+          "passed": true,
+          "durationMs": 91.305595
+        },
+        {
+          "name": "Homepage: no published issue and an outage are different states",
+          "passed": true,
+          "durationMs": 37.764237
+        },
+        {
+          "name": "Homepage: untrusted preview titles and IDs remain plain text and encoded links",
+          "passed": true,
+          "durationMs": 12.482666
+        },
+        {
+          "name": "Newsletter: archive selection updates badge, heading, and document title",
+          "passed": true,
+          "durationMs": 23.688498
+        },
+        {
+          "name": "Newsletter: archive search ignores accents and searches both languages",
+          "passed": true,
+          "durationMs": 15.070609
+        },
+        {
+          "name": "Newsletter: a search payload never becomes markup and can be cleared",
+          "passed": true,
+          "durationMs": 17.277403
+        },
+        {
+          "name": "Newsletter: copy link uses the selected issue and excludes unrelated URL parameters",
+          "passed": true,
+          "durationMs": 26.45916
+        },
+        {
+          "name": "Newsletter: clipboard denial offers a useful fallback and print stays usable",
+          "passed": true,
+          "durationMs": 19.56604
+        },
+        {
+          "name": "Newsletter: a missing issue explains the fallback without echoing untrusted input",
+          "passed": true,
+          "durationMs": 10.054641
+        },
+        {
+          "name": "Public loading: errors remain translated after a language switch",
+          "passed": true,
+          "durationMs": 23.965912
+        },
+        {
+          "name": "Public loading: retry recovers without stale fallback content",
+          "passed": true,
+          "durationMs": 14.066532
+        },
+        {
+          "name": "Public loading: concurrent newsletter retries share the in-flight request",
+          "passed": true,
+          "durationMs": 8.526959
+        },
+        {
+          "name": "Service times: malformed values never produce impossible clock times",
+          "passed": true,
+          "durationMs": 12.778025
+        },
+        {
+          "name": "Information: jump links always point to headings in the visible translation",
+          "passed": true,
+          "durationMs": 18.051249
+        },
+        {
+          "name": "Admin: theme works with blocked local storage and keeps password visibility accessible",
+          "passed": true,
+          "durationMs": 25.352266
+        },
+        {
+          "name": "Admin: keyboard tabs maintain one selected tab and its corresponding panel",
+          "passed": true,
+          "durationMs": 17.988817
+        },
+        {
+          "name": "Admin: failed sign-out never claims success or strands a disabled button",
+          "passed": true,
+          "durationMs": 24.230084
+        },
+        {
+          "name": "Admin: successful sign-out clears and conceals the password",
+          "passed": true,
+          "durationMs": 18.106626
+        },
+        {
+          "name": "CSP: pages use local original fonts, no inline styles or handlers, and no nested frames",
+          "passed": true,
+          "durationMs": 33.412976
+        },
+        {
+          "name": "CSP: no-script policy translations and owner styles are external resources",
+          "passed": true,
+          "durationMs": 0.522813
+        },
+        {
+          "name": "Archive: large collections progressively reveal issues without network requests",
+          "passed": true,
+          "durationMs": 21.410741
+        },
+        {
+          "name": "404: recovery is bilingual, local, and independent of the content backend",
+          "passed": true,
+          "durationMs": 8.860169
+        },
+        {
+          "name": "Public loading: a successful cache cannot reappear after a later failed refresh",
+          "passed": true,
+          "durationMs": 15.961516
+        },
+        {
+          "name": "Public loading: malformed API response fails closed with a recovery control",
+          "passed": true,
+          "durationMs": 10.03839
+        },
+        {
+          "name": "Archive: revealing the final items moves keyboard focus into the new content",
+          "passed": true,
+          "durationMs": 20.002041
+        },
+        {
+          "name": "Admin: content language buttons announce their selected state independently",
+          "passed": true,
+          "durationMs": 34.095099
+        },
+        {
+          "name": "XSS: announcement title_en",
+          "passed": true,
+          "durationMs": 91.589086
+        },
+        {
+          "name": "XSS: announcement title_es",
+          "passed": true,
+          "durationMs": 37.617677
+        },
+        {
+          "name": "XSS: announcement description_en",
+          "passed": true,
+          "durationMs": 29.93808
+        },
+        {
+          "name": "XSS: announcement description_es",
+          "passed": true,
+          "durationMs": 23.521056
+        },
+        {
+          "name": "XSS: announcement tag_en",
+          "passed": true,
+          "durationMs": 29.297753
+        },
+        {
+          "name": "XSS: announcement tag_es",
+          "passed": true,
+          "durationMs": 15.355683
+        },
+        {
+          "name": "XSS: service service_label_en",
+          "passed": true,
+          "durationMs": 14.906701
+        },
+        {
+          "name": "XSS: service time_display",
+          "passed": true,
+          "durationMs": 17.054018
+        },
+        {
+          "name": "XSS: service special_message_en",
+          "passed": true,
+          "durationMs": 28.104911
+        },
+        {
+          "name": "XSS: newsletter title_en",
+          "passed": true,
+          "durationMs": 15.976408
+        },
+        {
+          "name": "XSS: newsletter date_en",
+          "passed": true,
+          "durationMs": 8.746338
+        },
+        {
+          "name": "XSS: newsletter heading_en",
+          "passed": true,
+          "durationMs": 7.650138
+        },
+        {
+          "name": "XSS: newsletter body_en",
+          "passed": true,
+          "durationMs": 7.711142
+        },
+        {
+          "name": "XSS: archive issue ID remains a same-origin encoded query",
+          "passed": true,
+          "durationMs": 11.967578
+        },
+        {
+          "name": "XSS: optional newsletter custom",
+          "passed": true,
+          "durationMs": 10.827368
+        },
+        {
+          "name": "XSS: optional newsletter important_announcement",
+          "passed": true,
+          "durationMs": 10.754622
+        },
+        {
+          "name": "XSS: optional newsletter __proto__",
+          "passed": true,
+          "durationMs": 14.457829
+        },
+        {
+          "name": "XSS: optional newsletter constructor",
+          "passed": true,
+          "durationMs": 9.271373
+        },
+        {
+          "name": "XSS: admin announcement editor list",
+          "passed": true,
+          "durationMs": 21.224526
+        },
+        {
+          "name": "XSS: admin newsletter ID and status attributes",
+          "passed": true,
+          "durationMs": 40.789478
+        },
+        {
+          "name": "CSP: index.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 3.685966
+        },
+        {
+          "name": "CSP: newsletter/index.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 2.334562
+        },
+        {
+          "name": "CSP: admin/index.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 4.501482
+        },
+        {
+          "name": "CSP: newsletter.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 0.451199
+        },
+        {
+          "name": "CSP: admin.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 0.402208
+        },
+        {
+          "name": "CSP: privacy/index.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 2.770754
+        },
+        {
+          "name": "CSP: terms/index.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 2.502805
+        },
+        {
+          "name": "CSP: contact/index.html blocks injected scripts, objects, base URLs",
+          "passed": true,
+          "durationMs": 2.45214
+        },
+        {
+          "name": "Supply chain: the local SDK matches its pinned upstream bytes, SRI, version, and notices",
+          "passed": true,
+          "durationMs": 13.03883
+        },
+        {
+          "name": "Supply chain: runtime audit covers the exact browser and Edge Function package pins",
+          "passed": true,
+          "durationMs": 1.735568
+        },
+        {
+          "name": "Redirect: invitation parameters cannot change the origin",
+          "passed": true,
+          "durationMs": 1.359188
+        },
+        {
+          "name": "Privacy: admin requests never select author UUIDs or wildcard columns",
+          "passed": true,
+          "durationMs": 0.716633
+        },
+        {
+          "name": "Availability security: backend failure never resurrects static hidden announcements",
+          "passed": true,
+          "durationMs": 39.370697
+        },
+        {
+          "name": "Availability security: backend failure never resurrects static unpublished newsletters",
+          "passed": true,
+          "durationMs": 11.581116
+        },
+        {
+          "name": "Routes: legacy links preserve newsletter queries and auth fragments on the same origin",
+          "passed": true,
+          "durationMs": 5.945117
+        },
+        {
+          "name": "Routes: direct index filenames normalize in place without another navigation",
+          "passed": true,
+          "durationMs": 7.063347
+        },
+        {
+          "name": "Routes: already clean paths do not redirect or loop",
+          "passed": true,
+          "durationMs": 5.818412
+        },
+        {
+          "name": "Routes: every page link is clean and local styles/scripts resolve from directory URLs",
+          "passed": true,
+          "durationMs": 79.259858
+        },
+        {
+          "name": "Routes: dynamically loaded admin extensions use root asset paths",
+          "passed": true,
+          "durationMs": 24.795566
+        },
+        {
+          "name": "Routes: archive selection keeps a clean URL and supports direct issue links",
+          "passed": true,
+          "durationMs": 72.273068
+        },
+        {
+          "name": "Calendar date: winter Pacific time",
+          "passed": true,
+          "durationMs": 35.305446
+        },
+        {
+          "name": "Calendar date: summer Pacific time",
+          "passed": true,
+          "durationMs": 0.307052
+        },
+        {
+          "name": "Calendar date: spring clock change",
+          "passed": true,
+          "durationMs": 0.283117
+        },
+        {
+          "name": "Calendar date: fall clock change",
+          "passed": true,
+          "durationMs": 0.258661
+        },
+        {
+          "name": "Calendar date: Sunday before the service",
+          "passed": true,
+          "durationMs": 0.191016
+        },
+        {
+          "name": "Calendar date: exact service start",
+          "passed": true,
+          "durationMs": 0.231631
+        },
+        {
+          "name": "Calendar date: after service start",
+          "passed": true,
+          "durationMs": 0.263691
+        },
+        {
+          "name": "Calendar date: UTC Monday is still Sunday in LA",
+          "passed": true,
+          "durationMs": 0.38746
+        },
+        {
+          "name": "Calendar date: year boundary",
+          "passed": true,
+          "durationMs": 0.372863
+        },
+        {
+          "name": "Calendar date: leap day week",
+          "passed": true,
+          "durationMs": 0.400364
+        },
+        {
+          "name": "Calendar date: another bilingual weekday and midnight are supported",
+          "passed": true,
+          "durationMs": 1.284756
+        },
+        {
+          "name": "Calendar date: DST gaps and repeated hours do not produce an invented time",
+          "passed": true,
+          "durationMs": 0.388313
+        },
+        {
+          "name": "Calendar date: conflicting, custom and missing schedules are not guessed",
+          "passed": true,
+          "durationMs": 0.312611
+        },
+        {
+          "name": "Calendar file: one UTC event, stable identity, current address and no inferred duration",
+          "passed": true,
+          "durationMs": 1.81766
+        },
+        {
+          "name": "Calendar file: line injection is escaped and Unicode folds at 75 UTF-8 bytes",
+          "passed": true,
+          "durationMs": 4.998762
+        },
+        {
+          "name": "Calendar file: Spanish reminder and unavailable address handling",
+          "passed": true,
+          "durationMs": 1.235748
+        },
+        {
+          "name": "Calendar file: truncating a long label preserves complete emoji characters",
+          "passed": true,
+          "durationMs": 0.468902
+        },
+        {
+          "name": "Calendar UI: visible date follows language, clears on outage and suppresses a special notice",
+          "passed": true,
+          "durationMs": 67.836156
+        },
+        {
+          "name": "Calendar UI: a failed optional calendar bundle leaves service information usable",
+          "passed": true,
+          "durationMs": 12.862132
+        },
+        {
+          "name": "Visit: every address and both map destinations follow the current service settings",
+          "passed": true,
+          "durationMs": 53.771668
+        },
+        {
+          "name": "Visit: hostile address values remain text inside fixed map origins",
+          "passed": true,
+          "durationMs": 16.722181
+        },
+        {
+          "name": "Visit: failed refresh removes stale addresses and map actions, and retry can restore them",
+          "passed": true,
+          "durationMs": 15.042658
+        },
+        {
+          "name": "Visit: summary, share control and unavailable state translate into Spanish",
+          "passed": true,
+          "durationMs": 13.418155
+        },
+        {
+          "name": "Visit: copy uses the authoritative address; sharing without native support copies useful details",
+          "passed": true,
+          "durationMs": 10.383662
+        },
+        {
+          "name": "Visit: native share cancellation stays quiet and never copies unexpectedly",
+          "passed": true,
+          "durationMs": 8.213005
+        },
+        {
+          "name": "Visit: pending copy is deduplicated and cannot announce stale information after a service change",
+          "passed": true,
+          "durationMs": 11.33962
+        },
+        {
+          "name": "Visit: clipboard denial provides a translated manual fallback",
+          "passed": true,
+          "durationMs": 11.159816
+        }
+      ]
+    },
+    "browser": {
+      "scope": "Local HTTPS, pinned real SDK, intercepted fictitious Supabase responses; no real password, account, content or email changes.",
+      "suites": {
+        "publicAndAdmin": 79,
+        "motion": 5,
+        "historySession": 2,
+        "account": 22,
+        "connectionRecovery": 5
+      },
+      "engines": [
+        {
+          "name": "chromium",
+          "jobId": 121903287044,
+          "passed": 113,
+          "failed": 0
+        },
+        {
+          "name": "firefox",
+          "jobId": 121903286756,
+          "passed": 113,
+          "failed": 0
+        },
+        {
+          "name": "webkit",
+          "jobId": 121903287261,
+          "passed": 113,
+          "failed": 0
+        }
+      ],
+      "cases": [
+        "Mobile navigation: keyboard, Escape, and section focus",
+        "Landscape navigation: final link remains reachable inside the viewport",
+        "Language and theme: preferences persist across real navigation without refetching on translation",
+        "Rapid language changes finish with visible, correctly translated content",
+        "Blocked browser storage preserves theme and bilingual controls",
+        "Reduced motion pauses the decorative background",
+        "Archive: bilingual search, history, share, print, and incremental disclosure",
+        "Visit calendar: a real download preserves the next Los Angeles service across DST",
+        "Visit calendar: an unavailable optional bundle and special schedule retain the core visit details",
+        "Service notices: a missing translation never hides a cancellation or invents a different weekday",
+        "Visit calendar: downloading after an idle service boundary refreshes the displayed date",
+        "Newsletter reading: direct sections, keyboard focus, body search, neighbors and browser history",
+        "Missing issue and untrusted CMS text remain harmless text",
+        "Sharing fallback: the displayed issue has a usable, wrapping bilingual link",
+        "Enlarged public text: bilingual pages reflow without horizontal overflow",
+        "Sharing completion cannot announce a different selected issue",
+        "Print layouts retain readable text in both languages and themes",
+        "Retry keyboard recovery: serviceRetry returns focus to loaded content",
+        "Retry keyboard recovery: announcementsRetry returns focus to loaded content",
+        "Retry keyboard recovery: newsletterRetry returns focus to loaded content",
+        "Retry keyboard recovery: failures remain retryable without stealing chosen focus",
+        "A stalled public request times out and can recover through the normal retry",
+        "Policy deep links follow the visible language",
+        "Clean routes preserve queries and fragments across legacy and directory aliases",
+        "Without JavaScript: policy translations and mobile navigation remain readable",
+        "Public startup recovery: missing application code keeps bilingual help and mobile links usable",
+        "Without JavaScript: live-content loading labels are replaced by bilingual guidance",
+        "Public startup recovery: a partial initialization cannot leave the fallback menu inert",
+        "Original fonts load locally; the public page makes no font-provider requests",
+        "CSP blocks inline scripts and foreign scripts in the real browser",
+        "Public pages: both languages/themes pass automated WCAG checks and fit mobile/desktop",
+        "Sign-in recovery: a keyboard failure returns to the password field and can be retried",
+        "Sign-in recovery: another focused control is preserved",
+        "Admin supply chain: authentication works without a third-party script request",
+        "Sign-in startup: an unavailable main bundle leaves the form safely unavailable",
+        "Sign-in startup: disabled JavaScript leaves the form safely unavailable",
+        "Admin supply chain: an altered SDK is blocked by integrity and cannot enable sign-in",
+        "Service publishing: primary validation works when the compatibility script fails to load",
+        "Admin: sign-in, keyboard tabs, bilingual editor, save, and private-data cleanup",
+        "Admin newsletter: optional bilingual sections survive the shared save and publication path",
+        "Announcement lifecycle: create, save, publish, hide, and confirmed deletion",
+        "Newsletter lifecycle: draft, publish, unpublish, and confirmed deletion",
+        "Cross-tab sign-out clears the other tab’s private editor",
+        "Session restore: sign-out during another tab’s initial content load cannot reveal private content",
+        "Owner controls: fixture invitation, role change, removal, and self-access safeguards",
+        "Owner list recovery: a transient failure gives a usable refresh path",
+        "Owner removal: a legacy false-success response is detected and a confirmed retry recovers",
+        "Owner invitation failure: email is retained, retry succeeds, and sign-out clears the list",
+        "Backend outage: translated errors recover through every public retry control",
+        "Clipboard denied: the address remains selectable and newsletter sharing explains the fallback",
+        "Visit planning: changed address, translated summary and share fallback stay consistent on mobile",
+        "Newsletter creation: another tab’s new issue cannot be overwritten by a stale draft",
+        "Deleted records: a stale newsletter or announcement editor cannot recreate them",
+        "Editor loading: service cannot accept a draft that the initial response would erase",
+        "Editor loading: announcements cannot accept a draft that the initial response would erase",
+        "Editor loading: newsletter cannot accept a draft that the initial response would erase",
+        "Admin accessibility: increased text spacing keeps the narrow announcement filter usable",
+        "Admin accessibility: reduced motion brings focused fields into view without smooth scrolling",
+        "Concurrent edit: service preserves both the newer record and the unsaved draft",
+        "Concurrent edit: announcements preserves both the newer record and the unsaved draft",
+        "Concurrent edit: newsletter preserves both the newer record and the unsaved draft",
+        "Concurrent deletion: announcements cannot delete a version the editor has not seen",
+        "Concurrent deletion: newsletter cannot delete a version the editor has not seen",
+        "Unsaved content: cancelling another announcement selection preserves the current draft",
+        "Unsaved content: cancelling a new newsletter preserves optional bilingual fields",
+        "Unsaved content: navigation can be cancelled, and a successful save removes the warning",
+        "Unsaved content: reverted edits and language or theme controls do not warn",
+        "Unsaved content: saved optional sections are clean, but removing one warns",
+        "Unsaved content: sign-out clears private drafts and removes navigation warnings",
+        "Admin content loading: stalled reads release all editors and a reload recovers",
+        "Editor focus: selecting and creating records has a usable keyboard destination at 390px",
+        "Editor focus: selecting and creating records has a usable keyboard destination at 1440px",
+        "Optional section focus: adding and removing first, middle and last sections preserves en editing",
+        "Optional section focus: adding and removing first, middle and last sections preserves es editing",
+        "Editorial review: light 1280px reminders are accessible, focus the translation, and remain advisory",
+        "Editorial review: dark 320px reminders are accessible, focus the translation, and remain advisory",
+        "Editorial review: optional translations and hidden extra banners point to the current section",
+        "Editorial review: Spanish preview matches the public fallback and draft notices clear on logout",
+        "Editorial review: a missing optional bundle preserves publication and unsaved-state feedback",
+        "Interrupted language fades retain displayed opacity and finish in the latest language",
+        "Enabling reduced motion during a fade resolves the selected language immediately",
+        "Closing mobile navigation immediately excludes links from keyboard focus; desktop restores them",
+        "Archive hover interpolates smoothly in both themes and stops under reduced motion",
+        "Hero pointer movement keeps the gradient stable without per-frame style mutation",
+        "History session: valid membership reloads current content after a persisted lifecycle",
+        "History session: revoked membership stays denied after a persisted lifecycle",
+        "Account invite: verified link, password setup, cleanup, and a fresh password sign-in",
+        "Account recovery: verified link, password setup, cleanup, and a fresh password sign-in",
+        "Account validation: mismatched passwords focus confirmation without an Auth mutation",
+        "Account password change: the SDK forwards the provided current password without trimming it",
+        "Account authorization: revoked membership cannot submit a password change",
+        "Account sessions: an expired identity check offers retry and cannot mutate a password",
+        "Account rejection: weak_password remains editable and does not claim success",
+        "Account rejection: same_password remains editable and does not claim success",
+        "Account verification: a requested nonce is explicit, rate-limit errors recover, and the nonce reaches Auth",
+        "Account privacy: cross-tab sign-out clears a visible new password",
+        "Account identity change: a different signed-in account in another tab clears Admin data without signing out that new account",
+        "Account identity change: a different signed-in account in another tab clears Owner data without signing out that new account",
+        "Account identity refresh: a normal token refresh keeps the current editor and password form usable",
+        "Account startup race: a prior-account membership response cannot reopen the dashboard after another tab switches identity",
+        "Account race: sign-out during a pending password request clears UI and SDK (Web Locks)",
+        "Account race: sign-out during a pending password request clears UI and SDK (process fallback)",
+        "Account race: another tab signing out during a password change clears both sessions",
+        "Account link errors: an unverifiable link stays signed out and gives a useful explanation",
+        "Account optional bundle: an unavailable account script preserves sign-in and content editing",
+        "Password recovery request: accessible mobile form, fixed redirect, generic response, and verified recovery landing",
+        "Password recovery request: provider rate limits remain retryable with no automatic resend",
+        "Password recovery request: cancelling a pending request keeps sign-in usable and ignores late status",
+        "Auth connection: a stalled restored identity returns to usable sign-in, then reload recovers",
+        "Auth connection: a stalled identity after password sign-in releases the form without authorizing content",
+        "Auth connection: a stalled identity check blocks password changes and allows an explicit retry",
+        "Auth connection: a stalled membership check blocks password changes and allows an explicit retry",
+        "Auth connection: an unavailable startup membership check offers retry without signing out or claiming a denial"
+      ],
+      "chromiumArtifact": {
+        "id": 12696190798,
+        "sha256": "9afaf158fe478672cd8620cc9760b75d063973cbb43b2b39536ae6a53f7c047e",
+        "checksumVerified": true
+      }
+    },
+    "dependencyAudits": {
+      "developmentKnownVulnerabilities": 0,
+      "pinnedBrowserAndEdgeKnownVulnerabilities": 0,
+      "scope": "Snapshot of the passing security job; not a future guarantee."
+    }
+  },
+  "additionalLocalRegression": {
+    "name": "Auth read deadline: the native fetch body rejects when a local server sends headers but never finishes JSON",
+    "file": "tests/admin-read-timeouts.test.cjs",
+    "fullSuitePassed": 306,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "durationMs": 6090.05939,
+    "command": "npm test",
+    "scope": "All 305 cases above plus this native-fetch regression; four Node test workers."
+  },
+  "endurance": {
+    "runId": 40407231160,
+    "jobId": 121868017499,
+    "sourceCommit": "15c3dbbb97f86351980630aa8069242e9da5c5d6",
+    "status": "in_progress",
+    "requestedMinutes": 120,
+    "startedAt": "2026-10-26T21:47:25Z",
+    "scope": "Two isolated public visitor contexts. Subsequent admin-only changes are outside this long-session scope.",
+    "completionRule": "Require ENDURANCE_COMPLETE with pass true, requestedMinutes 120, elapsedSeconds at least 7200 and a successful workflow conclusion."
+  },
+  "limitations": [
+    "Real email delivery and real administrator password changes were not exercised.",
+    "Physical Apple devices, human assistive-technology review and full WCAG conformance are not established.",
+    "No production load or destructive security testing was performed.",
+    "Older browsers without Web Locks have same-page SDK locking only; cross-tab guarantees are unverified."
+  ],
+  "productionAssetVerification": {
+    "checkedAt": "2026-10-26T23:16:17.840468+00:00",
+    "sourceCommit": "549fcd7d8ebbac96cba0770d0dfdddf8a4e7b3b9",
+    "mergeCommit": "1a7163998234fc7166cf62354addfb7ccc7fdc31",
+    "results": [
+      {
+        "asset": "admin/index.html",
+        "status": 200,
+        "matches": true,
+        "sha256": "a868f490bfd862104d3dd6fd3e5a83cfce0d4069c93278b6dd0ea9b93e2113bc",
+        "expectedSha256": "a868f490bfd862104d3dd6fd3e5a83cfce0d4069c93278b6dd0ea9b93e2113bc",
+        "verifiedAt": "2026-10-26T23:16:17.840445+00:00"
+      },
+      {
+        "asset": "admin.js",
+        "status": 200,
+        "matches": true,
+        "sha256": "612499dc3392bf7f502e1109e9c08a3bc57e0091722f14b5033c18dbae848217",
+        "expectedSha256": "612499dc3392bf7f502e1109e9c08a3bc57e0091722f14b5033c18dbae848217"
+      },
+      {
+        "asset": "admin-glass.css",
+        "status": 200,
+        "matches": true,
+        "sha256": "56df955fb5945b383eac13485b72f58421c155f51fcfc984b733e934998b7f85",
+        "expectedSha256": "56df955fb5945b383eac13485b72f58421c155f51fcfc984b733e934998b7f85"
+      },
+      {
+        "asset": "admin-content-review.js",
+        "status": 200,
+        "matches": true,
+        "sha256": "5caba1e130c0e99c83b2018f117d02e8f5532458fe40eece45d0c85b27a96741",
+        "expectedSha256": "5caba1e130c0e99c83b2018f117d02e8f5532458fe40eece45d0c85b27a96741"
+      },
+      {
+        "asset": "admin-account.js",
+        "status": 200,
+        "matches": true,
+        "sha256": "f89f7c7f8a3bd19eb7412f172694d1c806b8f6c8a17b9cf8618cf4ecda53cd13",
+        "expectedSha256": "f89f7c7f8a3bd19eb7412f172694d1c806b8f6c8a17b9cf8618cf4ecda53cd13"
+      }
+    ]
+  }
+}
