@@ -48,7 +48,7 @@ The earlier read-only upgrade review found `pgcrypto` 1.3, no `ltree`/`btree_gis
 - Synthetic persisted page-lifecycle tests clear private UI and reload through server identity/membership verification. Actual back/forward-cache behavior on physical Apple hardware remains unverified.
 - Automated axe results and Linux WebKit coverage do not establish full WCAG conformance or replace human screen-reader and physical iPhone/iPad checks.
 - The archive currently loads the newest 100 published issues. Add bounded pagination/direct older-issue loading before the collection grows beyond that window. The current small collection did not demonstrate lost access.
-- The Owner function currently scans the first 1,000 Auth users for email mapping. Add bounded pagination or a targeted lookup before that limit becomes relevant. The fixture directory is not a production user inventory.
+- The Owner list reads only administrator profiles, with four reads at a time. Invitation lookup checks up to ten pages of 1,000 Auth users and fails without inviting or granting membership if that budget cannot establish whether an address exists. Plan a targeted email lookup before 10,000 Auth accounts. The fixture directory is not a production user inventory; consult the release record for Edge deployment status.
 - The two-hour public-site check exercises long-lived visitor sessions and bounded memory/listener behavior. It is not 120 minutes of penetration testing, a load test, or a count of distinct security vulnerabilities. Its completion must be verified from the final workflow log.
 
 ## Release and rollback

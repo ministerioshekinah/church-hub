@@ -60,6 +60,10 @@ Before adding another administrator, confirm in Supabase that:
 
 Supabase automatically provides secret API credentials to hosted Edge Functions. Never copy those secret credentials into `supabase-config.js`, `admin.js`, `administrators.js`, or any other browser-served file.
 
+The Owner list fetches Auth profiles only for existing administrator memberships, with at most four profile reads at once. It does not scan unrelated accounts. A deleted Auth profile can appear without an email; a provider failure produces an error instead of a partial list.
+
+Adding an address first checks for an existing Auth account using pages of up to 1,000 users. An existing account receives membership without an invitation, and an existing Owner keeps that role. The lookup stops after ten pages. If the directory cannot be checked completely, the request fails without sending an invitation or granting membership. At 10,000 or more Auth accounts, plan a targeted server-side email lookup before this bound affects new invitations. These are capacity limits, not an estimate of the church's account count.
+
 ## Password setup and recovery
 
 An invited administrator follows the Supabase email link. After the portal verifies both the account identity and current allow-list membership, the **Account** tab opens with password setup. A verified recovery link follows the same path. A link type in the URL does not itself authorize an account.
