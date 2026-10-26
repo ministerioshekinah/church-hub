@@ -403,12 +403,17 @@ function handleAdminAuthChange(event, session) {
   // Auth callbacks remain synchronous. A different account must not inherit
   // private drafts or Owner UI from a previously verified identity in this tab.
   if (event === "SIGNED_OUT") {
-    const requested = Boolean(signOutState);
-    signOutState = null;
+    const requested = signOutState;
+    // The SDK emits SIGNED_OUT after clearing local storage even when global
+    // revocation failed. Only the awaited request result confirms that outcome.
+    if (requested?.pending) requested.localCleared = true;
+    else signOutState = null;
     lastAuthEventId = null;
     showLogin();
-    if (requested) {
-      adminMessage.textContent = "Signed out securely.";
+    if (requested?.pending) {
+      adminMessage.textContent = "Signing out. Wait for confirmation before leaving a shared device.";
+    } else if (requested) {
+      adminMessage.textContent = "Signed out on this device.";
       emailInput.focus();
     }
     return;
@@ -584,6 +589,13 @@ async function requestSignOut() {
     emailInput.focus();
   } catch {
     if (signOutState !== state) return;
+    if (state.localCleared) {
+      signOutState = null;
+      showLogin();
+      adminMessage.textContent = "Signed out on this device. Sign-out of other sessions could not be confirmed.";
+      emailInput.focus();
+      return;
+    }
     state.pending = false;
     renderSignOutState();
     adminMessage.textContent = "Sign-out could not be confirmed. Check your connection and retry sign-out before leaving a shared device.";

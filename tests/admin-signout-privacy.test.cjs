@@ -34,7 +34,7 @@ test('Sign-out privacy: a pending request immediately clears private data withou
   p.run('finishLogout({error:null})');await settle();
 });
 
-test('Sign-out privacy: provider failure keeps private data cleared and an explicit retry can finish',async()=>{
+test('Sign-out privacy: failure before local cleanup keeps private data cleared and an explicit retry can finish',async()=>{
   const p=await fixture();click(p,p.document.getElementById('signOutButton'));
   p.run('finishLogout({error:{message:"Private provider detail"}})');await settle();
   assert.match(p.document.getElementById('adminMessage').textContent,/could not be confirmed/);
@@ -57,10 +57,13 @@ test('Sign-out privacy: duplicate requests and hidden sign-in submissions cannot
   p.run('finishLogout({error:null})');await settle();
 });
 
-test('Sign-out privacy: a confirmed SDK sign-out event wins over a late request failure',async()=>{
+test('Sign-out privacy: a local SDK sign-out event cannot falsely confirm remote revocation',async()=>{
   const p=await fixture();click(p,p.document.getElementById('signOutButton'));
-  p.run(`handleAdminAuthChange('SIGNED_OUT',null);finishLogout({error:new Error('late failure')});`);await settle();
-  assert.equal(p.document.getElementById('adminMessage').textContent,'Signed out securely.');
+  p.run(`handleAdminAuthChange('SIGNED_OUT',null);`);
+  assert(!p.document.getElementById('adminMessage').textContent.includes('Signed out securely'));
+  assert.equal(p.document.getElementById('adminLoginForm').hidden,true);
+  p.run(`finishLogout({error:new Error('late failure')});`);await settle();
+  assert.equal(p.document.getElementById('adminMessage').textContent,'Signed out on this device. Sign-out of other sessions could not be confirmed.');
   assert.equal(p.document.getElementById('retrySignOutButton').hidden,true);assert.equal(p.document.getElementById('adminLoginForm').hidden,false);
 });
 
