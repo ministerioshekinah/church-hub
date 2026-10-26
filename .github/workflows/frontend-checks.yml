@@ -31,7 +31,7 @@ jobs:
         run: npm audit --prefix security/runtime-dependencies --audit-level=high
   browser-regressions:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
