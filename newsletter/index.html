@@ -25,11 +25,11 @@
 
   <link rel="stylesheet" href="/style.css?v=9.3" />
   <link rel="stylesheet" href="/newsletter-extensions.css?v=2.1" />
-  <link rel="stylesheet" href="/public-glass.css?v=4.6" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.7" />
   <link rel="stylesheet" href="/footer.css?v=2.0" />
   <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/print.css?v=1.1" media="print" />
+  <link rel="stylesheet" href="/print.css?v=1.2" media="print" />
 </head>
 <body data-page="newsletter">
   <div class="ambient-background" aria-hidden="true">
@@ -88,21 +88,29 @@
             <div class="newsletter-tools" id="newsletterTools" role="group" aria-label="Newsletter tools" data-i18n-aria-label="newsletter_tools" hidden>
               <button class="utility-button" id="copyNewsletterLink" type="button" data-i18n="copy_issue_link">Copy issue link</button>
               <button class="utility-button" id="printNewsletter" type="button" data-i18n="print_issue">Print newsletter</button>
+              <a class="utility-button" id="browseNewsletterArchive" href="#newsletterArchivePanel" data-i18n="browse_issues" hidden>Browse issues</a>
             </div>
           </div>
           <p class="tool-status" id="newsletterToolStatus" role="status" aria-live="polite"></p>
           <p class="selection-notice" id="newsletterSelectionNotice" role="status" hidden></p>
+          <nav class="newsletter-contents" id="newsletterContentsWrap" aria-label="In this issue" data-i18n-aria-label="in_this_issue" hidden>
+            <p class="mini-label" data-i18n="in_this_issue">In this issue</p>
+            <div id="newsletterContents"></div>
+          </nav>
           <article class="full-newsletter" id="latestNewsletter" tabindex="-1" aria-busy="true">
             <p data-i18n="loading_newsletter">Loading newsletter…</p>
           </article>
+          <nav class="issue-pagination" id="issuePagination" aria-label="More newsletters" data-i18n-aria-label="more_newsletters" hidden></nav>
           <button class="button button-secondary retry-button" id="newsletterRetry" type="button" data-i18n="retry" hidden>Try again</button>
         </div>
 
-        <aside>
+        <aside id="newsletterArchivePanel" tabindex="-1">
           <p class="eyebrow" data-i18n="browse_issues">Browse issues</p>
           <div class="archive-search-wrap" id="archiveSearchWrap" hidden>
             <label for="archiveSearch" data-i18n="search_issues">Search issues</label>
-            <input type="search" id="archiveSearch" maxlength="120" autocomplete="off" />
+            <p class="archive-search-help" id="archiveSearchHelp" data-i18n="search_issues_hint">Find a title, date, or words from an issue.</p>
+            <input type="search" id="archiveSearch" maxlength="120" autocomplete="off" enterkeyhint="search" aria-describedby="archiveSearchHelp" aria-controls="newsletterArchive" />
+            <button class="utility-button archive-clear" id="clearArchiveSearch" type="button" data-i18n="clear_search" hidden>Clear search</button>
           </div>
           <p class="archive-count" id="archiveCount" role="status" aria-live="polite"></p>
           <div class="archive-list" id="newsletterArchive">
@@ -140,7 +148,7 @@
   </footer>
 
   <script src="/supabase-config.js?v=11.6"></script>
-  <script src="/script.js?v=15.4"></script>
+  <script src="/script.js?v=15.5"></script>
   <script src="/newsletter-extensions.js?v=4.3"></script>
 </body>
 </html>

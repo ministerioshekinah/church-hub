@@ -69,6 +69,54 @@ async function check(name,fn) {
     await page.locator('#copyNewsletterLink').click();assert.match(await page.evaluate(()=>window.__testClipboard[0]),/\/newsletter\/\?issue=test-issue-0$/);
     await page.locator('#printNewsletter').click();assert.equal(await page.evaluate(()=>window.__testPrints),1);
   }));
+  await check('Visit calendar: a real download preserves the next Los Angeles service across DST',()=>journey({lang:'es',viewport:{width:320,height:900}},async({page,state,goto})=>{
+    await page.clock.setFixedTime(new Date('2026-10-26T21:00:00Z'));
+    await goto('/');
+    assert.match(await page.locator('#nextServiceDate').innerText(),/domingo.*1.*noviembre.*2026/);
+    assert.equal(await page.locator('#nextServiceDate').getAttribute('datetime'),'2026-11-01T23:00:00.000Z');
+    const requestCount=state.requests.filter(r=>r.url.includes('/rest/v1/')).length;
+    const downloadPromise=page.waitForEvent('download');
+    await page.locator('#downloadServiceCalendar').click();
+    const download=await downloadPromise;
+    assert.equal(download.suggestedFilename(),'shekinah-service-2026-11-01.ics');
+    const content=fs.readFileSync(await download.path(),'utf8').replace(/\r\n /g,'');
+    assert.match(content,/DTSTART:20261101T230000Z/);assert.match(content,/SUMMARY:Servicio Dominical/);
+    assert.match(content,/LOCATION:2149 W Washington Blvd\\, Los Angeles\\, CA 90018/);
+    assert.match(await page.locator('#calendarStatus').innerText(),/Archivo de calendario listo/);
+    assert.equal(state.requests.filter(r=>r.url.includes('/rest/v1/')).length,requestCount);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }));
+  await check('Visit calendar: an unavailable optional bundle and special schedule retain the core visit details',async()=>{
+    for(const scenario of ['bundle','notice','offline'])await journey({},async({page,state,context,goto})=>{
+      if(scenario==='bundle')await context.route('**/visit-calendar.js?*',route=>route.abort());
+      if(scenario==='notice')state.data.service_settings[0].special_message_en='Please check our holiday announcement.';
+      if(scenario==='offline')state.offline=true;
+      await goto('/');assert(await page.locator('#visitCalendar').isHidden());
+      if(scenario!=='offline'){assert.equal(await page.locator('#visitServiceTime').innerText(),'3:00 PM');assert(await page.locator('#copyAddress').isVisible());}
+    });
+  });
+  await check('Newsletter reading: direct sections, keyboard focus, body search, neighbors and browser history',()=>journey({viewport:{width:320,height:900}},async({page,state,goto})=>{
+    state.data.newsletters[1].community_es='Únete a la comida comunitaria.';
+    state.data.newsletters[1].optional_sections=[{type:'custom',title_en:'A special section',body_en:'Welcome, neighbors.'}];
+    await goto('/newsletter/?issue=test-issue-1#newsletter-section-4');
+    assert(await page.locator('#newsletter-section-4').evaluate(e=>e===document.activeElement));
+    await page.locator('#newsletterContents a').first().click();
+    assert(await page.locator('#newsletter-section-1').evaluate(e=>e===document.activeElement));
+    await page.locator('#issuePagination a').first().click();
+    assert.equal(await page.locator('#latestNewsletter').getAttribute('data-issue-id'),'test-issue-0');
+    await page.goBack();
+    assert.equal(await page.locator('#latestNewsletter').getAttribute('data-issue-id'),'test-issue-1');
+    await page.locator('#browseNewsletterArchive').click();
+    assert(await page.locator('#newsletterArchivePanel').evaluate(e=>e===document.activeElement));
+    await page.locator('#archiveSearch').fill('no such published issue');
+    assert.equal(await page.locator('.archive-item').count(),0);
+    await page.locator('#clearArchiveSearch').click();assert(await page.locator('#archiveSearch').evaluate(e=>e===document.activeElement));
+    await page.locator('#issuePagination a').first().click();
+    await page.locator('#archiveSearch').fill('unete a la comida');
+    assert.equal(await page.locator('.archive-item').count(),1);
+    await page.locator('.archive-item').click();assert.equal(await page.locator('#latestNewsletter').getAttribute('data-issue-id'),'test-issue-1');
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }));
   await check('Missing issue and untrusted CMS text remain harmless text',()=>journey({},async({page,state,goto})=>{
     const payload='<img src=x onerror="window.__unsafe=true">';state.data.newsletters[0].title_en=payload;
     await goto('/newsletter/?issue=%3Cscript%3Ebad%3C/script%3E');

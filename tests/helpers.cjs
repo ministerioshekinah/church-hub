@@ -33,7 +33,10 @@ async function page(name = 'index.html', options = {}) {
   Element.prototype.animate=function(frames,opts){reports.animations.push({frames,opts});let cancel;let timer;const finished=new Promise((resolve,reject)=>{timer=setTimeout(resolve,1);cancel=()=>{clearTimeout(timer);reject(new Error('cancelled'));};});finished.catch(()=>{});return {finished,cancel};};
   const localStorage={getItem:k=>{if(options.blockedStorage)throw Error('blocked');return storage.get(k)||null;},setItem:(k,v)=>{if(options.blockedStorage)throw Error('blocked');storage.set(k,v);}};
   const fetch=async url=>{reports.requests.push(url);if(options.unavailable)throw Error('offline');if(options.fetch) return options.fetch(url);return {ok:true,json:async()=>url.includes('newsletters')?(options.issues||[]):url.includes('service')?[{id:1,service_time:'15:00'}]:(options.announcements||[])};};
-  const ctx=vm.createContext({window:browser,document,Element,localStorage,navigator:{clipboard:{writeText:async value=>{if(options.clipboardDenied)throw Error('denied');reports.clipboard.push(value);}}},fetch,URL,URLSearchParams,AbortController,setTimeout,clearTimeout,console:{error:(...args)=>reports.errors.push(args),info(){}}});
+  // Long-lived browser refresh timers must not keep a completed Node fixture
+  // alive. Short interaction/deadline timers retain their normal behavior.
+  const fixtureTimeout=(callback,delay,...args)=>{const timer=setTimeout(callback,delay,...args);if(delay>=60000)timer.unref();return timer;};
+  const ctx=vm.createContext({window:browser,document,Element,localStorage,navigator:{clipboard:{writeText:async value=>{if(options.clipboardDenied)throw Error('denied');reports.clipboard.push(value);}}},fetch,URL,URLSearchParams,AbortController,setTimeout:fixtureTimeout,clearTimeout,console:{error:(...args)=>reports.errors.push(args),info(){}}});
   const run=code=>vm.runInContext(code,ctx);
   run(`function contentClient(write) {
     const query=(table,operation,payload)=>{
@@ -44,7 +47,7 @@ async function page(name = 'index.html', options = {}) {
     return {from:table=>({insert:payload=>query(table,'insert',payload),update:payload=>query(table,'update',payload),delete:()=>query(table,'delete')})};
   }`);
   if(name==='admin/index.html') {run(read('theme.js'));run(read('admin.js').replace(/initializeAuth\(\);\s*$/,''));}
-  else {run(read('theme.js'));run(read('supabase-config.js'));run(read('script.js'));if(name==='newsletter/index.html')run(read('newsletter-extensions.js'));}
+  else {run(read('theme.js'));run(read('supabase-config.js'));if(name==='index.html')run(read('visit-calendar.js'));run(read('script.js'));if(name==='newsletter/index.html')run(read('newsletter-extensions.js'));}
   if(options.boot!==false) {document.dispatchEvent(new Event('DOMContentLoaded'));await new Promise(r=>setImmediate(r));Object.defineProperty(document,'readyState',{value:'complete',configurable:true});}
   return {document,browser,location,reports,storage,media,Event,run};
 }
