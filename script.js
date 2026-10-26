@@ -1,4 +1,4 @@
-window.SHEKINAH_PUBLIC_READY = true;
+window.SHEKINAH_PUBLIC_READY = false;
 
 const translations = {
   en: {
@@ -55,6 +55,8 @@ const translations = {
     newer_issue: "Newer issue",
     older_issue: "Older issue",
     newsletter_document_title: "Newsletter | Ministerio Cristiano Shekinah",
+    planning_a_visit: "Planning a visit?",
+    view_current_service: "See current service details",
     no_matching_issues: "No other issues match your search.",
     no_other_issues: "You’re reading the only published issue. More updates will appear here.",
     issue_count: "issues to explore",
@@ -168,6 +170,8 @@ const translations = {
     newer_issue: "Boletín más reciente",
     older_issue: "Boletín anterior",
     newsletter_document_title: "Boletín | Ministerio Cristiano Shekinah",
+    planning_a_visit: "¿Planeas visitarnos?",
+    view_current_service: "Consulta los detalles actuales del servicio",
     no_matching_issues: "No hay otros boletines que coincidan con tu búsqueda.",
     no_other_issues: "Estás leyendo el único boletín publicado. Aquí aparecerán las próximas novedades.",
     issue_count: "boletines para explorar",
@@ -705,9 +709,9 @@ function renderAnnouncements(announcements) {
 
       return `
         <article class="announcement-card">
-          ${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}
-          <h3>${escapeHtml(title)}</h3>
-          <p>${escapeHtml(description)}</p>
+          ${tag ? `<span class="tag" lang="${localizedContentLanguage(announcement, "tag")}">${escapeHtml(tag)}</span>` : ""}
+          <h3 lang="${localizedContentLanguage(announcement, "title")}">${escapeHtml(title)}</h3>
+          <p lang="${localizedContentLanguage(announcement, "description")}">${escapeHtml(description)}</p>
         </article>
       `;
     })
@@ -846,6 +850,7 @@ function renderNewsletterReadingTools(issues, selectedId) {
       const link = document.createElement("a");
       link.href = `#${heading.id}`;
       link.textContent = heading.textContent;
+      if (heading.hasAttribute("lang")) link.setAttribute("lang", heading.getAttribute("lang"));
       links.appendChild(link);
     });
     contents.replaceChildren(links);
@@ -865,6 +870,7 @@ function renderNewsletterReadingTools(issues, selectedId) {
       direction.textContent = translations[currentLanguage][label];
       const title = document.createElement("strong");
       title.textContent = issue[`title_${currentLanguage}`] || issue.title_en;
+      title.setAttribute("lang", localizedContentLanguage(issue, "title"));
       link.append(direction, title);
       links.appendChild(link);
     }
@@ -927,8 +933,8 @@ function renderNewsletterArchive(issues, selectedId) {
 
         return `
           <a class="archive-item" href="/newsletter/?issue=${encodeURIComponent(issue.id)}">
-            <strong>${escapeHtml(title)}</strong>
-            <span>${escapeHtml(date)}</span>
+            <strong lang="${localizedContentLanguage(issue, "title")}">${escapeHtml(title)}</strong>
+            <span lang="${localizedContentLanguage(issue, "date")}">${escapeHtml(date)}</span>
           </a>
         `;
       })
@@ -964,10 +970,12 @@ function renderHomepageNewsletter() {
   const badge = document.getElementById("homepageNewsletterBadge");
   if (!title || !date || !link) return;
   date.textContent = "";
+  title.removeAttribute("lang");
   link.href = "/newsletter/";
   if (cachedHomepageIssue) {
     if (badge) badge.textContent = translations[currentLanguage].latest_issue;
     title.textContent = cachedHomepageIssue[`title_${currentLanguage}`] || cachedHomepageIssue.title_en;
+    title.setAttribute("lang", localizedContentLanguage(cachedHomepageIssue, "title"));
     const issueDate = new Date(`${cachedHomepageIssue.issue_date}T12:00:00`);
     if (!Number.isNaN(issueDate.getTime())) date.textContent = new Intl.DateTimeFormat(currentLanguage === "es" ? "es-US" : "en-US", { month: "long", day: "numeric", year: "numeric" }).format(issueDate);
     link.href = `/newsletter/?issue=${encodeURIComponent(cachedHomepageIssue.id)}`;
@@ -1066,8 +1074,8 @@ function renderNewsletter(issue, container) {
 
   container.innerHTML = `
     <span class="tag">${escapeHtml(translations[currentLanguage].latest_issue)}</span>
-    <h2>${escapeHtml(title)}</h2>
-    <p class="issue-date">${escapeHtml(date)}</p>
+    <h2 lang="${localizedContentLanguage(issue, "title")}">${escapeHtml(title)}</h2>
+    <p class="issue-date" lang="${localizedContentLanguage(issue, "date")}">${escapeHtml(date)}</p>
     ${sections
       .map((section) => {
         const heading =
@@ -1077,13 +1085,17 @@ function renderNewsletter(issue, container) {
 
         return `
           <section class="newsletter-section">
-            <h3>${escapeHtml(heading)}</h3>
-            <p>${escapeHtml(body)}</p>
+            <h3 lang="${localizedContentLanguage(section, "heading")}">${escapeHtml(heading)}</h3>
+            <p lang="${localizedContentLanguage(section, "body")}">${escapeHtml(body)}</p>
           </section>
         `;
       })
       .join("")}
   `;
+}
+
+function localizedContentLanguage(item, field) {
+  return currentLanguage === "es" && !item?.[`${field}_es`] ? "en" : currentLanguage;
 }
 
 function escapeHtml(value = "") {
@@ -1356,6 +1368,7 @@ function startPublicPage() {
   initializePublicPage();
   initializePublicInteractions();
   initializeAmbientBackground();
+  window.SHEKINAH_PUBLIC_READY = true;
 }
 // All deferred extensions register before the single initial content request.
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startPublicPage, { once: true });

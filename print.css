@@ -1,7 +1,7 @@
 /* Reading copies should use the page, not reproduce the navigation chrome. */
 body { background: white !important; color: #111 !important; }
 .site-header, .ambient-background, .footer, .back-to-top, .skip-link,
-.newsletter-tools, .newsletter-contents, .issue-pagination, .tool-status, .newsletter-page-grid > aside,
+.newsletter-tools, .newsletter-contents, .issue-pagination, .newsletter-visit-prompt, .tool-status, .newsletter-page-grid > aside,
 .retry-button, .information-contents, .information-tabs { display: none !important; }
 .container { width: 100%; max-width: none; }
 .newsletter-hero { padding: 0 0 16px; }

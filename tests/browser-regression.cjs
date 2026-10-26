@@ -203,6 +203,33 @@ async function check(name,fn) {
     await goto('/privacy/');assert(await page.locator('[data-language-content="en"]').isVisible());assert(await page.locator('[data-language-content="es"]').isVisible());
     assert(await page.locator('#navMenu').isVisible());assert.equal(await page.locator('#menuButton').isVisible(),false);
   }));
+  await check('Public startup recovery: missing application code keeps bilingual help and mobile links usable',async()=>{
+    for(const route of ['/','/newsletter/','/contact/'])await journey({viewport:{width:320,height:900}},async({page,context,goto})=>{
+      const block=route=>route.abort();
+      await context.route('**/script.js?*',block);
+      await goto(route);
+      assert(await page.locator('#publicStartupNotice').isVisible());
+      assert(await page.locator('#navMenu').isVisible());
+      assert(await page.locator('#menuButton').isHidden());
+      assert.equal(await page.locator('[aria-busy="true"]').count(),0);
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      await context.unroute('**/script.js?*',block);
+      await page.locator('#reloadPublicPage').click();
+      await page.locator('#publicStartupNotice').waitFor({state:'hidden'});
+      assert(await page.locator('#menuButton').isVisible());
+      if(route==='/newsletter/')await page.waitForFunction(()=>document.querySelector('#latestNewsletter')?.dataset.issueId);
+    });
+  });
+  await check('Without JavaScript: live-content loading labels are replaced by bilingual guidance',()=>journey({javascript:false,viewport:{width:320,height:900}},async({page,goto})=>{
+    for(const route of ['/','/newsletter/']) {
+      await goto(route);
+      assert(await page.getByText('Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.').isVisible());
+      assert(await page.locator('#navMenu').isVisible());
+      if(route==='/'){assert(await page.locator('#heroServiceTime').isHidden());assert(await page.locator('#announcementList').isHidden());}
+      else assert(await page.locator('#latestNewsletter').isHidden());
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    }
+  }));
   await check('Original fonts load locally; the public page makes no font-provider requests',()=>journey({},async({page,state,goto})=>{
     await goto();const loaded=await page.evaluate(()=>[...document.fonts].filter(f=>f.status==='loaded').map(f=>f.family));
     assert(loaded.some(f=>f.includes('Inter')));assert(loaded.some(f=>f.includes('Playfair Display')));

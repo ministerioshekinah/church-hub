@@ -615,6 +615,12 @@ main :is(section[id], [id][tabindex="-1"]) { scroll-margin-top: 126px; }
 .issue-neighbor strong { font-size: .9rem; line-height: 1.6; overflow-wrap: anywhere; }
 .archive-search-help { margin: 0 0 10px; font-size: .75rem; line-height: 1.6; color: var(--glass-muted); }
 .archive-clear { margin-top: 10px; }
+.newsletter-visit-prompt { margin: 22px 4px 0; color: var(--glass-muted); font-size: .85rem; line-height: 1.8; }
+.newsletter-visit-prompt a { text-decoration: underline; text-underline-offset: .2em; }
+.public-startup-notice { margin-block: 24px; padding: 22px; border: 1px solid var(--glass-edge); border-radius: 20px; background: #f1f4ea; color: var(--glass-ink); }
+.public-startup-notice p { margin: 0 0 12px; line-height: 1.8; font-size: .9rem; }
+.public-startup-notice p:last-child { margin-bottom: 0; }
+[data-theme="dark"] .public-startup-notice { background: #202c1e; }
 .utility-button {
   min-height: 44px; padding: 9px 14px; border: 1px solid #a0b38c55;
   border-radius: 999px; background: #ffffffb8; color: var(--glass-ink);

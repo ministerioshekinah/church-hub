@@ -6,6 +6,11 @@
   border-top: 1px solid;
 }
 .language-toggle, .theme-toggle, .menu-button { display: none !important; }
+#announcementList, #latestNewsletter, #newsletterIssueLabel,
+.newsletter-page-grid > aside, #homepageNewsletterBadge,
+#homepageNewsletterTitle, #homepageNewsletterDate, #heroServiceSummary,
+#heroServiceTime, #serviceSectionTime, #visitServiceTime,
+.visit-card > .card-label, .visit-card > h3 { display: none !important; }
 @media (max-width: 1100px) {
   .site-header .nav {
     position: static;

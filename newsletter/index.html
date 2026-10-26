@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="/newsletter-extensions.css?v=2.1" />
   <link rel="stylesheet" href="/public-glass.css?v=4.7" />
   <link rel="stylesheet" href="/footer.css?v=2.0" />
-  <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
+  <noscript><link rel="stylesheet" href="/no-script.css?v=1.1" /></noscript>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/print.css?v=1.2" media="print" />
 </head>
@@ -70,6 +70,17 @@
   </header>
 
   <main id="main-content" tabindex="-1">
+    <section class="public-startup-notice container" id="publicStartupNotice" role="status" hidden>
+      <p lang="en">This page did not finish loading. Reload it to see current service information and church updates.</p>
+      <p lang="es">Esta página no terminó de cargar. Vuelve a cargarla para ver la información actual del servicio y las novedades de la iglesia.</p>
+      <button class="button button-secondary" id="reloadPublicPage" type="button"><span lang="en">Reload page</span><span aria-hidden="true"> / </span><span lang="es">Volver a cargar</span></button>
+    </section>
+    <noscript>
+      <div class="public-startup-notice container">
+        <p lang="en">Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.</p>
+        <p lang="es">Activa JavaScript y vuelve a cargar para ver los detalles actuales del servicio, los anuncios y los boletines. Aún puedes usar la navegación y leer nuestras páginas de información.</p>
+      </div>
+    </noscript>
     <section class="newsletter-hero">
       <div class="container">
         <p class="eyebrow" data-i18n="stay_connected">Stay connected</p>
@@ -100,6 +111,7 @@
           <article class="full-newsletter" id="latestNewsletter" tabindex="-1" aria-busy="true">
             <p data-i18n="loading_newsletter">Loading newsletter…</p>
           </article>
+          <p class="newsletter-visit-prompt"><span data-i18n="planning_a_visit">Planning a visit?</span> <a href="/#visit" data-i18n="view_current_service">See current service details</a>.</p>
           <nav class="issue-pagination" id="issuePagination" aria-label="More newsletters" data-i18n-aria-label="more_newsletters" hidden></nav>
           <button class="button button-secondary retry-button" id="newsletterRetry" type="button" data-i18n="retry" hidden>Try again</button>
         </div>
@@ -147,8 +159,9 @@
     </div>
   </footer>
 
-  <script src="/supabase-config.js?v=11.6"></script>
+  <script src="/supabase-config.js?v=11.7"></script>
   <script src="/script.js?v=15.5"></script>
-  <script src="/newsletter-extensions.js?v=4.3"></script>
+  <script src="/newsletter-extensions.js?v=4.4"></script>
+  <script src="/public-startup.js?v=1.0"></script>
 </body>
 </html>

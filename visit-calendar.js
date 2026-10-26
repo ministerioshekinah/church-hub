@@ -32,7 +32,7 @@
   }
 
   function nextService(service, now = new Date()) {
-    if (!service || !Number.isFinite(now.getTime())) return null;
+    if (!service || typeof now?.getTime !== "function" || !Number.isFinite(now.getTime())) return null;
     const dayEn = dayNumber(service.day_en), dayEs = dayNumber(service.day_es);
     if (dayEn === -1 || dayEs === -1 || (dayEn === null && dayEs === null)) return null;
     if (dayEn !== null && dayEs !== null && dayEn !== dayEs) return null;
@@ -94,7 +94,7 @@
     if (!start || !address || address.length > 1000) return null;
     const spanish = language === "es";
     const label = service[spanish ? "service_label_es" : "service_label_en"];
-    const title = typeof label === "string" && label.trim() ? label.trim().slice(0, 200) : spanish ? "Servicio" : "Church service";
+    const title = typeof label === "string" && label.trim() ? [...label.trim()].slice(0, 200).join("") : spanish ? "Servicio" : "Church service";
     const description = spanish
       ? "Horario habitual de Ministerio Cristiano Shekinah. Consulta los anuncios antes de tu visita por si hay cambios. La hora corresponde a Los Ángeles. Este archivo guarda solo esta fecha y no se actualiza automáticamente."
       : "Regular schedule for Ministerio Cristiano Shekinah. Check announcements before visiting for any changes. The service time is in Los Angeles. This file saves one date and does not update automatically.";
