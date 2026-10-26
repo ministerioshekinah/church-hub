@@ -235,7 +235,12 @@ async function check(name,fn) {
   await check('Without JavaScript: live-content loading labels are replaced by bilingual guidance',()=>journey({javascript:false,viewport:{width:320,height:900}},async({page,goto})=>{
     for(const route of ['/','/newsletter/']) {
       await goto(route);
-      assert(await page.getByText('Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.').isVisible());
+      // Text locators deliberately skip NOSCRIPT; inspect the rendered fallback directly.
+      const guidance=page.locator('noscript .public-startup-notice');
+      assert(await guidance.isVisible());
+      assert.equal(await guidance.locator('p[lang="en"]').innerText(),'Enable JavaScript and reload to view current service details, announcements, and newsletters. You can still use the navigation and read our information pages.');
+      assert(await guidance.locator('p[lang="es"]').isVisible());
+      assert.match(await guidance.locator('p[lang="es"]').innerText(),/^Activa JavaScript y vuelve a cargar/);
       assert(await page.locator('#navMenu').isVisible());
       if(route==='/'){assert(await page.locator('#heroServiceTime').isHidden());assert(await page.locator('#announcementList').isHidden());}
       else assert(await page.locator('#latestNewsletter').isHidden());
