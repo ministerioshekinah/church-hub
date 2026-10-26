@@ -95,6 +95,17 @@ async function check(name,fn) {
       if(scenario!=='offline'){assert.equal(await page.locator('#visitServiceTime').innerText(),'3:00 PM');assert(await page.locator('#copyAddress').isVisible());}
     });
   });
+  await check('Visit calendar: downloading after an idle service boundary refreshes the displayed date',()=>journey({},async({page,goto})=>{
+    await page.clock.setFixedTime(new Date('2026-10-25T21:59:00Z'));
+    await goto('/');
+    assert.equal(await page.locator('#nextServiceDate').getAttribute('datetime'),'2026-10-25T22:00:00.000Z');
+    await page.clock.setFixedTime(new Date('2026-10-25T22:01:00Z'));
+    const downloadPromise=page.waitForEvent('download');
+    await page.locator('#downloadServiceCalendar').click();
+    const download=await downloadPromise;
+    assert.equal(download.suggestedFilename(),'shekinah-service-2026-11-01.ics');
+    assert.equal(await page.locator('#nextServiceDate').getAttribute('datetime'),'2026-11-01T23:00:00.000Z');
+  }));
   await check('Newsletter reading: direct sections, keyboard focus, body search, neighbors and browser history',()=>journey({viewport:{width:320,height:900}},async({page,state,goto})=>{
     state.data.newsletters[1].community_es='Únete a la comida comunitaria.';
     state.data.newsletters[1].optional_sections=[{type:'custom',title_en:'A special section',body_en:'Welcome, neighbors.'}];
@@ -215,6 +226,7 @@ async function check(name,fn) {
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
       await context.unroute('**/script.js?*',block);
       await page.locator('#reloadPublicPage').click();
+      await page.waitForFunction(()=>window.SHEKINAH_PUBLIC_READY===true);
       await page.locator('#publicStartupNotice').waitFor({state:'hidden'});
       assert(await page.locator('#menuButton').isVisible());
       if(route==='/newsletter/')await page.waitForFunction(()=>document.querySelector('#latestNewsletter')?.dataset.issueId);

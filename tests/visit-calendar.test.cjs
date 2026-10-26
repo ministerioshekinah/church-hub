@@ -33,6 +33,7 @@ test('Calendar date: conflicting, custom and missing schedules are not guessed',
     assert.equal(nextService({...service,...change},new Date('2026-10-26T21:00:00Z')),null,JSON.stringify(change));
   }
   assert.equal(nextService(service,new Date('invalid')),null);
+  assert.equal(nextService(service,null),null);
 });
 
 test('Calendar file: one UTC event, stable identity, current address and no inferred duration',()=>{
@@ -64,6 +65,14 @@ test('Calendar file: Spanish reminder and unavailable address handling',()=>{
   assert.match(content,/SUMMARY:Servicio Dominical · Shekinah/);
   assert.match(content,/no se actualiza automáticamente/);
   for(const address of ['',null,'x'.repeat(1001)])assert.equal(calendarFile({...service,address},'en',now),null);
+});
+
+test('Calendar file: truncating a long label preserves complete emoji characters',()=>{
+  const label='x'.repeat(199)+'🙌'.repeat(5);
+  const file=calendarFile({...service,service_label_en:label},'en',new Date('2026-10-26T21:00:00Z'));
+  const summary=file.content.replace(/\r\n /g,'').split('\r\n').find(line=>line.startsWith('SUMMARY:'));
+  assert(summary.endsWith('🙌 · Shekinah'));
+  assert.equal(Buffer.from(summary,'utf8').toString('utf8'),summary);
 });
 
 test('Calendar UI: visible date follows language, clears on outage and suppresses a special notice',async()=>{

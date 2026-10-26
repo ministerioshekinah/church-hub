@@ -591,7 +591,7 @@ function renderVisitDirections() {
 }
 
 let calendarRefreshTimer = null;
-function renderVisitCalendar(service) {
+function renderVisitCalendar(service, now = new Date()) {
   clearTimeout(calendarRefreshTimer);
   calendarRefreshTimer = null;
   const wrap = document.getElementById("visitCalendar");
@@ -605,7 +605,7 @@ function renderVisitCalendar(service) {
   date.removeAttribute("datetime");
   if (status) status.textContent = "";
   const api = window.SHEKINAH_VISIT_CALENDAR;
-  const start = api?.nextService(service);
+  const start = api?.nextService(service, now);
   if (!start || !currentVisitDetails) return;
   try {
     date.textContent = new Intl.DateTimeFormat(currentLanguage === "es" ? "es-US" : "en-US", {
@@ -1168,9 +1168,12 @@ function initializePublicInteractions() {
     let url;
     let link;
     try {
-      const calendar = window.SHEKINAH_VISIT_CALENDAR?.calendarFile(cachedService, currentLanguage);
+      const now = new Date();
+      const calendar = window.SHEKINAH_VISIT_CALENDAR?.calendarFile(cachedService, currentLanguage, now);
+      // Background tabs can throttle the refresh timer. Keep the displayed
+      // date and the exported occurrence tied to the same current instant.
+      renderVisitCalendar(cachedService, now);
       if (!calendar) {
-        renderVisitCalendar(cachedService);
         return;
       }
       url = URL.createObjectURL(new Blob([calendar.content], { type: "text/calendar;charset=utf-8" }));
