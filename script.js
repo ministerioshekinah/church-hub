@@ -496,18 +496,23 @@ function formatPublicServiceTime(timeValue) {
 let currentVisitDetails = null;
 let visitActionGeneration = 0;
 
+function serviceField(service, field, fallback) {
+  for (const language of [currentLanguage, currentLanguage === "es" ? "en" : "es"]) {
+    const value = service[`${field}_${language}`];
+    if (typeof value === "string" && value.trim()) return { value: value.trim(), language };
+  }
+  return { value: fallback, language: currentLanguage };
+}
+
 function renderServiceSettings(service) {
   const retry = document.getElementById("serviceRetry");
   if (retry) retry.hidden = true;
   const isSpanish = currentLanguage === "es";
-  const serviceLabel =
-    service[isSpanish ? "service_label_es" : "service_label_en"] ||
-    (isSpanish ? "Servicio Dominical" : "Sunday Service");
-  const day =
-    service[isSpanish ? "day_es" : "day_en"] ||
-    (isSpanish ? "Domingo" : "Sunday");
-  const specialMessage =
-    service[isSpanish ? "special_message_es" : "special_message_en"];
+  const labelField = serviceField(service, "service_label", isSpanish ? "Servicio" : "Church service");
+  const dayField = serviceField(service, "day", isSpanish ? "Día por confirmar" : "Day to be confirmed");
+  const messageField = serviceField(service, "special_message", translations[currentLanguage].welcome_message);
+  const serviceLabel = labelField.value;
+  const day = dayField.value;
 
   const displayTime =
     formatPublicServiceTime(service.service_time) ||
@@ -528,6 +533,8 @@ function renderServiceSettings(service) {
   if (sectionTime) sectionTime.textContent = displayTime;
   if (visitDay) visitDay.textContent = day;
   if (visitTime) visitTime.textContent = displayTime;
+  for (const element of [heroLabel, sectionLabel]) element?.setAttribute("lang", labelField.language);
+  visitDay?.setAttribute("lang", dayField.language);
 
   const address = typeof service.address === "string" ? service.address.trim() : "";
   currentVisitDetails = address && address.length <= 1000 ? { address, day, time: displayTime } : null;
@@ -537,12 +544,13 @@ function renderServiceSettings(service) {
   const summaryDay = document.getElementById("heroServiceDay");
   const summaryTime = document.getElementById("heroSummaryTime");
   if (summaryDay) summaryDay.textContent = day;
+  summaryDay?.setAttribute("lang", dayField.language);
   if (summaryTime) summaryTime.textContent = displayTime;
   renderVisitDirections();
 
   if (message) {
-    message.textContent =
-      specialMessage || translations[currentLanguage].welcome_message;
+    message.textContent = messageField.value;
+    message.setAttribute("lang", messageField.language);
   }
   renderVisitCalendar(service);
 }
@@ -562,7 +570,18 @@ function renderServiceUnavailable() {
   });
 
   const message = document.getElementById("specialServiceMessage");
-  if (message) message.textContent = translations[currentLanguage].service_error;
+  if (message) {
+    message.textContent = translations[currentLanguage].service_error;
+    message.setAttribute("lang", currentLanguage);
+  }
+  for (const id of ["heroServiceLabel", "serviceSectionLabel", "visitServiceDay"]) {
+    const element = document.getElementById(id);
+    if (!element) continue;
+    element.textContent = id === "visitServiceDay"
+      ? currentLanguage === "es" ? "Día por confirmar" : "Day to be confirmed"
+      : currentLanguage === "es" ? "Servicio" : "Church service";
+    element.setAttribute("lang", currentLanguage);
+  }
 }
 
 function renderVisitDirections() {

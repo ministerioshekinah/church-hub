@@ -95,6 +95,18 @@ async function check(name,fn) {
       if(scenario!=='offline'){assert.equal(await page.locator('#visitServiceTime').innerText(),'3:00 PM');assert(await page.locator('#copyAddress').isVisible());}
     });
   });
+  await check('Service notices: a missing translation never hides a cancellation or invents a different weekday',()=>journey({lang:'es'},async({page,state,goto})=>{
+    Object.assign(state.data.service_settings[0],{day_en:'Wednesday',day_es:'',service_label_en:'Evening service',service_label_es:'',special_message_en:'No service this Wednesday.',special_message_es:''});
+    await goto('/');
+    assert.equal(await page.locator('#visitServiceDay').innerText(),'Wednesday');
+    assert.equal(await page.locator('#visitServiceDay').getAttribute('lang'),'en');
+    assert.equal(await page.locator('#specialServiceMessage').innerText(),'No service this Wednesday.');
+    assert.equal(await page.locator('#specialServiceMessage').getAttribute('lang'),'en');
+    assert(await page.locator('#visitCalendar').isHidden());
+    await page.locator('[data-lang="en"]').click();
+    assert.equal(await page.locator('#specialServiceMessage').innerText(),'No service this Wednesday.');
+    assert(await page.locator('#visitCalendar').isHidden());
+  }));
   await check('Visit calendar: downloading after an idle service boundary refreshes the displayed date',()=>journey({},async({page,goto})=>{
     await page.clock.setFixedTime(new Date('2026-10-25T21:59:00Z'));
     await goto('/');

@@ -178,6 +178,8 @@ The homepage calculates the next occurrence of the regular weekly service in `Am
 
 A custom or conflicting day, invalid time, ambiguous DST time, missing address, or nonempty special-service notice suppresses the calculated reminder. The published schedule and special notice remain readable. The calendar file contains one date, no inferred end time, no subscription, and no automatic updates. It tells visitors to check announcements before coming. Text is escaped and folded according to [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545.html). No calendar connector is required.
 
+If a service field or notice is available in only one language, both language views keep that published text visible and mark its actual language for assistive technology. Missing weekdays display “Day to be confirmed” rather than assuming Sunday.
+
 ### Newsletter reading and recovery
 
 Issue navigation and search operate on already loaded published content. Search covers both languages, dates, and nonempty section text; it does not index empty template headings. Section links work after asynchronous loading and preserve keyboard focus. English fallback fields carry their actual language for assistive technology on Spanish pages.
