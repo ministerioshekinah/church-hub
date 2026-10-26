@@ -24,9 +24,9 @@
   <link rel="stylesheet" href="/assets/fonts/fonts.css?v=1.0" />
 
   <link rel="stylesheet" href="/style.css?v=9.3" />
-  <link rel="stylesheet" href="/public-glass.css?v=4.5" />
+  <link rel="stylesheet" href="/public-glass.css?v=4.6" />
   <script src="/supabase-config.js?v=11.6" defer></script>
-  <script src="/script.js?v=15.3" defer></script>
+  <script src="/script.js?v=15.4" defer></script>
   <link rel="stylesheet" href="/footer.css?v=2.0" />
   <noscript><link rel="stylesheet" href="/no-script.css?v=1.0" /></noscript>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -82,6 +82,8 @@
             church announcements, and our community newsletter.
           </p>
 
+          <p class="service-summary" id="heroServiceSummary"><span class="service-summary-dot" aria-hidden="true"></span><span id="heroServiceDay">Sunday</span><span aria-hidden="true">·</span><span id="heroSummaryTime">3:00 PM</span></p>
+
           <div class="hero-actions">
             <a class="button button-primary" href="#visit" data-i18n="plan_visit">Plan a Visit</a>
             <a class="button button-secondary" href="/newsletter/" data-i18n="read_newsletter">Read Newsletter</a>
@@ -94,7 +96,7 @@
           <p class="card-label" id="heroServiceLabel" data-i18n="sunday_service">Sunday Service</p>
           <h2 data-i18n="join_us">Join Us</h2>
           <p class="service-time" id="heroServiceTime">3:00 PM</p>
-          <p>
+          <p data-service-address>
             2149 W Washington Blvd<br>
             Los Angeles, CA 90018
           </p>
@@ -114,7 +116,7 @@
           <div>
             <h3 id="serviceSectionLabel" data-i18n="sunday_service">Sunday Service</h3>
             <strong id="serviceSectionTime">3:00 PM</strong>
-            <p>2149 W Washington Blvd, Los Angeles, CA 90018</p>
+            <p data-service-address>2149 W Washington Blvd, Los Angeles, CA 90018</p>
           </div>
           <a class="button button-secondary" href="#visit" data-i18n="get_directions">Get directions ↗</a>
         </div>
@@ -162,7 +164,7 @@
         <div>
           <p class="eyebrow" data-i18n="come_worship">Come worship with us</p>
           <h2 class="section-title" data-i18n="visit_ministerio">Visit Ministerio Cristiano Shekinah</h2>
-          <p class="visit-address" id="visitAddress">
+          <p class="visit-address" id="visitAddress" data-service-address>
             2149 W Washington Blvd<br>
             Los Angeles, CA 90018
           </p>
@@ -170,6 +172,7 @@
           <div class="hero-actions">
             <a
               class="button button-light"
+              data-map-provider="apple"
               href="https://maps.apple.com/?daddr=2149+W+Washington+Blvd,+Los+Angeles,+CA+90018"
               target="_blank"
               rel="noopener noreferrer"
@@ -178,6 +181,7 @@
             </a>
             <a
               class="button button-light"
+              data-map-provider="google"
               href="https://www.google.com/maps/dir/?api=1&destination=2149+W+Washington+Blvd+Los+Angeles+CA+90018"
               target="_blank"
               rel="noopener noreferrer"
@@ -188,6 +192,7 @@
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.5"/></svg>
               <span data-i18n="copy_address">Copy address</span>
             </button>
+            <button class="button button-light" id="shareVisit" type="button" hidden><span data-i18n="share_visit">Share church details</span></button>
           </div>
           <p class="copy-status" id="copyStatus" role="status" aria-live="polite"></p>
         </div>

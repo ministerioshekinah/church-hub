@@ -32,6 +32,9 @@ const translations = {
     copy_address: "Copy address",
     address_copied: "Address copied. See you soon!",
     copy_unavailable: "Select the address above to copy it.",
+    share_visit: "Share church details",
+    visit_details_copied: "Church details copied. Paste them into a message to share.",
+    address_unavailable: "The address is temporarily unavailable. Please try again.",
     newsletter_empty_title: "No published newsletter yet",
     newsletter_empty_copy: "Check back for the next Ministerio Cristiano Shekinah update.",
     retry: "Try again",
@@ -129,6 +132,9 @@ const translations = {
     copy_address: "Copiar dirección",
     address_copied: "Dirección copiada. ¡Nos vemos pronto!",
     copy_unavailable: "Selecciona la dirección de arriba para copiarla.",
+    share_visit: "Compartir información de la iglesia",
+    visit_details_copied: "Información copiada. Pégala en un mensaje para compartirla.",
+    address_unavailable: "La dirección no está disponible por el momento. Inténtalo de nuevo.",
     newsletter_empty_title: "Aún no hay un boletín publicado",
     newsletter_empty_copy: "Vuelve pronto para la próxima actualización de Ministerio Cristiano Shekinah.",
     retry: "Intentar de nuevo",
@@ -455,6 +461,9 @@ function formatPublicServiceTime(timeValue) {
   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
 }
 
+let currentVisitDetails = null;
+let visitActionGeneration = 0;
+
 function renderServiceSettings(service) {
   const retry = document.getElementById("serviceRetry");
   if (retry) retry.hidden = true;
@@ -488,6 +497,17 @@ function renderServiceSettings(service) {
   if (visitDay) visitDay.textContent = day;
   if (visitTime) visitTime.textContent = displayTime;
 
+  const address = typeof service.address === "string" ? service.address.trim() : "";
+  currentVisitDetails = address && address.length <= 1000 ? { address, day, time: displayTime } : null;
+  ++visitActionGeneration;
+  const summary = document.getElementById("heroServiceSummary");
+  if (summary) summary.hidden = false;
+  const summaryDay = document.getElementById("heroServiceDay");
+  const summaryTime = document.getElementById("heroSummaryTime");
+  if (summaryDay) summaryDay.textContent = day;
+  if (summaryTime) summaryTime.textContent = displayTime;
+  renderVisitDirections();
+
   if (message) {
     message.textContent =
       specialMessage || translations[currentLanguage].welcome_message;
@@ -495,6 +515,11 @@ function renderServiceSettings(service) {
 }
 
 function renderServiceUnavailable() {
+  currentVisitDetails = null;
+  ++visitActionGeneration;
+  const summary = document.getElementById("heroServiceSummary");
+  if (summary) summary.hidden = true;
+  renderVisitDirections();
   const retry = document.getElementById("serviceRetry");
   if (retry) retry.hidden = false;
   ["heroServiceTime", "serviceSectionTime", "visitServiceTime"].forEach((id) => {
@@ -504,6 +529,31 @@ function renderServiceUnavailable() {
 
   const message = document.getElementById("specialServiceMessage");
   if (message) message.textContent = translations[currentLanguage].service_error;
+}
+
+function renderVisitDirections() {
+  const address = currentVisitDetails?.address;
+  document.querySelectorAll("[data-service-address]").forEach((element) => {
+    element.textContent = address || translations[currentLanguage].address_unavailable;
+  });
+  document.querySelectorAll("[data-map-provider]").forEach((link) => {
+    if (!address) {
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
+      return;
+    }
+    const destination = encodeURIComponent(address);
+    link.href = link.dataset.mapProvider === "apple"
+      ? `https://maps.apple.com/?daddr=${destination}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+    link.removeAttribute("aria-disabled");
+  });
+  ["copyAddress", "shareVisit"].forEach((id) => {
+    const button = document.getElementById(id);
+    if (button) button.hidden = !address;
+  });
+  const status = document.getElementById("copyStatus");
+  if (status) status.textContent = "";
 }
 
 // ------------------------------------------------------------
@@ -1040,23 +1090,49 @@ function initializePublicInteractions() {
   const copyButton = document.getElementById("copyAddress");
   const address = document.getElementById("visitAddress");
   const copyStatus = document.getElementById("copyStatus");
-  if (copyButton && address && copyStatus) {
-    copyButton.hidden = false;
-    copyButton.addEventListener("click", async () => {
+  const shareButton = document.getElementById("shareVisit");
+  let visitActionBusy = false;
+  async function shareOrCopyVisit(share) {
+    if (!currentVisitDetails || visitActionBusy) return;
+    const generation = visitActionGeneration;
+    const details = currentVisitDetails;
+    const text = `Ministerio Cristiano Shekinah\n${details.day} · ${details.time}\n${details.address}\nhttps://mcshekinah.org/`;
+    visitActionBusy = true;
+    [copyButton, shareButton].forEach((button) => { if (button) button.disabled = true; });
+    if (copyStatus) copyStatus.textContent = "";
+    try {
+      if (share && typeof navigator.share === "function") {
+        try {
+          await navigator.share({ title: "Ministerio Cristiano Shekinah", text: `Ministerio Cristiano Shekinah\n${details.day} · ${details.time}\n${details.address}`, url: "https://mcshekinah.org/" });
+          return;
+        } catch (error) {
+          if (error?.name === "AbortError" || generation !== visitActionGeneration) return;
+        }
+      }
       try {
-        await navigator.clipboard.writeText(address.textContent.replace(/\s+/g, " ").trim());
-        copyStatus.textContent = translations[currentLanguage].address_copied;
+        await navigator.clipboard.writeText(share ? text : details.address);
+        if (copyStatus && generation === visitActionGeneration) {
+          copyStatus.textContent = translations[currentLanguage][share ? "visit_details_copied" : "address_copied"];
+        }
       } catch {
+        if (generation !== visitActionGeneration || !address || !copyStatus) return;
         // Clipboard permissions vary on mobile; make the visible address selectable.
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(address);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
+        if (typeof document.createRange === "function") {
+          const selection = window.getSelection?.();
+          const range = document.createRange();
+          range.selectNodeContents(address);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
         copyStatus.textContent = translations[currentLanguage].copy_unavailable;
       }
-    });
+    } finally {
+      visitActionBusy = false;
+      [copyButton, shareButton].forEach((button) => { if (button) button.disabled = false; });
+    }
   }
+  copyButton?.addEventListener("click", () => shareOrCopyVisit(false));
+  shareButton?.addEventListener("click", () => shareOrCopyVisit(true));
 
   const archive = document.getElementById("newsletterArchive");
   archive?.addEventListener("click", (event) => {
