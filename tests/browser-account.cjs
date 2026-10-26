@@ -95,16 +95,31 @@ const secret='Fixture-only new passphrase 42!';
     await page.locator('#adminLoginView').waitFor({state:'visible'});assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.equal(await page.locator('#accountNewPassword').getAttribute('type'),'password');
     assert.equal(writes(p.state).length,0);
   });
-  await check('Account race: sign-out during a pending password request ends with both UI and SDK signed out',{},async p=>{
+  for(const noWebLocks of [false,true])await check(`Account race: sign-out during a pending password request clears UI and SDK (${noWebLocks?'process fallback':'Web Locks'})`,{noWebLocks},async p=>{
     await login(p);const {page,context,state}=p;await page.locator('#accountTab').click();await fill(page);
     let release;const held=new Promise(resolve=>{release=resolve});
     await context.route('**/auth/v1/user',async route=>{if(route.request().method()==='PUT')await held;return route.fallback();});
     const request=page.waitForRequest(request=>request.url().includes('/auth/v1/user')&&request.method()==='PUT');
     await page.locator('#accountSavePassword').click();await request;
     assert(await page.locator('#accountSavePassword').isDisabled());await page.locator('#signOutButton').click();release();
-    await page.locator('#adminLoginView').waitFor({state:'visible'});assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.equal(await page.locator('#accountPasswordStatus').innerText(),'');
+    await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out securely.');assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.equal(await page.locator('#accountPasswordStatus').innerText(),'');
     assert.equal(writes(state).length,1);
     const session=await page.evaluate(async()=>{const {data}=await supabaseClient.auth.getSession();return data.session});assert.equal(session,null);
+  });
+  await check('Account race: another tab signing out during a password change clears both sessions',{},async p=>{
+    await login(p);const {page,context}=p;
+    const other=await context.newPage();await other.goto(site.url+'/admin/',{waitUntil:'networkidle'});await other.locator('#adminDashboard').waitFor({state:'visible'});
+    await page.locator('#accountTab').click();await fill(page);
+    let release;const held=new Promise(resolve=>{release=resolve});
+    await context.route('**/auth/v1/user',async route=>{if(route.request().method()==='PUT')await held;return route.fallback();});
+    const request=page.waitForRequest(request=>request.url().includes('/auth/v1/user')&&request.method()==='PUT');
+    await page.locator('#accountSavePassword').click();await request;await other.locator('#signOutButton').click();release();
+    await other.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out securely.');
+    await page.locator('#adminLoginView').waitFor({state:'visible'});
+    for(const tab of [page,other]){
+      assert.equal(await tab.locator('#accountNewPassword').inputValue(),'');
+      assert.equal(await tab.evaluate(async()=>{const {data}=await supabaseClient.auth.getSession();return data.session}),null);
+    }
   });
   await check('Account link errors: an unverifiable link stays signed out and gives a useful explanation',{},async p=>{
     await p.goto('/admin/#error=access_denied&error_code=otp_expired&type=invite');

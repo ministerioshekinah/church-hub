@@ -339,7 +339,13 @@ async function initializeAuth() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        // The pinned SDK makes locking opt-in. Serialize session updates and
+        // sign-out so a delayed password response cannot restore a signed-out
+        // session. Web Locks also coordinate other tabs on this origin.
+        lock: typeof navigator.locks?.request === "function"
+          ? window.supabase.navigatorLock
+          : window.supabase.processLock
       }
     }
   );
