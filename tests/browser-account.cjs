@@ -25,12 +25,17 @@ const secret='Fixture-only new passphrase 42!';
     await p.page.locator('#adminLoginForm button[type="submit"]').click();await p.page.locator('#adminDashboard').waitFor({state:'visible'});
   }
   async function fill(page){await page.locator('#accountNewPassword').fill(secret);await page.locator('#accountConfirmPassword').fill(secret);}
-  async function failNextBrowserLock(page){
+  async function failBrowserLocks(page){
     // Exercise the real SDK's failure before it can clear local storage.
+    // Replace the exposed manager consistently across engines. Keep failure
+    // active until the UI settles so a background SDK check cannot consume it.
     await page.evaluate(()=>{
-      const request=navigator.locks.request.bind(navigator.locks);
-      navigator.locks.request=(...args)=>{navigator.locks.request=request;return Promise.reject(new DOMException('Fixture lock unavailable','SecurityError'));};
+      window.__fixtureOriginalLocks=navigator.locks;
+      Object.defineProperty(navigator,'locks',{configurable:true,value:{request:()=>Promise.reject(new DOMException('Fixture lock unavailable','SecurityError'))}});
     });
+  }
+  async function restoreBrowserLocks(page){
+    await page.evaluate(()=>{Object.defineProperty(navigator,'locks',{configurable:true,value:window.__fixtureOriginalLocks});delete window.__fixtureOriginalLocks;});
   }
   const writes=state=>state.requests.filter(request=>request.url.includes('/auth/v1/user')&&request.method==='PUT');
 
@@ -192,7 +197,7 @@ const secret='Fixture-only new passphrase 42!';
   });
   await check('Sign-out privacy: a browser lock failure keeps a cleared accessible view and an explicit retry',{theme:'dark',viewport:{width:320,height:1000}},async p=>{
     await login(p);const {page,state}=p;await page.locator('#accountTab').click();await fill(page);
-    await failNextBrowserLock(page);await page.locator('#signOutButton').click();await page.locator('#retrySignOutButton').waitFor({state:'visible'});
+    await failBrowserLocks(page);await page.locator('#signOutButton').click();await page.locator('#retrySignOutButton').waitFor({state:'visible'});await restoreBrowserLocks(page);
     assert(await page.locator('#retrySignOutButton').evaluate(element=>element===document.activeElement));
     assert(await page.locator('#adminDashboard').isHidden());assert(await page.locator('#adminLoginForm').isHidden());
     assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.match(await page.locator('#adminMessage').innerText(),/could not be confirmed/);
@@ -207,8 +212,9 @@ const secret='Fixture-only new passphrase 42!';
   });
   await check('Sign-out privacy: another tab completing logout clears a failed retry without another request',{},async p=>{
     await login(p);const {page,state,context}=p;
-    await failNextBrowserLock(page);
+    await failBrowserLocks(page);
     await page.locator('#signOutButton').click();await page.locator('#retrySignOutButton').waitFor({state:'visible'});
+    await restoreBrowserLocks(page);
     const other=await context.newPage();await other.goto(site.url+'/admin/',{waitUntil:'networkidle'});await other.locator('#adminDashboard').waitFor({state:'visible'});
     await other.locator('#signOutButton').click();await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out on this device.');
     assert(await page.locator('#retrySignOutButton').isHidden());assert(await page.locator('#adminLoginForm').isVisible());
@@ -216,8 +222,9 @@ const secret='Fixture-only new passphrase 42!';
   });
   await check('Sign-out privacy: changing accounts removes a previous account\'s failed retry',{},async p=>{
     await login(p);const {page,state,context}=p;
-    await failNextBrowserLock(page);
+    await failBrowserLocks(page);
     await page.locator('#signOutButton').click();await page.locator('#retrySignOutButton').waitFor({state:'visible'});
+    await restoreBrowserLocks(page);
     const other=await context.newPage();await other.goto(site.url+'/admin/',{waitUntil:'networkidle'});await other.locator('#adminDashboard').waitFor({state:'visible'});
     state.identityUser={id:'22222222-2222-4222-8222-222222222222',aud:'authenticated',role:'authenticated',email:'other@example.test',app_metadata:{},user_metadata:{}};
     const token=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:state.identityUser.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test-signature';
