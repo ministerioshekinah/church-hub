@@ -51,8 +51,8 @@
 
           <div class="admin-card">
             <p class="card-label">Administrator access</p>
-            <h2>Sign in</h2>
-            <p class="admin-card-copy">
+            <h2 id="adminLoginHeading">Sign in</h2>
+            <p class="admin-card-copy" id="adminLoginCopy">
               Sign in with an authorized Ministerio Cristiano Shekinah administrator account.
             </p>
 
@@ -88,6 +88,16 @@
               </label>
 
               <button class="button button-primary" type="submit" disabled>Sign In</button>
+            </form>
+
+            <button class="account-recovery-toggle" id="forgotPasswordButton" type="button" aria-expanded="false" aria-controls="passwordRecoveryForm" hidden>Forgot your password?</button>
+            <form class="admin-form" id="passwordRecoveryForm" method="post" hidden>
+              <label>Administrator email
+                <input id="passwordRecoveryEmail" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="email" required disabled />
+              </label>
+              <button class="button button-primary" id="requestPasswordRecovery" type="submit" disabled>Send recovery link</button>
+              <button class="button admin-button-secondary" id="cancelPasswordRecovery" type="button">Back to sign in</button>
+              <p class="admin-message" id="passwordRecoveryStatus" role="status" aria-live="polite" aria-atomic="true"></p>
             </form>
 
             <p class="admin-message" id="adminMessage" role="status" aria-live="polite">Enable JavaScript or reload.</p>
@@ -518,7 +528,7 @@
             </div>
           </div>
           <div class="admin-card account-password-card">
-            <p class="account-setup-notice" id="accountSetupNotice" hidden>Welcome back. Choose a password so you can sign in without this email link next time.</p>
+            <p class="account-setup-notice" id="accountSetupNotice" hidden>Set a password for your administrator account. You can use it the next time you sign in.</p>
             <form class="admin-form" id="accountPasswordForm" method="post" aria-describedby="accountPasswordHelp">
               <p class="editor-helper" id="accountPasswordHelp">Use a unique password with at least 12 characters. A password manager can help you create and save one.</p>
               <label>Current password
@@ -576,7 +586,7 @@
   <script src="/assets/vendor/supabase-2.112.2.js" integrity="sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd" crossorigin="anonymous"></script>
   <script src="/supabase-config.js?v=11.7"></script>
   <script src="/admin-content-review.js?v=1.0"></script>
-  <script src="/admin-account.js?v=1.0"></script>
+  <script src="/admin-account.js?v=1.1"></script>
   <script src="/admin.js?v=10.13"></script>
 </body>
 </html>

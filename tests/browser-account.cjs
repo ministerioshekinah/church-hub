@@ -57,6 +57,12 @@ const secret='Fixture-only new passphrase 42!';
     await page.locator('#accountShowPasswords').check();assert.equal(await page.locator('#accountNewPassword').getAttribute('type'),'text');
     await page.locator('#accountClearPassword').click();assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.equal(await page.locator('#accountNewPassword').getAttribute('type'),'password');
   });
+  await check('Account password change: the SDK forwards the provided current password without trimming it',{},async p=>{
+    await login(p);const {page,state}=p;await page.locator('#accountTab').click();await page.locator('#accountCurrentPassword').fill(' Fixture current password ');await fill(page);
+    await page.locator('#accountSavePassword').click();await page.waitForFunction(()=>document.getElementById('accountPasswordStatus').textContent.startsWith('Password saved'));
+    assert.equal(JSON.parse(writes(state)[0].body).current_password,' Fixture current password ');
+    assert.equal(await page.locator('#accountCurrentPassword').inputValue(),'');
+  });
   await check('Account authorization: revoked membership cannot submit a password change',{},async p=>{
     await login(p);const {page,state}=p;await page.locator('#accountTab').click();await fill(page);state.data.admin_users=[];await page.locator('#accountSavePassword').click();
     await page.waitForFunction(()=>document.getElementById('adminMessage').textContent.includes('not authorized'));
@@ -109,6 +115,38 @@ const secret='Fixture-only new passphrase 42!';
     await p.context.route('**/admin-account.js?*',route=>route.abort());await login(p);assert(await p.page.locator('#accountTab').isHidden());
     await p.page.locator('#serviceLabelEn').fill('Fixture content still works');await p.page.locator('#saveServiceButton').click();await p.page.waitForFunction(()=>document.getElementById('serviceDraftStatus').textContent.startsWith('Published.'));
     assert.equal(writes(p.state).length,0);
+  });
+  await check('Password recovery request: accessible mobile form, fixed redirect, generic response, and verified recovery landing',{theme:'dark',viewport:{width:320,height:1000}},async p=>{
+    const {page,state}=p;await p.goto('/admin/?redirect_to=https://untrusted.example/');
+    await page.locator('#adminEmail').fill('admin@example.test');await page.locator('#adminPassword').fill('Fixture text to clear');
+    await page.locator('#forgotPasswordButton').click();assert.equal(await page.locator('#adminPassword').inputValue(),'');
+    assert.equal(await page.locator('#passwordRecoveryEmail').inputValue(),'admin@example.test');
+    assert(await page.locator('#passwordRecoveryEmail').evaluate(element=>element===document.activeElement));assert.equal(state.recoveryRequests||0,0);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}});return r.violations.map(v=>v.id)}),[]);
+    await page.locator('#requestPasswordRecovery').click();await page.waitForFunction(()=>document.getElementById('passwordRecoveryStatus').textContent.startsWith('If an account exists'));
+    const request=state.requests.find(request=>request.url.includes('/auth/v1/recover'));
+    assert.equal(new URL(request.url).searchParams.get('redirect_to'),'https://mcshekinah.org/admin/');assert.equal(JSON.parse(request.body).email,'admin@example.test');assert.equal(JSON.parse(request.body).password,undefined);
+    const message=await page.locator('#passwordRecoveryStatus').innerText();state.recoveryError={code:'user_not_found',message:'Private provider account detail'};
+    await page.locator('#requestPasswordRecovery').click();await page.waitForFunction(()=>!document.getElementById('requestPasswordRecovery').disabled);
+    assert.equal(await page.locator('#passwordRecoveryStatus').innerText(),message);
+    await p.authLanding('recovery');await page.locator('#accountSetupNotice').waitFor({state:'visible'});
+    assert.equal(writes(state).length,0,'A recovery landing does not change the password automatically');
+  });
+  await check('Password recovery request: provider rate limits remain retryable with no automatic resend',{},async p=>{
+    const {page,state}=p;await p.goto('/admin/');await page.locator('#forgotPasswordButton').click();await page.locator('#passwordRecoveryEmail').fill('admin@example.test');
+    state.recoveryError={code:'over_email_send_rate_limit',message:'Fixture rate limit'};await page.locator('#requestPasswordRecovery').click();await page.waitForFunction(()=>document.getElementById('passwordRecoveryStatus').textContent.startsWith('Please wait'));
+    assert.equal(state.recoveryRequests,1);assert(await page.locator('#requestPasswordRecovery').isEnabled());
+    state.recoveryError=null;await page.locator('#requestPasswordRecovery').click();await page.waitForFunction(()=>document.getElementById('passwordRecoveryStatus').textContent.startsWith('If an account exists'));assert.equal(state.recoveryRequests,2);
+  });
+  await check('Password recovery request: cancelling a pending request keeps sign-in usable and ignores late status',{},async p=>{
+    const {page,context,state}=p;await p.goto('/admin/');await page.locator('#forgotPasswordButton').click();await page.locator('#passwordRecoveryEmail').fill('admin@example.test');
+    let release;const held=new Promise(resolve=>{release=resolve});await context.route('**/auth/v1/recover?*',async route=>{await held;return route.fallback()});
+    const request=page.waitForRequest(request=>request.url().includes('/auth/v1/recover'));
+    await page.locator('#requestPasswordRecovery').click();await request;assert(await page.locator('#requestPasswordRecovery').isDisabled());
+    await page.locator('#cancelPasswordRecovery').click();assert(await page.locator('#adminEmail').evaluate(element=>element===document.activeElement));assert(await page.locator('#forgotPasswordButton').isDisabled());release();
+    await page.waitForFunction(()=>!document.getElementById('forgotPasswordButton').disabled);
+    assert(await page.locator('#passwordRecoveryForm').isHidden());assert.equal(await page.locator('#passwordRecoveryStatus').innerText(),'');assert.equal(state.recoveryRequests,1);
   });
   const report={checkedAt:new Date().toISOString(),engine,mode:'real SDK; all Auth, email, and content requests are local fixtures',passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
   fs.mkdirSync('security/local-results',{recursive:true});fs.writeFileSync(`security/local-results/browser-account-${engine}.json`,JSON.stringify(report,null,2)+'\n');

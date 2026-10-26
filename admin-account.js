@@ -14,6 +14,15 @@
   const reauth = document.getElementById("accountReauthentication");
   const nonce = document.getElementById("accountVerificationCode");
   const sendCode = document.getElementById("accountSendCode");
+  const recoveryToggle = document.getElementById("forgotPasswordButton");
+  const recoveryForm = document.getElementById("passwordRecoveryForm");
+  const recoveryEmail = document.getElementById("passwordRecoveryEmail");
+  const recoverySubmit = document.getElementById("requestPasswordRecovery");
+  const recoveryStatus = document.getElementById("passwordRecoveryStatus");
+  let recoveryPending = null;
+  let recoveryRevision = 0;
+  let recoveryReady = false;
+  let signingIn = false;
   let host = null;
   let userId = null;
   let revision = 0;
@@ -27,6 +36,27 @@
   let linkIntent = linkFlags.intent;
   let linkError = linkFlags.error;
   let linkUserId = null;
+
+  function recoveryControls() {
+    recoveryToggle.hidden = !host || !recoveryForm.hidden;
+    recoveryToggle.disabled = !recoveryReady || signingIn || Boolean(recoveryPending);
+    recoverySubmit.disabled = !recoveryReady || signingIn || Boolean(recoveryPending);
+    recoveryEmail.disabled = !recoveryReady || signingIn || Boolean(recoveryPending);
+    recoverySubmit.textContent = recoveryPending ? "Requesting…" : "Send recovery link";
+    recoveryForm.setAttribute("aria-busy", String(Boolean(recoveryPending)));
+  }
+
+  function closeRecovery() {
+    ++recoveryRevision;
+    recoveryForm.hidden = true;
+    recoveryEmail.value = "";
+    recoveryStatus.textContent = "";
+    recoveryToggle.setAttribute("aria-expanded", "false");
+    document.getElementById("adminLoginForm").hidden = false;
+    document.getElementById("adminLoginHeading").textContent = "Sign in";
+    document.getElementById("adminLoginCopy").textContent = "Sign in with an authorized Ministerio Cristiano Shekinah administrator account.";
+    recoveryControls();
+  }
 
   function clearFields() {
     for (const field of [current, password, confirm]) {
@@ -54,6 +84,8 @@
     linkError = false;
     linkUserId = null;
     clearFields();
+    recoveryReady = Boolean(host);
+    closeRecovery();
     tab.hidden = true;
     document.getElementById("accountIdentity").textContent = "";
     document.getElementById("accountSetupNotice").hidden = true;
@@ -75,6 +107,8 @@
     ++revision;
     pending = null;
     clearFields();
+    recoveryReady = true;
+    closeRecovery();
     userId = user.id;
     tab.hidden = false;
     document.getElementById("accountIdentity").textContent = user.email || "Your administrator account";
@@ -193,8 +227,61 @@
     clearFields();
     password.focus();
   });
+  recoveryToggle.addEventListener("click", () => {
+    if (!host || !recoveryReady || recoveryPending || signingIn || userId) return;
+    recoveryForm.hidden = false;
+    recoveryEmail.value = document.getElementById("adminEmail").value.trim();
+    document.getElementById("adminLoginForm").hidden = true;
+    document.getElementById("adminPassword").value = "";
+    document.getElementById("adminLoginHeading").textContent = "Reset your password";
+    document.getElementById("adminLoginCopy").textContent = "Request a recovery link for your administrator account.";
+    document.getElementById("adminMessage").textContent = "";
+    recoveryToggle.setAttribute("aria-expanded", "true");
+    recoveryControls();
+    recoveryEmail.focus();
+  });
+  document.getElementById("cancelPasswordRecovery").addEventListener("click", () => {
+    closeRecovery();
+    document.getElementById("adminEmail").focus();
+  });
+  recoveryForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!host || !recoveryReady || recoveryPending || signingIn || userId || recoveryForm.hidden) return;
+    const email = recoveryEmail.value.trim();
+    if (!/^[^\s@]+@[^\s@]+$/.test(email)) {
+      recoveryStatus.textContent = "Enter your administrator email address.";
+      recoveryEmail.focus();
+      return;
+    }
+    const operation = { revision: recoveryRevision };
+    recoveryPending = operation;
+    recoveryStatus.textContent = "";
+    recoveryControls();
+    const visible = () => recoveryPending === operation && recoveryRevision === operation.revision && !userId && !recoveryForm.hidden;
+    try {
+      // Match the existing invitation destination. Never accept a redirect URL
+      // from a query parameter, form field, or arbitrary hosted preview origin.
+      const { error } = await host.client.auth.resetPasswordForEmail(email, { redirectTo: "https://mcshekinah.org/admin/" });
+      if (!visible()) return;
+      recoveryStatus.textContent = !error || error.code === "user_not_found"
+        ? "If an account exists for this email, you will receive a recovery link. Check your inbox and spam folder."
+        : ["over_email_send_rate_limit", "over_request_rate_limit"].includes(error.code)
+        ? "Please wait before requesting another recovery link."
+        : "The recovery request could not be completed. Wait a moment and try again, or contact a church owner.";
+    } catch {
+      if (visible()) recoveryStatus.textContent = "The recovery request could not be completed. Check your connection and try again.";
+    } finally {
+      if (recoveryPending === operation) {
+        recoveryPending = null;
+        recoveryControls();
+      }
+    }
+  });
   function linkUnavailableMessage() {
-    return linkIntent || linkError ? "This sign-in link could not be verified. It may have expired or already been used. Ask a church owner for a new link, or sign in with your password." : "";
+    return linkIntent || linkError ? "This sign-in link could not be verified. It may have expired or already been used. Request a new recovery link below, or sign in with your password." : "";
   }
-  window.SHEKINAH_ACCOUNT = Object.freeze({ connect(context) { host = context; }, authenticated, authEvent, clear, linkUnavailableMessage });
+  window.SHEKINAH_ACCOUNT = Object.freeze({
+    connect(context) { host = context; recoveryControls(); }, authenticated, authEvent, clear, linkUnavailableMessage,
+    loginBusy(value) { signingIn = value; recoveryControls(); }
+  });
 })();

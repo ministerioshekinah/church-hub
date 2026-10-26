@@ -240,6 +240,7 @@ async function showDashboard(user) {
 }
 
 function setLoginBusy(isBusy) {
+  window.SHEKINAH_ACCOUNT?.loginBusy(isBusy);
   const submitButton = loginForm.querySelector('button[type="submit"]');
   submitButton.disabled = isBusy;
   emailInput.disabled = isBusy;

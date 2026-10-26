@@ -104,6 +104,7 @@
 .admin-body .account-reveal input { width: 20px; height: 20px; min-height: 20px; flex: 0 0 20px; accent-color: #526744; }
 .admin-body .account-reauthentication { display: grid; gap: 16px; padding: 18px; border: 1px solid var(--admin-edge); border-radius: 16px; background: var(--admin-soft); }
 .admin-body .account-password-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.admin-body .account-recovery-toggle { min-height: 44px; margin-top: 12px; padding: 8px 0; border: 0; background: transparent; color: var(--admin-ink); font: inherit; font-size: .85rem; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .admin-topbar { -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 }

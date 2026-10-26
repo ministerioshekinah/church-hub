@@ -125,6 +125,10 @@ async function createPage(browser,site,options={}) {
         state.verificationRequests=(state.verificationRequests||0)+1;
         return reply(state.verificationError||{},state.verificationError?429:200);
       }
+      if(url.pathname==='/auth/v1/recover') {
+        state.recoveryRequests=(state.recoveryRequests||0)+1;
+        return reply(state.recoveryError||{},state.recoveryError?422:200);
+      }
       if(url.pathname==='/auth/v1/logout')return route.fulfill({status:204,headers});
       if(url.pathname==='/functions/v1/admin-users') {
         const action=JSON.parse(req.postData()||'{}');

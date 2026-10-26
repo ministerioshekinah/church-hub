@@ -160,3 +160,69 @@ test('Account: clear, sign-out, and history-cache cleanup erase and conceal pass
     assert.equal(p.document.getElementById('accountShowPasswords').checked,false);
   }
 });
+
+async function recovery() {
+  const p=await account({signedIn:false});
+  p.run(`let recoveryError=null;supabaseClient.auth.resetPasswordForEmail=async(email,options)=>{calls.push({recovery:email,options});return {error:recoveryError}};showLogin();`);
+  p.document.getElementById('adminEmail').value='editor@example.test';
+  p.document.getElementById('adminPassword').value='A private sign-in password';
+  click(p,p.document.getElementById('forgotPasswordButton'));
+  return p;
+}
+function requestRecovery(p) {p.document.getElementById('passwordRecoveryForm').dispatchEvent(new p.Event('submit',{bubbles:true,cancelable:true}));}
+
+test('Recovery request: opening the form clears the sign-in password, prefills email, and never sends automatically',async()=>{
+  const p=await recovery();
+  assert.equal(p.document.getElementById('adminLoginForm').hidden,true);
+  assert.equal(p.document.getElementById('passwordRecoveryForm').hidden,false);
+  assert.equal(p.document.getElementById('passwordRecoveryEmail').value,'editor@example.test');
+  assert.equal(p.document.getElementById('adminPassword').value,'');
+  assert.equal(p.reports.focused,'passwordRecoveryEmail');assert.deepEqual(calls(p),[]);
+});
+
+test('Recovery request: a submitted address uses the fixed church redirect and no password payload',async()=>{
+  const p=await recovery();p.location.search='?redirect_to=https://untrusted.example/';
+  requestRecovery(p);await settle();
+  assert.deepEqual(calls(p),[{recovery:'editor@example.test',options:{redirectTo:'https://mcshekinah.org/admin/'}}]);
+  assert.match(p.document.getElementById('passwordRecoveryStatus').textContent,/If an account exists/);
+  assert.equal(p.storage.size,0);
+});
+
+test('Recovery request: unknown-account and success responses present the same message',async()=>{
+  const p=await recovery();requestRecovery(p);await settle();
+  const message=p.document.getElementById('passwordRecoveryStatus').textContent;
+  p.run('recoveryError={code:"user_not_found",message:"Secret account information"}');requestRecovery(p);await settle();
+  assert.equal(p.document.getElementById('passwordRecoveryStatus').textContent,message);
+});
+
+for(const code of ['over_email_send_rate_limit','over_request_rate_limit','server_error'])test(`Recovery request: ${code} is retryable and never displays raw provider text`,async()=>{
+  const p=await recovery();p.run(`recoveryError={code:${JSON.stringify(code)},message:'Private provider detail'}`);requestRecovery(p);await settle();
+  assert(!p.document.getElementById('passwordRecoveryStatus').textContent.includes('Private provider detail'));
+  assert.equal(p.document.getElementById('requestPasswordRecovery').disabled,false);
+});
+
+test('Recovery request: duplicate submits are suppressed and cancelling ignores a late response',async()=>{
+  const p=await recovery();p.run('let finishRecovery;supabaseClient.auth.resetPasswordForEmail=()=>{calls.push("recovery");return new Promise(resolve=>{finishRecovery=resolve})}');
+  requestRecovery(p);requestRecovery(p);await settle();assert.deepEqual(calls(p),['recovery']);
+  click(p,p.document.getElementById('cancelPasswordRecovery'));
+  assert.equal(p.document.getElementById('passwordRecoveryEmail').value,'');
+  assert.equal(p.document.getElementById('forgotPasswordButton').disabled,true,'An email already in flight cannot be duplicated by reopening the form');
+  p.run('finishRecovery({error:null})');await settle();
+  assert.equal(p.document.getElementById('passwordRecoveryForm').hidden,true);
+  assert.equal(p.document.getElementById('passwordRecoveryStatus').textContent,'');
+  assert.equal(p.document.getElementById('forgotPasswordButton').disabled,false);
+  assert.equal(p.reports.focused,'adminEmail');
+});
+
+test('Recovery request: sign-in busy state and authenticated state cannot send from a hidden recovery form',async()=>{
+  const p=await recovery();p.run('setLoginBusy(true)');requestRecovery(p);await settle();assert.deepEqual(calls(p),[]);
+  p.run('setLoginBusy(false);authenticatedAdmin={id:"fixture-admin"};window.SHEKINAH_ACCOUNT.authenticated({id:"fixture-admin"})');
+  requestRecovery(p);await settle();assert.deepEqual(calls(p),[]);
+  assert.equal(p.document.getElementById('passwordRecoveryForm').hidden,true);
+});
+
+test('Recovery request: a network exception leaves a clear retry path without logging sensitive data',async()=>{
+  const p=await recovery();p.run('supabaseClient.auth.resetPasswordForEmail=async()=>{throw Error("Sensitive request detail")};');requestRecovery(p);await settle();
+  assert.match(p.document.getElementById('passwordRecoveryStatus').textContent,/Check your connection/);
+  assert.equal(p.document.getElementById('requestPasswordRecovery').disabled,false);assert.deepEqual(p.reports.errors,[]);
+});
