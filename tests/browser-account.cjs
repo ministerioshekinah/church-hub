@@ -125,6 +125,24 @@ const secret='Fixture-only new passphrase 42!';
     await page.locator('#accountSavePassword').click();await page.waitForFunction(()=>document.getElementById('accountPasswordStatus').textContent.startsWith('Password saved.'));
     assert.equal(state.passwordChanges,1);
   });
+  await check('Account startup race: a prior-account membership response cannot reopen the dashboard after another tab switches identity',{},async p=>{
+    await login(p);const {page,context,state}=p;
+    const other=await context.newPage();await other.goto(site.url+'/admin/',{waitUntil:'networkidle'});await other.locator('#adminDashboard').waitFor({state:'visible'});
+    let release;const held=new Promise(resolve=>{release=resolve});
+    await context.route('**/rest/v1/admin_users?*',async route=>{if(route.request().frame().page()===page)await held;return route.fallback();});
+    const membership=page.waitForRequest(request=>request.url().includes('/rest/v1/admin_users?'));
+    try{
+      await page.reload({waitUntil:'domcontentloaded'});await membership;
+      state.identityUser={id:'22222222-2222-4222-8222-222222222222',aud:'authenticated',role:'authenticated',email:'other@example.test',app_metadata:{},user_metadata:{}};
+      const token=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:state.identityUser.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test-signature';
+      assert.equal((await other.evaluate(async session=>await supabaseClient.auth.setSession(session),{access_token:token,refresh_token:'fixture-other-refresh'})).error,null);
+      await page.waitForFunction(()=>document.getElementById('adminMessage').textContent.includes('signed-in account changed'));
+      const response=page.waitForResponse(response=>response.url().includes('/rest/v1/admin_users?'));release();await (await response).finished();
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      assert(await page.locator('#adminDashboard').isHidden());assert.equal(await page.evaluate(()=>authenticatedAdmin),null);
+      assert.equal(await page.locator('#accountIdentity').innerText(),'');assert.equal(writes(state).length,0);
+    }finally{release();}
+  });
   for(const noWebLocks of [false,true])await check(`Account race: sign-out during a pending password request clears UI and SDK (${noWebLocks?'process fallback':'Web Locks'})`,{noWebLocks},async p=>{
     await login(p);const {page,context,state}=p;await page.locator('#accountTab').click();await fill(page);
     let release;const held=new Promise(resolve=>{release=resolve});

@@ -50,3 +50,29 @@ test('Identity change: a late prior-account verification cannot restore the old 
   assert.equal(p.run('authenticatedAdmin'),null);assert.equal(p.run('membershipChecks'),0);
   assert.equal(p.document.getElementById('adminDashboard').classList.contains('visible'),false);assert.equal(p.document.getElementById('serviceLabelEn').value,'');
 });
+
+test('Startup identity change: an earlier getUser response cannot authorize after another account event',async()=>{
+  const p=await fixture({signedIn:false});
+  p.run(`let finishIdentity,membershipChecks=0;supabaseClient.auth.getUser=()=>new Promise(resolve=>{finishIdentity=resolve});verifyAdmin=async()=>{membershipChecks++;return true};let restoring=restoreAuthenticatedAdmin();`);
+  p.run(`authCallback('SIGNED_IN',{user:{id:'fixture-other-admin'}});finishIdentity({data:{user:{id:'fixture-owner'}},error:null});`);
+  await p.run('restoring');
+  assert.equal(p.run('authenticatedAdmin'),null);assert.equal(p.run('membershipChecks'),0);
+  assert.match(p.document.getElementById('adminMessage').textContent,/signed-in account changed/);
+});
+
+test('Startup identity change: a late membership response cannot authorize the previous account',async()=>{
+  const p=await fixture({signedIn:false});
+  p.run(`let finishMembership;supabaseClient.auth.getUser=async()=>({data:{user:{id:'fixture-owner'}},error:null});verifyAdmin=()=>new Promise(resolve=>{finishMembership=resolve});let restoring=restoreAuthenticatedAdmin();`);
+  await new Promise(resolve=>setImmediate(resolve));
+  p.run(`authCallback('SIGNED_IN',{user:{id:'fixture-other-admin'}});finishMembership(true);`);
+  await p.run('restoring');
+  assert.equal(p.run('authenticatedAdmin'),null);assert.equal(p.document.getElementById('adminDashboard').classList.contains('visible'),false);
+  assert.match(p.document.getElementById('adminMessage').textContent,/signed-in account changed/);
+});
+
+test('Verified replacement identity: a fresh matching verification can open the new account after cleanup',async()=>{
+  const p=await fixture();
+  p.run(`authCallback('SIGNED_IN',{user:{id:'fixture-other-admin'}});let shownId=null;showDashboard=async user=>{shownId=user.id};supabaseClient.auth.getUser=async()=>({data:{user:{id:'fixture-other-admin'}},error:null});verifyAdmin=async()=>true;`);
+  await p.run('restoreAuthenticatedAdmin()');
+  assert.equal(p.run('shownId'),'fixture-other-admin');
+});
