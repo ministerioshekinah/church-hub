@@ -442,6 +442,25 @@ async function check(name,fn) {
     assert(await page.locator('#refreshAdministratorsButton').isEnabled());state.listError=null;await page.locator('#refreshAdministratorsButton').click();await page.locator('.administrator-item').first().waitFor();
     assert.equal(await page.locator('.administrator-item').count(),2);assert.match(await page.locator('#administratorListStatus').innerText(),/2 administrators/);
   }));
+  for(const [theme,width] of [['light',1280],['dark',320]])await check(`Owner account context: ${theme} ${width}px confirmation and sign-in details remain accessible and clear on logout`,()=>journey({owner:true,theme,viewport:{width,height:1000}},async p=>{
+    await login(p);const {page,state}=p;
+    Object.assign(state.adminDirectory[0],{confirmedAt:'2026-10-01T08:00:00Z',lastSignInAt:'2026-10-26T22:15:00Z'});
+    Object.assign(state.adminDirectory[1],{confirmedAt:null,lastSignInAt:null});
+    await page.locator('#administratorsTab').click();await page.locator('.administrator-item').first().waitFor();
+    const owner=page.locator('.administrator-item').filter({hasText:'admin@example.test'});
+    const invited=page.locator('.administrator-item').filter({hasText:'editor@example.test'});
+    assert.match(await owner.innerText(),/Account confirmed/);assert.match(await owner.innerText(),/Last sign-in:/);
+    assert.equal(await owner.locator('time').getAttribute('datetime'),'2026-10-26T22:15:00.000Z');
+    assert.match(await invited.innerText(),/No confirmation recorded/);assert.equal(await invited.locator('time').count(),0);
+    assert(await owner.locator('select').isDisabled());assert(await owner.locator('button').isDisabled());
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>(await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>v.id)),[]);
+    if(process.env.BROWSER_SCREENSHOT_DIR&&engine==='chromium'){
+      await page.locator('#administratorList').evaluate(element=>element.scrollIntoView({block:'center'}));
+      await page.screenshot({path:path.join(process.env.BROWSER_SCREENSHOT_DIR,`owner-account-context-${theme}-${width}.png`)});
+    }
+    await page.locator('#signOutButton').click();assert.equal(await page.locator('#administratorList').innerText(),'');assert.equal(await page.locator('#administratorList time').count(),0);
+  }));
   await check('Owner list deadline: a stalled read releases a focused accessible refresh without retrying mutations',()=>journey({owner:true,theme:'dark',viewport:{width:320,height:1000}},async p=>{
     await login(p);const {page,context,state}=p;await page.locator('#administratorsTab').click();await page.locator('.administrator-item').first().waitFor();
     let release;const held=new Promise(resolve=>{release=resolve});

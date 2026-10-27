@@ -27,6 +27,34 @@ test('Owner session: verified owner controls use the primary authenticated clien
   assert.equal(p.document.getElementById('administratorsTab').getAttribute('aria-selected'), 'true');
 });
 
+test('Owner account context: confirmed profiles show a semantic timestamp in the device time zone',async()=>{
+  const p=await ownerPage();
+  p.run('supabaseClient.functions.invoke=async()=>({data:{admins:[{id:"test-owner",email:"owner@example.test",role:"owner",confirmedAt:"2026-10-01T08:00:00Z",lastSignInAt:"2026-10-26T22:15:00Z"}]}});');
+  click(p,p.document.getElementById('administratorsTab'));await settle();
+  const row=p.document.querySelector('.administrator-item');assert.match(row.textContent,/Account confirmed/);assert.match(row.textContent,/Last sign-in:/);
+  assert.equal(row.querySelector('time').getAttribute('datetime'),'2026-10-26T22:15:00.000Z');
+  const expected=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date('2026-10-26T22:15:00Z'));
+  assert.equal(row.querySelector('time').textContent,expected);
+});
+
+test('Owner account context: an unconfirmed profile is distinguishable without inventing sign-in activity',async()=>{
+  const p=await ownerPage();p.run('supabaseClient.functions.invoke=async()=>({data:{admins:[{id:"invited",email:"invited@example.test",role:"admin",confirmedAt:null,lastSignInAt:null}]}});');
+  click(p,p.document.getElementById('administratorsTab'));await settle();
+  const row=p.document.querySelector('.administrator-item');assert.match(row.textContent,/No confirmation recorded/);assert.equal(row.querySelector('time'),null);assert(!row.textContent.includes('Last sign-in:'));
+});
+
+test('Owner account context: missing profile information does not invent an invitation or a confirmation status',async()=>{
+  const p=await ownerPage();p.run('supabaseClient.functions.invoke=async()=>({data:{admins:[{id:"missing-profile",email:null,role:"admin",confirmedAt:null,lastSignInAt:null},{id:"older-handler",email:"existing@example.test",role:"admin"}]}});');
+  click(p,p.document.getElementById('administratorsTab'));await settle();
+  const list=p.document.getElementById('administratorList');assert(!/No confirmation recorded|Account confirmed|Last sign-in/.test(list.textContent));assert.match(list.textContent,/missing-profile/);
+});
+
+test('Owner account context: malformed timestamps are ignored and profile text remains plain text',async()=>{
+  const p=await ownerPage();p.run('supabaseClient.functions.invoke=async()=>({data:{admins:[{id:"test-owner",email:"<img src=x onerror=alert(1)>",role:"owner",confirmedAt:"invalid",lastSignInAt:"<script>bad</script>"}]}});');
+  click(p,p.document.getElementById('administratorsTab'));await settle();
+  const list=p.document.getElementById('administratorList');assert.equal(list.querySelector('time, img, script'),null);assert(!list.textContent.includes('Invalid Date'));assert(list.textContent.includes('<img src=x onerror=alert(1)>'));
+});
+
 test('Owner session: content admins do not receive owner controls', async () => {
   const p = await ownerPage('admin');
   assert.equal(p.document.getElementById('administratorsTab').hidden, true);
