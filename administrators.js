@@ -58,7 +58,7 @@
 
         <div class="administrator-card">
           <h3>Administrator Access</h3>
-          <p>Owners can manage access. Admins can edit church content but cannot manage administrators.</p>
+          <p>Owners can manage access. Admins can edit church content but cannot manage administrators. Sign-in times use your device's time zone.</p>
           <p class="administrator-status" id="administratorListStatus" role="status" aria-live="polite"></p>
           <div class="administrator-list" id="administratorList"></div>
         </div>
@@ -151,6 +151,12 @@
     return operation.promise;
   }
 
+  function accountTimestamp(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return null;
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+
   function renderAdministrators() {
     const list = document.getElementById("administratorList");
     if (!list) return;
@@ -174,10 +180,24 @@
       const meta = document.createElement("div");
       meta.className = "administrator-meta";
       meta.textContent = isCurrentUser ? "You · Full portal access" : "Authorized portal account";
+      if (accountTimestamp(admin.confirmedAt)) meta.textContent += " · Account confirmed";
+      else if (admin.email && admin.confirmedAt === null) meta.textContent += " · No confirmation recorded";
       const role = document.createElement("span");
       role.className = `administrator-role ${admin.role === "owner" ? "owner" : ""}`;
       role.textContent = admin.role === "owner" ? "Owner" : "Admin";
       identity.append(email, meta, role);
+      const lastSignIn = accountTimestamp(admin.lastSignInAt);
+      if (lastSignIn) {
+        const activity = document.createElement("div");
+        activity.className = "administrator-meta";
+        const timestamp = document.createElement("time");
+        timestamp.setAttribute("datetime", lastSignIn.toISOString());
+        timestamp.textContent = new Intl.DateTimeFormat("en-US", {
+          year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
+        }).format(lastSignIn);
+        activity.append(document.createTextNode("Last sign-in: "), timestamp);
+        identity.appendChild(activity);
+      }
 
       const actions = document.createElement("div");
       actions.className = "administrator-actions";

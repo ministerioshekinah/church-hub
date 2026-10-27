@@ -62,6 +62,8 @@ Supabase automatically provides secret API credentials to hosted Edge Functions.
 
 The Owner list fetches Auth profiles only for existing administrator memberships, with at most four profile reads at once. It does not scan unrelated accounts. A deleted Auth profile can appear without an email; a provider failure produces an error instead of a partial list.
 
+When Supabase supplies confirmation and last-sign-in information, the list shows it beside the account. Times use the viewing device's time zone and include its zone label. Missing or malformed timestamps are omitted. Confirmation status is account information, not an access decision: the allowlist and server-side Owner checks still determine permissions.
+
 Adding an address first checks for an existing Auth account using pages of up to 1,000 users. An existing account receives membership without an invitation, and an existing Owner keeps that role. The lookup stops after ten pages. If the directory cannot be checked completely, the request fails without sending an invitation or granting membership. At 10,000 or more Auth accounts, plan a targeted server-side email lookup before this bound affects new invitations. These are capacity limits, not an estimate of the church's account count.
 
 ## Password setup and recovery
