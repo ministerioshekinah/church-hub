@@ -1,0 +1,507 @@
+{
+  "requestedMinutes": 120,
+  "scope": "Isolated Chromium fixtures; no production requests",
+  "samples": [
+    {
+      "elapsedSeconds": 284,
+      "cycles": 10,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2186852
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 483,
+          "listeners": 61,
+          "heapBytes": 2235980
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 598,
+      "cycles": 20,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2212404
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 493,
+          "listeners": 61,
+          "heapBytes": 2271148
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 911,
+      "cycles": 30,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2218752
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 503,
+          "listeners": 61,
+          "heapBytes": 2271296
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1226,
+      "cycles": 40,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2218900
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 513,
+          "listeners": 61,
+          "heapBytes": 2289188
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1540,
+      "cycles": 50,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2224980
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 523,
+          "listeners": 61,
+          "heapBytes": 2322220
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 1854,
+      "cycles": 60,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2254636
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 533,
+          "listeners": 61,
+          "heapBytes": 2330552
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2167,
+      "cycles": 70,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2267808
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 543,
+          "listeners": 61,
+          "heapBytes": 2334216
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2481,
+      "cycles": 80,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2268752
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 553,
+          "listeners": 61,
+          "heapBytes": 2335772
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 2795,
+      "cycles": 90,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2268752
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 563,
+          "listeners": 61,
+          "heapBytes": 2361592
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 3109,
+      "cycles": 100,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2283828
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 573,
+          "listeners": 61,
+          "heapBytes": 2368544
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 3424,
+      "cycles": 110,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2289328
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 583,
+          "listeners": 61,
+          "heapBytes": 2385100
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 3738,
+      "cycles": 120,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2289384
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 593,
+          "listeners": 61,
+          "heapBytes": 2389924
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 4052,
+      "cycles": 130,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2306476
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 603,
+          "listeners": 61,
+          "heapBytes": 2389912
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 4366,
+      "cycles": 140,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2315056
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 613,
+          "listeners": 61,
+          "heapBytes": 2392564
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 4680,
+      "cycles": 150,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2315088
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 623,
+          "listeners": 61,
+          "heapBytes": 2392636
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 4994,
+      "cycles": 160,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2319340
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 633,
+          "listeners": 61,
+          "heapBytes": 2392588
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 5308,
+      "cycles": 170,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2323456
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 643,
+          "listeners": 61,
+          "heapBytes": 2415532
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 5621,
+      "cycles": 180,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2323456
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 653,
+          "listeners": 61,
+          "heapBytes": 2416508
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 5935,
+      "cycles": 190,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2326868
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 663,
+          "listeners": 61,
+          "heapBytes": 2416460
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 6250,
+      "cycles": 200,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2328512
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 673,
+          "listeners": 61,
+          "heapBytes": 2418472
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 6563,
+      "cycles": 210,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2334268
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 683,
+          "listeners": 61,
+          "heapBytes": 2418424
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 6877,
+      "cycles": 220,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2334268
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 693,
+          "listeners": 61,
+          "heapBytes": 2418424
+        }
+      ]
+    },
+    {
+      "elapsedSeconds": 7191,
+      "cycles": 230,
+      "pages": [
+        {
+          "page": "home",
+          "documents": 1,
+          "nodes": 511,
+          "listeners": 61,
+          "heapBytes": 2334440
+        },
+        {
+          "page": "newsletter",
+          "documents": 1,
+          "nodes": 703,
+          "listeners": 61,
+          "heapBytes": 2420040
+        }
+      ]
+    }
+  ],
+  "cycles": 231,
+  "downloads": 24,
+  "baseline": [
+    {
+      "page": "home",
+      "documents": 1,
+      "nodes": 511,
+      "listeners": 61,
+      "heapBytes": 2094084
+    },
+    {
+      "page": "newsletter",
+      "documents": 1,
+      "nodes": 473,
+      "listeners": 61,
+      "heapBytes": 2155904
+    }
+  ],
+  "startedAt": "2026-10-26T21:47:30.451Z",
+  "final": [
+    {
+      "page": "home",
+      "documents": 1,
+      "nodes": 511,
+      "listeners": 61,
+      "heapBytes": 2334472
+    },
+    {
+      "page": "newsletter",
+      "documents": 1,
+      "nodes": 704,
+      "listeners": 61,
+      "heapBytes": 2420072
+    }
+  ],
+  "elapsedSeconds": 7201,
+  "completedAt": "2026-10-26T23:47:31.901Z",
+  "pass": true,
+  "runId": 40407231160,
+  "jobId": 121868017499,
+  "sourceCommit": "15c3dbbb97f86351980630aa8069242e9da5c5d6"
+}

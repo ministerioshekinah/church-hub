@@ -36,7 +36,7 @@ Apply all nine committed migrations in the [canonical README sequence](README.md
 9. Sign out of the website admin portal, sign back in, and refresh the page.
 10. The **Administrators** tab appears only when the signed-in allow-listed account has `role = 'owner'`.
 
-The existing production repair was applied on October 26 as Supabase migration `20261026205057_fix_admin_removal_trigger`, with `admin-users` Edge Function version 5. Its trigger definition was rechecked against the repository repair. See [the release record](security/RELEASE-2026-10-26.md). Do not deploy the older defective trigger as a rollback.
+The existing production repair was applied on October 26 as Supabase migration `20261026205057_fix_admin_removal_trigger`, initially with `admin-users` Edge Function version 5. The bounded directory handler was deployed as version 6 on October 27; its source was read back and matched the reviewed code. The trigger definition was rechecked against the repository repair. See [the release record](security/RELEASE-2026-10-26.md). Do not deploy the older defective trigger as a rollback.
 
 ### Required post-migration verification
 
@@ -62,6 +62,8 @@ Supabase automatically provides secret API credentials to hosted Edge Functions.
 
 The Owner list fetches Auth profiles only for existing administrator memberships, with at most four profile reads at once. It does not scan unrelated accounts. A deleted Auth profile can appear without an email; a provider failure produces an error instead of a partial list.
 
+The list read has a ten-second deadline and offers **Refresh** after a connection failure. Repeated refreshes share one request. A completed access change requires a fresh read; an older response cannot overwrite that result. Invitation, role and removal requests are never automatically retried.
+
 When Supabase supplies confirmation and last-sign-in information, the list shows it beside the account. Times use the viewing device's time zone and include its zone label. Missing or malformed timestamps are omitted. Confirmation status is account information, not an access decision: the allowlist and server-side Owner checks still determine permissions.
 
 Adding an address first checks for an existing Auth account using pages of up to 1,000 users. An existing account receives membership without an invitation, and an existing Owner keeps that role. The lookup stops after ten pages. If the directory cannot be checked completely, the request fails without sending an invitation or granting membership. At 10,000 or more Auth accounts, plan a targeted server-side email lookup before this bound affects new invitations. These are capacity limits, not an estimate of the church's account count.
@@ -77,6 +79,8 @@ From the sign-in page, **Forgot your password?** opens an email form. It sends o
 Recovery uses the fixed destination `https://mcshekinah.org/admin/`, matching administrator invitations. Verify that the existing Supabase Auth redirect allowlist and email templates permit that exact URL. The deployed UI does not change the provider's redirect, email, signup, password or MFA settings.
 
 If identity or membership verification takes too long, the portal releases the read after ten seconds and shows a retry message. A connection failure does not mean administrator access was revoked. Retry after the connection recovers. Password/email submissions are never automatically retried; if their result is uncertain, use a fresh sign-in or recovery flow to establish the current state.
+
+Selecting **Sign out** immediately clears private drafts, Owner controls and password fields while the SDK finishes. If the request fails before local cleanup, **Retry sign-out** explicitly tries again. If local cleanup succeeds but the global request fails, the portal says that this device is signed out and other sessions could not be confirmed. Do not interpret local cleanup as proof that all sessions were revoked; existing access JWTs can remain valid until expiry.
 
 If another tab changes to a different signed-in account, the current tab clears the previous account's private drafts and Owner controls. Reload to verify the new account before continuing. Ordinary session refreshes for the same account preserve unsaved work. This cleanup does not sign out the new account.
 
