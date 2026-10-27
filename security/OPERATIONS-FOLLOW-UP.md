@@ -57,7 +57,7 @@ The earlier read-only upgrade review found `pgcrypto` 1.3, no `ltree`/`btree_gis
 2. Merge using the expected PR head, preserving other contributors' changes. Verify that the public GitHub Pages assets match the reviewed bytes after deployment; merging alone is not proof of rollout.
 3. From a fresh browser, inspect public English/Spanish pages and the logged-out admin controls. Test real account/email operations only with an authorized administrator using their own credentials.
 4. Roll back frontend changes with a reviewed revert if necessary. Do not automatically restore the defective administrator-removal trigger. Database upgrades, Auth policy changes and Edge deployments require their own recovery plans.
-5. For transport rechecks, `npm run security:transport` performs six serial TLS handshakes to the public apex/www hosts. It does not enumerate ports/ciphers or establish every worldwide edge's behavior.
+5. For transport rechecks, `npm run security:transport` performs six serial TLS handshakes and two HTTP-to-HTTPS redirect requests to the public apex/www hosts. It does not enumerate ports/ciphers or establish every worldwide edge's behavior. A local proxy or client failure is inconclusive about the origin; use the existing GitHub verification workflow to distinguish that from an origin failure.
 
 ## References
 
