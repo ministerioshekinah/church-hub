@@ -1,0 +1,141 @@
+{
+  "scope": "Isolated Chromium observation; no production requests",
+  "cyclesPerScenario": 30,
+  "sourceCommit": "7588119600ca3a1b1887d4bdc3310dd1dac2d1db",
+  "scenarios": [
+    {
+      "name": "newsletter-search",
+      "baseline": {
+        "documents": 1,
+        "retainedNodes": 439,
+        "listeners": 61,
+        "attachedNodes": 420,
+        "heapBytes": 2043064
+      },
+      "samples": [
+        {
+          "cycles": 10,
+          "documents": 1,
+          "retainedNodes": 449,
+          "listeners": 61,
+          "attachedNodes": 420,
+          "heapBytes": 2162152
+        },
+        {
+          "cycles": 20,
+          "documents": 1,
+          "retainedNodes": 459,
+          "listeners": 61,
+          "attachedNodes": 420,
+          "heapBytes": 2166508
+        },
+        {
+          "cycles": 30,
+          "documents": 1,
+          "retainedNodes": 469,
+          "listeners": 61,
+          "attachedNodes": 420,
+          "heapBytes": 2171400
+        }
+      ],
+      "final": {
+        "documents": 1,
+        "retainedNodes": 469,
+        "listeners": 61,
+        "attachedNodes": 420,
+        "heapBytes": 2177072
+      },
+      "retainedNodeGrowth": 30
+    },
+    {
+      "name": "newsletter-navigation-without-search",
+      "baseline": {
+        "documents": 1,
+        "retainedNodes": 451,
+        "listeners": 61,
+        "attachedNodes": 421,
+        "heapBytes": 2090892
+      },
+      "samples": [
+        {
+          "cycles": 10,
+          "documents": 1,
+          "retainedNodes": 451,
+          "listeners": 61,
+          "attachedNodes": 421,
+          "heapBytes": 2211204
+        },
+        {
+          "cycles": 20,
+          "documents": 1,
+          "retainedNodes": 451,
+          "listeners": 61,
+          "attachedNodes": 421,
+          "heapBytes": 2241992
+        },
+        {
+          "cycles": 30,
+          "documents": 1,
+          "retainedNodes": 451,
+          "listeners": 61,
+          "attachedNodes": 421,
+          "heapBytes": 2261152
+        }
+      ],
+      "final": {
+        "documents": 1,
+        "retainedNodes": 451,
+        "listeners": 61,
+        "attachedNodes": 421,
+        "heapBytes": 2263104
+      },
+      "retainedNodeGrowth": 0
+    },
+    {
+      "name": "native-search-input",
+      "baseline": {
+        "documents": 1,
+        "retainedNodes": 22,
+        "listeners": 14,
+        "attachedNodes": 12,
+        "heapBytes": 1305244
+      },
+      "samples": [
+        {
+          "cycles": 10,
+          "documents": 1,
+          "retainedNodes": 32,
+          "listeners": 14,
+          "attachedNodes": 12,
+          "heapBytes": 1405932
+        },
+        {
+          "cycles": 20,
+          "documents": 1,
+          "retainedNodes": 42,
+          "listeners": 14,
+          "attachedNodes": 12,
+          "heapBytes": 1408096
+        },
+        {
+          "cycles": 30,
+          "documents": 1,
+          "retainedNodes": 52,
+          "listeners": 14,
+          "attachedNodes": 12,
+          "heapBytes": 1412172
+        }
+      ],
+      "final": {
+        "documents": 1,
+        "retainedNodes": 52,
+        "listeners": 14,
+        "attachedNodes": 12,
+        "heapBytes": 1412172
+      },
+      "retainedNodeGrowth": 30
+    }
+  ],
+  "completedAt": "2026-10-27T00:04:05.515Z",
+  "pass": true
+}

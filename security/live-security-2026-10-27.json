@@ -1,0 +1,143 @@
+{
+  "checkedAt": "2026-10-27T00:18:57.777Z",
+  "mode": "read-only production probes",
+  "passed": 28,
+  "failed": 1,
+  "tests": [
+    {
+      "name": "HTTPS page and CSP: /",
+      "pass": true
+    },
+    {
+      "name": "HTTPS page and CSP: /newsletter/",
+      "pass": true
+    },
+    {
+      "name": "HTTPS page and CSP: /admin/",
+      "pass": true
+    },
+    {
+      "name": "HTTPS page and CSP: /privacy/",
+      "pass": true
+    },
+    {
+      "name": "HTTPS page and CSP: /terms/",
+      "pass": true
+    },
+    {
+      "name": "HTTPS page and CSP: /contact/",
+      "pass": true
+    },
+    {
+      "name": "HTTPS page and CSP: /newsletter.html",
+      "pass": true
+    },
+    {
+      "name": "HTTPS page and CSP: /admin.html",
+      "pass": true
+    },
+    {
+      "name": "HTTP redirects to HTTPS",
+      "pass": false,
+      "detail": "fetch failed"
+    },
+    {
+      "name": "Public intended fields remain readable: service_settings",
+      "pass": true
+    },
+    {
+      "name": "Public intended fields remain readable: announcements",
+      "pass": true
+    },
+    {
+      "name": "Public intended fields remain readable: newsletters",
+      "pass": true
+    },
+    {
+      "name": "Hidden content excluded: announcements active=eq.false",
+      "pass": true
+    },
+    {
+      "name": "Hidden content excluded: newsletters status=neq.published",
+      "pass": true
+    },
+    {
+      "name": "Hidden content excluded: newsletters published_at=is.null",
+      "pass": true
+    },
+    {
+      "name": "Author metadata denied: service_settings.updated_by",
+      "pass": true
+    },
+    {
+      "name": "Author metadata denied: announcements.created_by",
+      "pass": true
+    },
+    {
+      "name": "Author metadata denied: announcements.updated_by",
+      "pass": true
+    },
+    {
+      "name": "Author metadata denied: newsletters.created_by",
+      "pass": true
+    },
+    {
+      "name": "Author metadata denied: newsletters.updated_by",
+      "pass": true
+    },
+    {
+      "name": "Anonymous cannot list administrator memberships",
+      "pass": true
+    },
+    {
+      "name": "Forged REST session cannot authenticate",
+      "pass": true
+    },
+    {
+      "name": "Admin Edge rejects missing session",
+      "pass": true
+    },
+    {
+      "name": "Admin Edge rejects malformed session",
+      "pass": true
+    },
+    {
+      "name": "Admin Edge rejects forged session",
+      "pass": true
+    },
+    {
+      "name": "Admin Edge CORS is restricted to church origin",
+      "pass": true
+    },
+    {
+      "name": "Sensitive file absent: /.env",
+      "pass": true
+    },
+    {
+      "name": "Sensitive file absent: /.git/config",
+      "pass": true
+    },
+    {
+      "name": "Sensitive file absent: /supabase/.env",
+      "pass": true
+    }
+  ],
+  "findings": [
+    {
+      "name": "Public self-signup remains enabled",
+      "action": "Disable new user signups in Supabase Auth if accounts are invitation-only. Non-admin accounts remain denied by tested RLS policies."
+    },
+    {
+      "name": "Missing hosting header: strict-transport-security",
+      "action": "Record the existing GitHub Pages header limitation. Repository header files cannot activate it; verify any separately approved host-level change before marking it fixed."
+    },
+    {
+      "name": "Missing hosting header: x-content-type-options",
+      "action": "Record the existing GitHub Pages header limitation. Repository header files cannot activate it; verify any separately approved host-level change before marking it fixed."
+    },
+    {
+      "name": "Missing header-based framing restriction",
+      "action": "Record the GitHub Pages framing limitation: CSP frame-ancestors cannot be enforced by a meta tag. No proxy, connector or hosting change is part of this check."
+    }
+  ]
+}

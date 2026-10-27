@@ -25,14 +25,14 @@ The public site reads current service information, active announcements, and pub
 - Bilingual privacy policy, terms of use, and contact/accessibility help
 - Footer information links opposite the Admin button
 - Private admin portal
-- Coordinated light/dark admin workspace with keyboard tabs and sign-out cleanup
+- Coordinated light/dark admin workspace with keyboard tabs and immediate private-field cleanup during sign-out
 - Announcement create / edit / publish / hide / delete
 - Newsletter draft / edit / publish / unpublish / delete
 - Visible unsaved-edit status and an advisory newsletter checklist for starter text and missing translations
 - A published-issue link and Spanish editor previews that match public fallback behavior
 - Administrator password setup, password changes and an explicit forgotten-password request
 - Owner / Admin roles
-- Owner-only administrator management
+- Owner-only administrator management with refresh recovery and account confirmation/sign-in context
 - Protected Supabase Edge Function for administrator invitations and role changes
 - Bilingual recovery page, Inter and Playfair Display typography, favicon, and public sitemap
 

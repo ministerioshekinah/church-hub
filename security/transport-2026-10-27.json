@@ -1,0 +1,351 @@
+{
+  "checkedAt": "2026-10-27T00:13:14.553Z",
+  "node": "v24.21.0",
+  "openssl": "3.5.8",
+  "mode": "Direct TLS using bundled public roots, SNI and normal hostname/expiry validation; six serial handshakes and two HTTP redirect requests",
+  "modernValidated": true,
+  "legacyRejected": true,
+  "httpsRedirectsVerified": true,
+  "checks": [
+    {
+      "hostname": "mcshekinah.org",
+      "requestedVersion": "TLSv1.2",
+      "durationMs": 233,
+      "connected": true,
+      "authorized": true,
+      "negotiatedVersion": "TLSv1.2",
+      "cipher": {
+        "name": "ECDHE-RSA-AES128-GCM-SHA256",
+        "standardName": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+        "version": "TLSv1.2"
+      },
+      "alpn": "h2",
+      "subjectAlternativeNames": "DNS:mcshekinah.org, DNS:www.mcshekinah.org",
+      "daysUntilExpiry": 80,
+      "chain": [
+        {
+          "subject": {
+            "CN": "mcshekinah.org"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "validFrom": "Oct 17 00:56:24 2026 GMT",
+          "validTo": "Jan 15 00:56:23 2027 GMT",
+          "fingerprint256": "17:32:2B:F6:07:69:9D:09:C3:B0:51:D5:EB:86:4D:0F:79:06:E6:68:D9:3A:E6:4B:77:11:DE:37:22:6B:A4:85"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "validFrom": "Sep  3 00:00:00 2025 GMT",
+          "validTo": "Sep  2 23:59:59 2028 GMT",
+          "fingerprint256": "13:94:96:34:D9:9C:D6:FD:6A:A8:0B:C0:34:FE:FA:CC:EB:19:69:FE:EF:98:65:86:71:3E:CD:BB:05:75:8D:3F"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "May 13 00:00:00 2026 GMT",
+          "validTo": "Sep  2 23:59:59 2032 GMT",
+          "fingerprint256": "07:26:39:D0:B1:40:D5:BF:FA:E1:6A:D9:C3:F6:CC:60:86:04:06:21:F5:1E:E6:1A:6D:46:A8:91:5C:07:CF:76"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "Jun  4 11:04:38 2015 GMT",
+          "validTo": "Jun  4 11:04:38 2035 GMT",
+          "fingerprint256": "96:BC:EC:06:26:49:76:F3:74:60:77:9A:CF:28:C5:A7:CF:E8:A3:C0:AA:E1:1A:8F:FC:EE:05:C0:BD:DF:08:C6"
+        }
+      ]
+    },
+    {
+      "hostname": "mcshekinah.org",
+      "requestedVersion": "TLSv1.3",
+      "durationMs": 102,
+      "connected": true,
+      "authorized": true,
+      "negotiatedVersion": "TLSv1.3",
+      "cipher": {
+        "name": "TLS_AES_128_GCM_SHA256",
+        "standardName": "TLS_AES_128_GCM_SHA256",
+        "version": "TLSv1.3"
+      },
+      "alpn": "h2",
+      "subjectAlternativeNames": "DNS:mcshekinah.org, DNS:www.mcshekinah.org",
+      "daysUntilExpiry": 80,
+      "chain": [
+        {
+          "subject": {
+            "CN": "mcshekinah.org"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "validFrom": "Oct 17 00:56:24 2026 GMT",
+          "validTo": "Jan 15 00:56:23 2027 GMT",
+          "fingerprint256": "17:32:2B:F6:07:69:9D:09:C3:B0:51:D5:EB:86:4D:0F:79:06:E6:68:D9:3A:E6:4B:77:11:DE:37:22:6B:A4:85"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "validFrom": "Sep  3 00:00:00 2025 GMT",
+          "validTo": "Sep  2 23:59:59 2028 GMT",
+          "fingerprint256": "13:94:96:34:D9:9C:D6:FD:6A:A8:0B:C0:34:FE:FA:CC:EB:19:69:FE:EF:98:65:86:71:3E:CD:BB:05:75:8D:3F"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "May 13 00:00:00 2026 GMT",
+          "validTo": "Sep  2 23:59:59 2032 GMT",
+          "fingerprint256": "07:26:39:D0:B1:40:D5:BF:FA:E1:6A:D9:C3:F6:CC:60:86:04:06:21:F5:1E:E6:1A:6D:46:A8:91:5C:07:CF:76"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "Jun  4 11:04:38 2015 GMT",
+          "validTo": "Jun  4 11:04:38 2035 GMT",
+          "fingerprint256": "96:BC:EC:06:26:49:76:F3:74:60:77:9A:CF:28:C5:A7:CF:E8:A3:C0:AA:E1:1A:8F:FC:EE:05:C0:BD:DF:08:C6"
+        }
+      ]
+    },
+    {
+      "hostname": "www.mcshekinah.org",
+      "requestedVersion": "TLSv1.2",
+      "durationMs": 139,
+      "connected": true,
+      "authorized": true,
+      "negotiatedVersion": "TLSv1.2",
+      "cipher": {
+        "name": "ECDHE-RSA-AES128-GCM-SHA256",
+        "standardName": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+        "version": "TLSv1.2"
+      },
+      "alpn": "h2",
+      "subjectAlternativeNames": "DNS:mcshekinah.org, DNS:www.mcshekinah.org",
+      "daysUntilExpiry": 80,
+      "chain": [
+        {
+          "subject": {
+            "CN": "mcshekinah.org"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "validFrom": "Oct 17 00:56:24 2026 GMT",
+          "validTo": "Jan 15 00:56:23 2027 GMT",
+          "fingerprint256": "17:32:2B:F6:07:69:9D:09:C3:B0:51:D5:EB:86:4D:0F:79:06:E6:68:D9:3A:E6:4B:77:11:DE:37:22:6B:A4:85"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "validFrom": "Sep  3 00:00:00 2025 GMT",
+          "validTo": "Sep  2 23:59:59 2028 GMT",
+          "fingerprint256": "13:94:96:34:D9:9C:D6:FD:6A:A8:0B:C0:34:FE:FA:CC:EB:19:69:FE:EF:98:65:86:71:3E:CD:BB:05:75:8D:3F"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "May 13 00:00:00 2026 GMT",
+          "validTo": "Sep  2 23:59:59 2032 GMT",
+          "fingerprint256": "07:26:39:D0:B1:40:D5:BF:FA:E1:6A:D9:C3:F6:CC:60:86:04:06:21:F5:1E:E6:1A:6D:46:A8:91:5C:07:CF:76"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "Jun  4 11:04:38 2015 GMT",
+          "validTo": "Jun  4 11:04:38 2035 GMT",
+          "fingerprint256": "96:BC:EC:06:26:49:76:F3:74:60:77:9A:CF:28:C5:A7:CF:E8:A3:C0:AA:E1:1A:8F:FC:EE:05:C0:BD:DF:08:C6"
+        }
+      ]
+    },
+    {
+      "hostname": "www.mcshekinah.org",
+      "requestedVersion": "TLSv1.3",
+      "durationMs": 26,
+      "connected": true,
+      "authorized": true,
+      "negotiatedVersion": "TLSv1.3",
+      "cipher": {
+        "name": "TLS_AES_128_GCM_SHA256",
+        "standardName": "TLS_AES_128_GCM_SHA256",
+        "version": "TLSv1.3"
+      },
+      "alpn": "h2",
+      "subjectAlternativeNames": "DNS:mcshekinah.org, DNS:www.mcshekinah.org",
+      "daysUntilExpiry": 80,
+      "chain": [
+        {
+          "subject": {
+            "CN": "mcshekinah.org"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "validFrom": "Oct 17 00:56:24 2026 GMT",
+          "validTo": "Jan 15 00:56:23 2027 GMT",
+          "fingerprint256": "17:32:2B:F6:07:69:9D:09:C3:B0:51:D5:EB:86:4D:0F:79:06:E6:68:D9:3A:E6:4B:77:11:DE:37:22:6B:A4:85"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Let's Encrypt",
+            "CN": "YR1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "validFrom": "Sep  3 00:00:00 2025 GMT",
+          "validTo": "Sep  2 23:59:59 2028 GMT",
+          "fingerprint256": "13:94:96:34:D9:9C:D6:FD:6A:A8:0B:C0:34:FE:FA:CC:EB:19:69:FE:EF:98:65:86:71:3E:CD:BB:05:75:8D:3F"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "ISRG",
+            "CN": "Root YR"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "May 13 00:00:00 2026 GMT",
+          "validTo": "Sep  2 23:59:59 2032 GMT",
+          "fingerprint256": "07:26:39:D0:B1:40:D5:BF:FA:E1:6A:D9:C3:F6:CC:60:86:04:06:21:F5:1E:E6:1A:6D:46:A8:91:5C:07:CF:76"
+        },
+        {
+          "subject": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "issuer": {
+            "C": "US",
+            "O": "Internet Security Research Group",
+            "CN": "ISRG Root X1"
+          },
+          "validFrom": "Jun  4 11:04:38 2015 GMT",
+          "validTo": "Jun  4 11:04:38 2035 GMT",
+          "fingerprint256": "96:BC:EC:06:26:49:76:F3:74:60:77:9A:CF:28:C5:A7:CF:E8:A3:C0:AA:E1:1A:8F:FC:EE:05:C0:BD:DF:08:C6"
+        }
+      ]
+    },
+    {
+      "hostname": "mcshekinah.org",
+      "requestedVersion": "TLSv1",
+      "durationMs": 198,
+      "connected": false,
+      "error": "ERR_SSL_TLSV1_ALERT_PROTOCOL_VERSION",
+      "detail": "400EED37E07B0000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../deps/openssl/openssl/ssl/record/rec_layer_s3.c:918:SSL alert number 70\n"
+    },
+    {
+      "hostname": "mcshekinah.org",
+      "requestedVersion": "TLSv1.1",
+      "durationMs": 246,
+      "connected": false,
+      "error": "ERR_SSL_TLSV1_ALERT_PROTOCOL_VERSION",
+      "detail": "400EED37E07B0000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../deps/openssl/openssl/ssl/record/rec_layer_s3.c:918:SSL alert number 70\n"
+    }
+  ],
+  "httpRedirects": [
+    {
+      "hostname": "mcshekinah.org",
+      "status": 301,
+      "location": "https://mcshekinah.org/",
+      "durationMs": 124,
+      "verified": true
+    },
+    {
+      "hostname": "www.mcshekinah.org",
+      "status": 301,
+      "location": "https://mcshekinah.org/",
+      "durationMs": 66,
+      "verified": true
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Observed endpoint and negotiated ciphers only; no exhaustive cipher, revocation, OCSP, or global-edge assessment."
+  ]
+}
