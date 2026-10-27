@@ -442,6 +442,43 @@ async function check(name,fn) {
     assert(await page.locator('#refreshAdministratorsButton').isEnabled());state.listError=null;await page.locator('#refreshAdministratorsButton').click();await page.locator('.administrator-item').first().waitFor();
     assert.equal(await page.locator('.administrator-item').count(),2);assert.match(await page.locator('#administratorListStatus').innerText(),/2 administrators/);
   }));
+  await check('Owner list deadline: a stalled read releases a focused accessible refresh without retrying mutations',()=>journey({owner:true,theme:'dark',viewport:{width:320,height:1000}},async p=>{
+    await login(p);const {page,context,state}=p;await page.locator('#administratorsTab').click();await page.locator('.administrator-item').first().waitFor();
+    let release;const held=new Promise(resolve=>{release=resolve});
+    const pattern='**/functions/v1/admin-users';
+    await context.route(pattern,async route=>{if(route.request().postDataJSON()?.action==='list')await held;return route.fallback();});
+    try{
+      await page.locator('#refreshAdministratorsButton').click();
+      assert(await page.locator('#refreshAdministratorsButton').isDisabled());assert.equal(await page.locator('#administratorList').getAttribute('inert'),'');
+      await page.waitForFunction(()=>document.getElementById('administratorListStatus').textContent.startsWith('Unable to load'),null,{timeout:14000});
+      assert.equal(await page.locator('.administrator-item').count(),0);assert(await page.locator('#refreshAdministratorsButton').isEnabled());
+      assert(await page.locator('#refreshAdministratorsButton').evaluate(element=>element===document.activeElement));
+      assert.equal(await page.locator('#administratorList').getAttribute('aria-busy'),'false');
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>(await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>v.id)),[]);
+      if(process.env.BROWSER_SCREENSHOT_DIR&&engine==='chromium')await page.screenshot({path:path.join(process.env.BROWSER_SCREENSHOT_DIR,'owner-list-recovery-dark-320.png')});
+      assert(!state.requests.some(request=>request.url.includes('/functions/v1/admin-users')&&JSON.parse(request.body||'{}').action!=='list'));
+    }finally{release();await context.unroute(pattern);}
+    await page.locator('#refreshAdministratorsButton').click();await page.locator('.administrator-item').first().waitFor();
+    assert.equal(await page.locator('.administrator-item').count(),2);
+  }));
+  await check('Owner list concurrency: duplicate tab requests are shared and an invitation forces a fresh read',()=>journey({owner:true},async p=>{
+    await login(p);const {page,context,state}=p;let release,listCalls=0;
+    const held=new Promise(resolve=>{release=resolve});
+    await context.route('**/functions/v1/admin-users',async route=>{if(route.request().postDataJSON()?.action==='list'&&++listCalls===1)await held;return route.fallback();});
+    try{
+      const pending=page.waitForRequest(request=>request.url().includes('/functions/v1/admin-users')&&request.postDataJSON()?.action==='list');
+      await page.locator('#administratorsTab').click();await pending;
+      await page.locator('#administratorsTab').click();await page.locator('#administratorsTab').click();assert.equal(listCalls,1);
+      await page.locator('#newAdministratorEmail').fill('new-owner-fixture@example.test');await page.locator('#inviteAdministratorForm button').click();
+      await page.waitForFunction(()=>document.getElementById('administratorListStatus').textContent==='3 administrators');
+      assert.equal(listCalls,2);assert.equal(await page.locator('.administrator-item').count(),3);
+      assert(await page.locator('#refreshAdministratorsButton').isEnabled());
+      assert.equal(state.requests.filter(request=>request.url.includes('/functions/v1/admin-users')&&JSON.parse(request.body||'{}').action==='invite').length,1);
+      release();await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      assert.equal(await page.locator('#administratorListStatus').innerText(),'3 administrators');
+    }finally{release();}
+  }));
   await check('Owner removal: a legacy false-success response is detected and a confirmed retry recovers',()=>journey({owner:true},async p=>{
     await login(p);const {page,state}=p;await page.locator('#administratorsTab').click();
     const target=page.locator('.administrator-item').filter({hasText:'editor@example.test'});await target.waitFor();

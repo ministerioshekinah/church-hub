@@ -53,10 +53,11 @@ test('Owner session: delayed role verification cannot restore access after sign-
 
 test('Owner session: a late list response cannot expose administrator emails after sign-out', async () => {
   const p = await ownerPage();
-  p.run('let releaseList; supabaseClient.functions.invoke=()=>new Promise(resolve=>{releaseList=resolve;});');
+  p.run('let releaseList,readOptions; supabaseClient.functions.invoke=(_,options)=>{readOptions=options;return new Promise(resolve=>{releaseList=resolve;});};');
   click(p, p.document.getElementById('administratorsTab'));
   p.run('showLogin(); releaseList({data:{admins:[{id:"test-owner",email:"late@example.test",role:"owner"}]}});');
   await settle();
+  assert.equal(p.run('readOptions.signal.aborted'),true);
   assert.equal(p.document.getElementById('administratorList').textContent, '');
   assert.equal(p.document.getElementById('administratorListStatus').textContent, '');
 });
@@ -114,15 +115,87 @@ test('Owner invitation: an old response cannot unlock a new session invitation',
   assert.equal(p.document.getElementById('newAdministratorEmail').disabled,false);
 });
 
-test('Owner list: an older refresh cannot replace the latest access list', async () => {
+test('Owner list: repeated refreshes share one bounded read and expose a busy state', async () => {
   const p=await ownerPage();
-  p.run('let listResponses=[];supabaseClient.functions.invoke=()=>new Promise(resolve=>listResponses.push(resolve));');
+  p.run('let listResponses=[],readOptions;supabaseClient.functions.invoke=(_,options)=>{readOptions=options;return new Promise(resolve=>listResponses.push(resolve));};');
   click(p,p.document.getElementById('administratorsTab'));
   click(p,p.document.getElementById('refreshAdministratorsButton'));
-  p.run('listResponses[1]({data:{admins:[{id:"latest",email:"latest@example.test",role:"admin"}]}})');await settle();
-  p.run('listResponses[0]({data:{admins:[{id:"stale",email:"removed@example.test",role:"admin"}]}})');await settle();
+  click(p,p.document.getElementById('administratorsTab'));
+  assert.equal(p.run('listResponses.length'),1);assert.equal(p.run('readOptions.signal.aborted'),false);
+  assert.equal(p.document.getElementById('refreshAdministratorsButton').disabled,true);
+  assert.equal(p.document.getElementById('administratorList').hasAttribute('inert'),true);
+  assert.equal(p.document.getElementById('administratorList').getAttribute('aria-busy'),'true');
+  p.run('listResponses[0]({data:{admins:[{id:"latest",email:"latest@example.test",role:"admin"}]}})');await settle();
   assert.match(p.document.getElementById('administratorList').textContent,/latest@example.test/);
+  assert.equal(p.document.getElementById('refreshAdministratorsButton').disabled,false);
+  assert.equal(p.document.getElementById('administratorList').hasAttribute('inert'),false);
+  assert.equal(p.document.getElementById('administratorList').getAttribute('aria-busy'),'false');
+});
+
+test('Owner list: a completed invitation cancels an older read and requires a fresh access list',async()=>{
+  const p=await ownerPage();
+  p.run('let listResponses=[],listSignals=[],inviteOptions;supabaseClient.functions.invoke=async(_,options)=>{if(options.body.action==="list"){listSignals.push(options.signal);return new Promise(resolve=>listResponses.push(resolve));}inviteOptions=options;return {data:{invited:true}};};');
+  click(p,p.document.getElementById('administratorsTab'));submitInvitation(p,'new@example.test');await settle();
+  assert.equal(p.run('listResponses.length'),2);assert.equal(p.run('listSignals[0].aborted'),true);
+  assert.equal(p.run('inviteOptions.timeout'),undefined);assert.equal(p.run('inviteOptions.signal'),undefined);
+  p.run('listResponses[0]({data:{admins:[{id:"old",email:"removed@example.test",role:"admin"}]}})');await settle();
+  assert.equal(p.document.getElementById('refreshAdministratorsButton').disabled,true);
   assert(!p.document.getElementById('administratorList').textContent.includes('removed@example.test'));
+  p.run('listResponses[1]({data:{admins:[{id:"new",email:"new@example.test",role:"admin"}]}})');await settle();
+  assert.match(p.document.getElementById('administratorList').textContent,/new@example.test/);
+  assert.equal(p.document.getElementById('refreshAdministratorsButton').disabled,false);
+});
+
+test('Owner list: an expired read clears stale rows and requires an explicit refresh',async()=>{
+  const p=await ownerPage();click(p,p.document.getElementById('administratorsTab'));await settle();
+  p.run('let listCalls=0;supabaseClient.functions.invoke=async()=>{listCalls++;return {error:new Error("Private timeout detail")};};');
+  click(p,p.document.getElementById('refreshAdministratorsButton'));await settle();
+  assert.equal(p.document.getElementById('administratorList').textContent,'');
+  assert.match(p.document.getElementById('administratorListStatus').textContent,/Refresh.*try again/);
+  assert(!p.document.getElementById('administratorListStatus').textContent.includes('Private timeout detail'));
+  assert.equal(p.document.getElementById('refreshAdministratorsButton').disabled,false);assert.equal(p.run('listCalls'),1);
+  click(p,p.document.getElementById('refreshAdministratorsButton'));await settle();assert.equal(p.run('listCalls'),2);
+});
+
+test('Owner list: malformed responses cannot report an empty successful access list',async()=>{
+  const p=await ownerPage();p.run('supabaseClient.functions.invoke=async()=>({data:{admins:null}});');
+  click(p,p.document.getElementById('administratorsTab'));await settle();
+  assert.match(p.document.getElementById('administratorListStatus').textContent,/Unable to load/);
+  assert.equal(p.document.getElementById('administratorList').textContent,'');
+});
+
+test('Owner list: the deadline releases controls even when the SDK has not settled or started its request',async()=>{
+  const p=await ownerPage();
+  p.run('let readSignal,finishRead,timers=new Map(),timerId=0;setTimeout=(fn,delay)=>{timers.set(++timerId,{fn,delay});return timerId};clearTimeout=id=>timers.delete(id);supabaseClient.functions.invoke=(_,options)=>{readSignal=options.signal;return new Promise(resolve=>{finishRead=resolve});};');
+  click(p,p.document.getElementById('administratorsTab'));
+  assert.equal(p.run('[...timers.values()][0].delay'),10000);
+  p.run('[...timers.values()][0].fn()');await settle();
+  assert.equal(p.run('readSignal.aborted'),true);assert.equal(p.run('timers.size'),0);
+  assert.equal(p.document.getElementById('refreshAdministratorsButton').disabled,false);
+  assert.match(p.document.getElementById('administratorListStatus').textContent,/Unable to load/);
+  p.run('finishRead({data:{admins:[{id:"late",email:"late@example.test",role:"admin"}]}})');await settle();
+  assert.equal(p.document.getElementById('administratorList').textContent,'');
+});
+
+test('Owner list: the real SDK aborts an incomplete native-fetch JSON body and releases the refresh control',async()=>{
+  const http=require('node:http'),vm=require('node:vm');
+  const server=http.createServer((request,response)=>{assert.equal(request.url,'/functions/v1/admin-users');response.writeHead(200,{'Content-Type':'application/json'});response.write('{"admins":');});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  let nativeSignal,responseReady;const received=new Promise(resolve=>{responseReady=resolve});
+  const context={console,URL,URLSearchParams,Headers,Request,Response,AbortController,TextEncoder,TextDecoder,crypto,WebSocket,setTimeout,clearTimeout,setInterval,clearInterval};
+  vm.runInNewContext(read('assets/vendor/supabase-2.112.2.js'),context);
+  const client=context.supabase.createClient(`http://127.0.0.1:${server.address().port}`,'fixture-publishable-key',{
+    auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+    global:{fetch:async(url,options)=>{nativeSignal=options.signal;const response=await fetch(url,options);responseReady();return response;}}
+  });
+  try{
+    const p=await ownerPage();p.browser.fixtureFunctions=client.functions;
+    p.run('supabaseClient.functions=window.fixtureFunctions;let readDeadline;setTimeout=(fn)=>{readDeadline=fn;return 1};clearTimeout=()=>{};');
+    click(p,p.document.getElementById('administratorsTab'));await received;
+    assert.equal(nativeSignal.aborted,false);p.run('readDeadline()');await settle();
+    assert.equal(nativeSignal.aborted,true);assert.equal(p.document.getElementById('refreshAdministratorsButton').disabled,false);
+    assert.match(p.document.getElementById('administratorListStatus').textContent,/Refresh.*try again/);
+  }finally{await client.auth.dispose();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
 
 test('Admin session: signing out clears draft fields, previews, and in-memory content', async () => {
