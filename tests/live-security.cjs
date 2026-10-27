@@ -24,8 +24,8 @@ const rest=(path,options={})=>get(api+'/rest/v1/'+path,{...options,headers:{apik
  const auth=await get(api+'/auth/v1/settings',{headers:{apikey:publishableKey}});assert.equal(auth.status,200);const settings=await auth.json();
  if(!settings.disable_signup)findings.push({name:'Public self-signup remains enabled',action:'Disable new user signups in Supabase Auth if accounts are invitation-only. Non-admin accounts remain denied by tested RLS policies.'});
  const headers=(await get(site+'/admin/')).headers;
- for(const header of ['strict-transport-security','x-content-type-options'])if(!headers.has(header))findings.push({name:'Missing hosting header: '+header,action:'Configure an HTTPS proxy or host that supports custom response headers.'});
- if(!headers.has('x-frame-options')&&!/frame-ancestors/.test(headers.get('content-security-policy')||''))findings.push({name:'Missing header-based framing restriction',action:'Configure CSP frame-ancestors at the hosting/proxy layer; a meta tag cannot enforce this directive.'});
+ for(const header of ['strict-transport-security','x-content-type-options'])if(!headers.has(header))findings.push({name:'Missing hosting header: '+header,action:'Record the existing GitHub Pages header limitation. Repository header files cannot activate it; verify any separately approved host-level change before marking it fixed.'});
+ if(!headers.has('x-frame-options')&&!/frame-ancestors/.test(headers.get('content-security-policy')||''))findings.push({name:'Missing header-based framing restriction',action:'Record the GitHub Pages framing limitation: CSP frame-ancestors cannot be enforced by a meta tag. No proxy, connector or hosting change is part of this check.'});
  const report={checkedAt:new Date().toISOString(),mode:'read-only production probes',passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,tests:results,findings};
  fs.mkdirSync('security/local-results',{recursive:true});fs.writeFileSync('security/local-results/live-security.json',JSON.stringify(report,null,2)+'\n');
  console.log(JSON.stringify(report,null,2));if(report.failed)process.exitCode=1;
