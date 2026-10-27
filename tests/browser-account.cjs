@@ -25,6 +25,18 @@ const secret='Fixture-only new passphrase 42!';
     await p.page.locator('#adminLoginForm button[type="submit"]').click();await p.page.locator('#adminDashboard').waitFor({state:'visible'});
   }
   async function fill(page){await page.locator('#accountNewPassword').fill(secret);await page.locator('#accountConfirmPassword').fill(secret);}
+  async function failBrowserLocks(page){
+    // Exercise the real SDK's failure before it can clear local storage.
+    // Replace the exposed manager consistently across engines. Keep failure
+    // active until the UI settles so a background SDK check cannot consume it.
+    await page.evaluate(()=>{
+      window.__fixtureOriginalLocks=navigator.locks;
+      Object.defineProperty(navigator,'locks',{configurable:true,value:{request:()=>Promise.reject(new DOMException('Fixture lock unavailable','SecurityError'))}});
+    });
+  }
+  async function restoreBrowserLocks(page){
+    await page.evaluate(()=>{Object.defineProperty(navigator,'locks',{configurable:true,value:window.__fixtureOriginalLocks});delete window.__fixtureOriginalLocks;});
+  }
   const writes=state=>state.requests.filter(request=>request.url.includes('/auth/v1/user')&&request.method==='PUT');
 
   for(const type of ['invite','recovery'])await check(`Account ${type}: verified link, password setup, cleanup, and a fresh password sign-in`,{theme:type==='invite'?'light':'dark',viewport:{width:type==='invite'?1280:320,height:1000}},async p=>{
@@ -143,13 +155,93 @@ const secret='Fixture-only new passphrase 42!';
       assert.equal(await page.locator('#accountIdentity').innerText(),'');assert.equal(writes(state).length,0);
     }finally{release();}
   });
+  await check('Sign-out privacy: pending logout clears Owner drafts, revealed passwords and controls before the network settles',{owner:true},async p=>{
+    await login(p);const {page,context}=p;
+    await page.waitForFunction(()=>!document.getElementById('serviceLabelEn').disabled);
+    await page.locator('#serviceLabelEn').fill('Private draft awaiting sign-out');
+    await page.locator('#administratorsTab').click();await page.locator('#newAdministratorEmail').fill('private-invite@example.test');
+    await page.locator('#accountTab').click();await fill(page);await page.locator('#accountShowPasswords').check();
+    let release;const held=new Promise(resolve=>{release=resolve});
+    await context.route('**/auth/v1/logout?*',async route=>{await held;return route.fallback();});
+    try{
+      const request=page.waitForRequest(request=>request.url().includes('/auth/v1/logout'));
+      await page.locator('#signOutButton').click();await request;
+      assert(await page.locator('#adminDashboard').isHidden());assert(await page.locator('#adminLoginForm').isHidden());
+      assert.equal(await page.locator('#serviceLabelEn').inputValue(),'');assert.equal(await page.locator('#newAdministratorEmail').inputValue(),'');
+      assert.equal(await page.locator('#administratorList .administrator-item').count(),0);
+      assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.equal(await page.locator('#accountNewPassword').getAttribute('type'),'password');
+      assert(!(await page.locator('#adminMessage').innerText()).includes('Signed out securely'));
+      release();await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out securely.');
+      assert.equal(await page.evaluate(async()=>(await supabaseClient.auth.getSession()).data.session),null);
+    }finally{release();}
+  });
+  await check('Sign-out privacy: a rejected global logout accurately reports local cleanup without claiming remote revocation',{theme:'dark',viewport:{width:320,height:1000}},async p=>{
+    await login(p);const {page,state}=p;await page.locator('#accountTab').click();await fill(page);
+    state.logoutError={code:'unexpected_failure',message:'Private provider detail'};
+    await page.locator('#signOutButton').click();await page.waitForFunction(()=>document.getElementById('adminMessage').textContent.startsWith('Signed out on this device.'));
+    assert(await page.locator('#adminEmail').evaluate(element=>element===document.activeElement));
+    assert(await page.locator('#adminDashboard').isHidden());assert(await page.locator('#adminLoginForm').isVisible());
+    assert.equal(await page.locator('#accountNewPassword').inputValue(),'');
+    assert.match(await page.locator('#adminMessage').innerText(),/other sessions could not be confirmed/);
+    assert(!(await page.locator('#adminMessage').innerText()).includes('Private provider detail'));
+    assert.equal(await page.evaluate(async()=>(await supabaseClient.auth.getSession()).data.session),null);
+    assert(await page.locator('#retrySignOutButton').isHidden(),'A retry without an SDK session cannot revoke remote sessions');
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>(await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>v.id)),[]);
+    if(process.env.BROWSER_SCREENSHOT_DIR&&engine==='chromium')await page.screenshot({path:path.join(process.env.BROWSER_SCREENSHOT_DIR,'signout-local-only-dark-320.png')});
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,1);
+    state.logoutError=null;await login(p);await page.locator('#signOutButton').click();await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out securely.');
+    assert(await page.locator('#adminEmail').evaluate(element=>element===document.activeElement));assert(await page.locator('#adminLoginForm').isVisible());
+    assert.equal(await page.evaluate(async()=>(await supabaseClient.auth.getSession()).data.session),null);
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,2);
+  });
+  await check('Sign-out privacy: a browser lock failure keeps a cleared accessible view and an explicit retry',{theme:'dark',viewport:{width:320,height:1000}},async p=>{
+    await login(p);const {page,state}=p;await page.locator('#accountTab').click();await fill(page);
+    await failBrowserLocks(page);await page.locator('#signOutButton').click();await page.locator('#retrySignOutButton').waitFor({state:'visible'});await restoreBrowserLocks(page);
+    assert(await page.locator('#retrySignOutButton').evaluate(element=>element===document.activeElement));
+    assert(await page.locator('#adminDashboard').isHidden());assert(await page.locator('#adminLoginForm').isHidden());
+    assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.match(await page.locator('#adminMessage').innerText(),/could not be confirmed/);
+    assert(await page.evaluate(async()=>Boolean((await supabaseClient.auth.getSession()).data.session)));
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,0);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>(await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>v.id)),[]);
+    if(process.env.BROWSER_SCREENSHOT_DIR&&engine==='chromium')await page.screenshot({path:path.join(process.env.BROWSER_SCREENSHOT_DIR,'signout-retry-dark-320.png')});
+    await page.locator('#retrySignOutButton').click();await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out securely.');
+    assert.equal(await page.evaluate(async()=>(await supabaseClient.auth.getSession()).data.session),null);
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,1);
+  });
+  await check('Sign-out privacy: another tab completing logout clears a failed retry without another request',{},async p=>{
+    await login(p);const {page,state,context}=p;
+    await failBrowserLocks(page);
+    await page.locator('#signOutButton').click();await page.locator('#retrySignOutButton').waitFor({state:'visible'});
+    await restoreBrowserLocks(page);
+    const other=await context.newPage();await other.goto(site.url+'/admin/',{waitUntil:'networkidle'});await other.locator('#adminDashboard').waitFor({state:'visible'});
+    await other.locator('#signOutButton').click();await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out on this device.');
+    assert(await page.locator('#retrySignOutButton').isHidden());assert(await page.locator('#adminLoginForm').isVisible());
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,1);
+  });
+  await check('Sign-out privacy: changing accounts removes a previous account\'s failed retry',{},async p=>{
+    await login(p);const {page,state,context}=p;
+    await failBrowserLocks(page);
+    await page.locator('#signOutButton').click();await page.locator('#retrySignOutButton').waitFor({state:'visible'});
+    await restoreBrowserLocks(page);
+    const other=await context.newPage();await other.goto(site.url+'/admin/',{waitUntil:'networkidle'});await other.locator('#adminDashboard').waitFor({state:'visible'});
+    state.identityUser={id:'22222222-2222-4222-8222-222222222222',aud:'authenticated',role:'authenticated',email:'other@example.test',app_metadata:{},user_metadata:{}};
+    const token=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:state.identityUser.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test-signature';
+    assert.equal((await other.evaluate(async session=>await supabaseClient.auth.setSession(session),{access_token:token,refresh_token:'fixture-other-refresh'})).error,null);
+    await page.waitForFunction(()=>document.getElementById('adminMessage').textContent.includes('signed-in account changed'));
+    assert(await page.locator('#retrySignOutButton').isHidden());assert(await page.locator('#adminDashboard').isHidden());
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,0);
+    assert.equal(await page.evaluate(async()=>((await supabaseClient.auth.getSession()).data.session)?.user.id),state.identityUser.id);
+  });
   for(const noWebLocks of [false,true])await check(`Account race: sign-out during a pending password request clears UI and SDK (${noWebLocks?'process fallback':'Web Locks'})`,{noWebLocks},async p=>{
     await login(p);const {page,context,state}=p;await page.locator('#accountTab').click();await fill(page);
     let release;const held=new Promise(resolve=>{release=resolve});
     await context.route('**/auth/v1/user',async route=>{if(route.request().method()==='PUT')await held;return route.fallback();});
     const request=page.waitForRequest(request=>request.url().includes('/auth/v1/user')&&request.method()==='PUT');
     await page.locator('#accountSavePassword').click();await request;
-    assert(await page.locator('#accountSavePassword').isDisabled());await page.locator('#signOutButton').click();release();
+    assert(await page.locator('#accountSavePassword').isDisabled());await page.locator('#signOutButton').click();
+    assert(await page.locator('#adminDashboard').isHidden());assert.equal(await page.locator('#accountNewPassword').inputValue(),'');release();
     await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out securely.');assert.equal(await page.locator('#accountNewPassword').inputValue(),'');assert.equal(await page.locator('#accountPasswordStatus').innerText(),'');
     assert.equal(writes(state).length,1);
     const session=await page.evaluate(async()=>{const {data}=await supabaseClient.auth.getSession();return data.session});assert.equal(session,null);

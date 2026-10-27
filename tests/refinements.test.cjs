@@ -188,8 +188,9 @@ test('Admin: failed sign-out never claims success or strands a disabled button',
   const p = await page('admin/index.html');
   p.run('supabaseClient={auth:{signOut:async()=>({error:new Error("offline")})}}; dashboard.classList.add("visible");');
   click(p, p.document.getElementById('signOutButton')); await settle();
-  assert.match(p.document.getElementById('dashboardStatus').textContent, /could not be completed/);
-  assert.equal(p.document.getElementById('adminDashboard').classList.contains('visible'), true);
+  assert.match(p.document.getElementById('adminMessage').textContent, /could not be confirmed/);
+  assert.equal(p.document.getElementById('adminDashboard').classList.contains('visible'), false);
+  assert.equal(p.document.getElementById('retrySignOutButton').hidden, false);
   assert.equal(p.document.getElementById('signOutButton').disabled, false);
   assert(!p.document.getElementById('adminMessage').textContent.includes('Signed out securely'));
 });

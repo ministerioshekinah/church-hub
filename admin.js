@@ -32,6 +32,34 @@ let newsletterReviewQueued = false;
 let newsletterReviewSignature = null;
 let verifyingAdminId = null;
 let lastAuthEventId = null;
+let signOutState = null;
+
+function clearLoginPassword() {
+  passwordInput.value = "";
+  passwordInput.type = "password";
+  passwordToggle.textContent = "Show";
+  passwordToggle.setAttribute("aria-pressed", "false");
+  passwordToggle.setAttribute("aria-label", "Show password");
+}
+
+function renderSignOutState() {
+  const blocked = Boolean(signOutState);
+  const retry = document.getElementById("retrySignOutButton");
+  loginForm.hidden = blocked;
+  retry.hidden = !blocked || signOutState.pending;
+  retry.disabled = !blocked || signOutState.pending;
+  setLoginBusy(blocked);
+  setButtonBusy(signOutButton, Boolean(signOutState?.pending), "Signing out…", "Sign Out");
+  document.getElementById("adminLoginHeading").textContent = blocked
+    ? (signOutState.pending ? "Signing out…" : "Sign-out not confirmed") : "Sign in";
+  document.getElementById("adminLoginCopy").textContent = blocked
+    ? "Your private editor data has been cleared."
+    : "Sign in with an authorized Ministerio Cristiano Shekinah administrator account.";
+  if (blocked) {
+    document.getElementById("forgotPasswordButton").hidden = true;
+    document.getElementById("passwordRecoveryForm").hidden = true;
+  }
+}
 
 function editorKey(section) {
   if (!authenticatedAdmin) return null;
@@ -230,6 +258,7 @@ function showLogin() {
   setLoginBusy(false);
   for (const operation of editorOperations.values()) operation.release();
   authenticatedAdmin = null;
+  clearLoginPassword();
   editorBaselines.clear();
   updateUnloadGuard();
   serviceVersion = null;
@@ -247,12 +276,13 @@ function showLogin() {
   window.SHEKINAH_NEWSLETTER_EDITOR?.clear();
   updateServicePreview();
   updateNewsletterPreview();
-  ["serviceDraftStatus", "announcementDraftStatus", "draftStatus", "announcementIdLabel"].forEach(id => {
+  ["serviceDraftStatus", "announcementDraftStatus", "draftStatus", "announcementIdLabel", "dashboardStatus"].forEach(id => {
     const element = document.getElementById(id);
     if (element) element.textContent = "";
   });
   loginView.classList.remove("hidden");
   dashboard.classList.remove("visible");
+  renderSignOutState();
 }
 
 async function showDashboard(user) {
@@ -316,7 +346,7 @@ function beginAdminVerification(user) {
 }
 
 async function restoreAuthenticatedAdmin() {
-  if (!supabaseClient) return;
+  if (!supabaseClient || signOutState) return;
   const generation = adminSessionVersion;
 
   const { data, error } = await supabaseClient.auth.getUser();
@@ -355,11 +385,6 @@ function clearHistorySessionView() {
   // A history cache can retain the entire document, including private drafts
   // and Owner controls, while authentication changes in a different tab.
   showLogin();
-  passwordInput.value = "";
-  passwordInput.type = "password";
-  passwordToggle.textContent = "Show";
-  passwordToggle.setAttribute("aria-pressed", "false");
-  passwordToggle.setAttribute("aria-label", "Show password");
 }
 
 window.addEventListener("pagehide", (event) => {
@@ -378,13 +403,25 @@ function handleAdminAuthChange(event, session) {
   // Auth callbacks remain synchronous. A different account must not inherit
   // private drafts or Owner UI from a previously verified identity in this tab.
   if (event === "SIGNED_OUT") {
+    const requested = signOutState;
+    // The SDK emits SIGNED_OUT after clearing local storage even when global
+    // revocation failed. Only the awaited request result confirms that outcome.
+    if (requested?.pending) requested.localCleared = true;
+    else signOutState = null;
     lastAuthEventId = null;
     showLogin();
+    if (requested?.pending) {
+      adminMessage.textContent = "Signing out. Wait for confirmation before leaving a shared device.";
+    } else if (requested) {
+      adminMessage.textContent = "Signed out on this device.";
+      emailInput.focus();
+    }
     return;
   }
-  const identity = authenticatedAdmin?.id || verifyingAdminId;
+  const identity = authenticatedAdmin?.id || verifyingAdminId || signOutState?.identityId;
   if (session?.user?.id) lastAuthEventId = session.user.id;
   if (identity && session?.user?.id && session.user.id !== identity) {
+    signOutState = null;
     showLogin();
     adminMessage.textContent = "Your signed-in account changed. Reload this page to verify the current account.";
     return;
@@ -455,7 +492,7 @@ passwordToggle.addEventListener("click", () => {
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (loginOperation) return;
+  if (loginOperation || signOutState) return;
 
   if (!supabaseClient) {
     adminMessage.textContent = "Secure authentication is not available.";
@@ -530,30 +567,43 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-signOutButton.addEventListener("click", async () => {
-  setButtonBusy(signOutButton, true, "Signing out…", "Sign Out");
-  const status = document.getElementById("dashboardStatus");
+async function requestSignOut() {
+  if (signOutState?.pending) return;
+  const state = signOutState || { identityId: authenticatedAdmin?.id || lastAuthEventId };
+  state.pending = true;
+  signOutState = state;
+  // Scrub private UI before waiting for the SDK lock or network. The cleared
+  // view is not a claim that the stored session or remote sessions are gone.
+  showLogin();
+  adminMessage.textContent = "Signing out. Wait for confirmation before leaving a shared device.";
+  adminMessage.focus();
   try {
     if (supabaseClient) {
       const { error } = await supabaseClient.auth.signOut();
       if (error) throw error;
     }
+    if (signOutState !== state) return;
+    signOutState = null;
     showLogin();
-    passwordInput.value = "";
-    passwordInput.type = "password";
-    passwordToggle.textContent = "Show";
-    passwordToggle.setAttribute("aria-pressed", "false");
-    passwordToggle.setAttribute("aria-label", "Show password");
     adminMessage.textContent = "Signed out securely.";
-    if (status) status.textContent = "";
     emailInput.focus();
-  } catch (error) {
-    console.error("Sign-out failed:", error);
-    if (status) status.textContent = "Sign-out could not be completed. Check your connection and try again.";
-  } finally {
-    setButtonBusy(signOutButton, false, "Signing out…", "Sign Out");
+  } catch {
+    if (signOutState !== state) return;
+    if (state.localCleared) {
+      signOutState = null;
+      showLogin();
+      adminMessage.textContent = "Signed out on this device. Sign-out of other sessions could not be confirmed.";
+      emailInput.focus();
+      return;
+    }
+    state.pending = false;
+    renderSignOutState();
+    adminMessage.textContent = "Sign-out could not be confirmed. Check your connection and retry sign-out before leaving a shared device.";
+    document.getElementById("retrySignOutButton").focus();
   }
-});
+}
+signOutButton.addEventListener("click", requestSignOut);
+document.getElementById("retrySignOutButton").addEventListener("click", requestSignOut);
 
 // ------------------------------------------------------------
 // Admin section tabs

@@ -100,7 +100,8 @@
               <p class="admin-message" id="passwordRecoveryStatus" role="status" aria-live="polite" aria-atomic="true"></p>
             </form>
 
-            <p class="admin-message" id="adminMessage" role="status" aria-live="polite">Enable JavaScript or reload.</p>
+            <p class="admin-message" id="adminMessage" role="status" aria-live="polite" tabindex="-1">Enable JavaScript or reload.</p>
+            <button class="button admin-button-secondary" id="retrySignOutButton" type="button" hidden>Retry sign-out</button>
             <div class="admin-security-note">
               <span>🔒</span>
               <span>
@@ -587,6 +588,6 @@
   <script src="/supabase-config.js?v=11.7"></script>
   <script src="/admin-content-review.js?v=1.0"></script>
   <script src="/admin-account.js?v=1.2"></script>
-  <script src="/admin.js?v=10.16"></script>
+  <script src="/admin.js?v=10.17"></script>
 </body>
 </html>
