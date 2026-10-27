@@ -18,8 +18,20 @@ function fixture(options={}) {
       select(cols,opts){head=opts?.head||false;return query;},eq(key,val){filters.push([key,val]);return query;},order(){return query;},
       insert(v){op='insert';values=v;return query;},update(v){op='update';values=v;return query;},delete(){op='delete';return query;},
       maybeSingle(){return result(true);},single(){return result(true);},then(resolve,reject){return result(false).then(resolve,reject);}
-    };async function result(single){calls.push({table,op,values,filters});if(options.dbError)return {data:null,error:new Error('private-database-secret')};let matches=rows.filter(row=>filters.every(([k,v])=>row[k]===v));if(head)return {count:matches.length,error:null};if(op==='update')matches=matches.map(row=>({...row,...values}));if(op==='delete'&&options.suppressedDelete)matches=[];if(op==='delete'&&options.wrongDeletedRow)matches=[{user_id:OTHER}];return {data:single?(matches[0]||null):matches,error:null};}return query;},
-    auth:{admin:{listUsers:async()=>({data:{users:options.users||[]},error:options.authError?new Error('private-auth-secret'):null}),inviteUserByEmail:async(email,opts)=>{calls.push({op:'invite',email,opts});return {data:{user:{id:OTHER}},error:null};}}}
+    };async function result(single){calls.push({table,op,values,filters});if(options.dbError)return {data:null,error:new Error('private-database-secret')};let matches=(!single&&!head&&options.listRows?options.listRows:rows).filter(row=>filters.every(([k,v])=>row[k]===v));if(head)return {count:matches.length,error:null};if(op==='update')matches=matches.map(row=>({...row,...values}));if(op==='delete'&&options.suppressedDelete)matches=[];if(op==='delete'&&options.wrongDeletedRow)matches=[{user_id:OTHER}];return {data:single?(matches[0]||null):matches,error:null};}return query;},
+    auth:{admin:{
+      listUsers:async params=>{
+        calls.push({op:'list-users',...params});if(options.listUsers)return options.listUsers(params);
+        const users=options.users??rows.map(row=>({id:row.user_id}));
+        return {data:{users:users.slice((params.page-1)*params.perPage,params.page*params.perPage)},error:options.authError?new Error('private-auth-secret'):null};
+      },
+      getUserById:async id=>{
+        calls.push({op:'get-user',id});if(options.getUserById)return options.getUserById(id);
+        const users=options.users??rows.map(row=>({id:row.user_id}));
+        return {data:{user:users.find(user=>user.id===id)||null},error:options.authError?new Error('private-auth-secret'):null};
+      },
+      inviteUserByEmail:async(email,opts)=>{calls.push({op:'invite',email,opts});return {data:{user:{id:OTHER}},error:null};}
+    }}
   }};
   async function request(body={action:'list'},opts={}) {const method=opts.method||'POST';const headers={'Content-Type':opts.type||'application/json',...opts.headers};if(opts.origin!==false)headers.Origin=opts.origin||'https://mcshekinah.org';const req=new Request('https://test.invalid/admin-users',{method,headers,...(!['GET','HEAD'].includes(method)?{body:opts.raw??JSON.stringify(body)}:{})});const res=await context.edge.fetch(req,ctx);return {res,body:await res.json(),calls,config};}
   return {request,calls,config};
@@ -45,7 +57,7 @@ const denyCases=[
  ['nonstring action',{raw:'{"action":{}}'},{},400],
  ['oversized body',{raw:'{"action":"list","x":"'+'a'.repeat(8192)+'"}'},{},413]
 ];
-for(const [name,opts,options,status] of denyCases)test('Edge: '+name,async()=>{const f=fixture(options);const r=await f.request(undefined,opts);assert.equal(r.res.status,status);assert(!f.calls.some(c=>['insert','update','delete','invite'].includes(c.op)));assert(!JSON.stringify(r.body).includes('private-'));});
+for(const [name,opts,options,status] of denyCases)test('Edge: '+name,async()=>{const f=fixture(options);const r=await f.request(undefined,opts);assert.equal(r.res.status,status);assert(!f.calls.some(c=>['insert','update','delete','invite','list-users','get-user'].includes(c.op)));assert(!JSON.stringify(r.body).includes('private-'));});
 const badActions=[
  ['unknown action',{action:'delete-all'},400],
  ['invalid invite address',{action:'invite',email:'a@'},400],
@@ -69,3 +81,55 @@ test('Edge: an owner may remove another content administrator',async()=>{const r
 test('Edge: a silently suppressed deletion cannot report revoked administrator access',async()=>{const r=await fixture({suppressedDelete:true}).request({action:'remove',userId:TARGET});assert.equal(r.res.status,409);assert.match(r.body.error,/not removed/);assert.equal(r.body.ok,undefined);});
 test('Edge: a removal response must identify the requested administrator',async()=>{const r=await fixture({wrongDeletedRow:true}).request({action:'remove',userId:TARGET});assert.equal(r.res.status,409);assert.equal(r.body.ok,undefined);});
 test('Edge: authentication middleware required and CORS constrained',()=>{const {config}=fixture();assert.equal(config.auth,'user');assert.equal(config.cors['Access-Control-Allow-Origin'],'https://mcshekinah.org');assert.equal(config.cors['Access-Control-Allow-Methods'],'POST, OPTIONS');});
+
+const fillerUsers=count=>Array.from({length:count},(_,i)=>({id:`aaaaaaaa-aaaa-4aaa-8aaa-${String(i).padStart(12,'0')}`,email:`fixture-${i}@example.test`}));
+test('Edge directory: listing administrators fetches only their profiles even beyond the first 1000 Auth users',async()=>{
+  const r=await fixture({users:[...fillerUsers(1000),{id:OWNER,email:'owner@example.test',user_metadata:{private:'not returned'}},{id:TARGET,email:'editor@example.test'}]}).request();
+  assert.equal(r.res.status,200);assert.deepEqual(r.calls.filter(c=>c.op==='get-user').map(c=>c.id),[OWNER,TARGET]);
+  assert(!r.calls.some(c=>c.op==='list-users'));assert.equal(r.body.admins[1].email,'editor@example.test');
+  assert(!JSON.stringify(r.body).includes('user_metadata'));assert(!JSON.stringify(r.body).includes('fixture-999'));
+});
+test('Edge directory: an empty membership list makes no Auth directory or profile requests',async()=>{
+  const r=await fixture({listRows:[]}).request();assert.equal(r.res.status,200);assert.deepEqual(r.body.admins,[]);
+  assert(!r.calls.some(c=>['list-users','get-user'].includes(c.op)));
+});
+test('Edge directory: profile requests are bounded to four concurrent reads and preserve membership order',async()=>{
+  const listRows=fillerUsers(13).map(user=>({user_id:user.id,role:'admin'}));let active=0,maximum=0;
+  const r=await fixture({listRows,getUserById:async id=>{active++;maximum=Math.max(maximum,active);await new Promise(resolve=>setImmediate(resolve));active--;return {data:{user:{id,email:`${id}@example.test`}},error:null};}}).request();
+  assert.equal(r.res.status,200);assert.equal(maximum,4);assert.deepEqual(r.body.admins.map(row=>row.id),listRows.map(row=>row.user_id));
+});
+test('Edge directory: a missing Auth profile remains unmapped and a mismatched identity fails closed',async()=>{
+  const missing=await fixture({getUserById:async()=>({data:{user:null},error:{status:404,code:'user_not_found'}})}).request();
+  assert.equal(missing.res.status,200);assert(missing.body.admins.every(row=>row.email===null));
+  const mismatch=await fixture({getUserById:async()=>({data:{user:{id:OTHER,email:'wrong@example.test'}},error:null})}).request();
+  assert.equal(mismatch.res.status,500);assert(!JSON.stringify(mismatch.body).includes('wrong@example.test'));
+});
+test('Edge directory: an existing account on a later page is authorized without sending an invitation',async()=>{
+  const r=await fixture({users:[...fillerUsers(1000),{id:OTHER,email:'Existing@Example.test'}]}).request({action:'invite',email:' existing@example.test '});
+  assert.equal(r.res.status,200);assert.equal(r.body.invited,false);assert.equal(r.body.userId,OTHER);
+  assert.deepEqual(r.calls.filter(c=>c.op==='list-users').map(c=>c.page),[1,2]);assert(!r.calls.some(c=>c.op==='invite'));
+  assert.equal(r.calls.find(c=>c.op==='insert').values.role,'admin');
+});
+test('Edge directory: an Owner found on page ten keeps the existing role and receives no invitation',async()=>{
+  const r=await fixture({users:[...fillerUsers(9000),{id:OWNER,email:'owner@example.test'}]}).request({action:'invite',email:'owner@example.test'});
+  assert.equal(r.res.status,200);assert.equal(r.body.role,'owner');assert.equal(r.body.alreadyAuthorized,true);
+  assert.equal(r.calls.filter(c=>c.op==='list-users').length,10);assert(!r.calls.some(c=>['invite','insert','update'].includes(c.op)));
+});
+test('Edge directory: a full page requires an empty-tail check before inviting an absent account',async()=>{
+  const r=await fixture({users:fillerUsers(1000)}).request({action:'invite',email:'new@example.test'});
+  assert.equal(r.res.status,200);assert.deepEqual(r.calls.filter(c=>c.op==='list-users').map(c=>c.page),[1,2]);
+  assert.equal(r.calls.filter(c=>c.op==='invite').length,1);
+});
+test('Edge directory: a later-page failure cannot send an invitation or grant membership',async()=>{
+  const r=await fixture({listUsers:async({page})=>page===1?{data:{users:fillerUsers(1000)},error:null}:{data:null,error:new Error('private-directory-error')}}).request({action:'invite',email:'new@example.test'});
+  assert.equal(r.res.status,500);assert(!r.calls.some(c=>['invite','insert'].includes(c.op)));assert(!JSON.stringify(r.body).includes('private-directory-error'));
+});
+test('Edge directory: the maximum page budget fails closed instead of inviting an unverified address',async()=>{
+  const r=await fixture({users:fillerUsers(10000)}).request({action:'invite',email:'beyond-budget@example.test'});
+  assert.equal(r.res.status,503);assert.equal(r.calls.filter(c=>c.op==='list-users').length,10);
+  assert(!r.calls.some(c=>['invite','insert'].includes(c.op)));
+});
+test('Edge directory: a malformed directory response is not treated as an empty account list',async()=>{
+  const r=await fixture({listUsers:async()=>({data:{users:null},error:null})}).request({action:'invite',email:'new@example.test'});
+  assert.equal(r.res.status,500);assert(!r.calls.some(c=>['invite','insert'].includes(c.op)));
+});

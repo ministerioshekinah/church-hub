@@ -8,6 +8,9 @@ type AdminAction =
 
 const SITE_ORIGIN = "https://mcshekinah.org";
 const MAX_REQUEST_BYTES = 8192;
+const AUTH_PAGE_SIZE = 1000;
+const MAX_AUTH_PAGES = 10;
+const PROFILE_CONCURRENCY = 4;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 class RequestError extends Error {
   status: number;
@@ -61,38 +64,52 @@ async function assertOwner(ctx: any) {
   return { callerId };
 }
 
-async function listAuthUsers(ctx: any) {
-  const { data, error } = await ctx.supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
-  if (error) throw error;
-  return data.users ?? [];
+async function findAuthUserByEmail(ctx: any, email: string) {
+  for (let page = 1; page <= MAX_AUTH_PAGES; page++) {
+    const { data, error } = await ctx.supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage: AUTH_PAGE_SIZE,
+    });
+    if (error) throw error;
+    if (!Array.isArray(data?.users)) throw new Error("Invalid Auth directory response.");
+    const user = data.users.find((candidate: any) => typeof candidate.email === "string" && candidate.email.toLowerCase() === email);
+    if (user) return user;
+    // A full page cannot establish that the address is absent. Advance our
+    // own page counter instead of relying on SDK pagination metadata.
+    if (data.users.length < AUTH_PAGE_SIZE) return null;
+  }
+  throw new RequestError("The account directory could not be checked completely. Please try again later.", 503);
 }
 
 async function listAdministrators(ctx: any) {
-  const [{ data: rows, error: rowsError }, users] = await Promise.all([
-    ctx.supabaseAdmin
-      .from("admin_users")
-      .select("user_id, role, created_at")
-      .order("created_at", { ascending: true }),
-    listAuthUsers(ctx),
-  ]);
-
+  const { data: rows, error: rowsError } = await ctx.supabaseAdmin
+    .from("admin_users")
+    .select("user_id, role, created_at")
+    .order("created_at", { ascending: true });
   if (rowsError) throw rowsError;
-  const userMap = new Map(users.map((user: any) => [user.id, user]));
-
-  return (rows ?? []).map((row: any) => {
-    const user = userMap.get(row.user_id) as any;
-    return {
-      id: row.user_id,
-      email: user?.email ?? null,
-      role: row.role,
-      createdAt: row.created_at,
-      confirmedAt: user?.confirmed_at ?? null,
-      lastSignInAt: user?.last_sign_in_at ?? null,
-    };
-  });
+  const memberships = rows ?? [];
+  const admins = [];
+  // Read only allowlisted administrators, with bounded Auth concurrency.
+  // Promise.all preserves each batch's membership order.
+  for (let offset = 0; offset < memberships.length; offset += PROFILE_CONCURRENCY) {
+    const batch = await Promise.all(memberships.slice(offset, offset + PROFILE_CONCURRENCY).map(async (row: any) => {
+      const { data, error } = await ctx.supabaseAdmin.auth.admin.getUserById(row.user_id);
+      const missing = error?.status === 404 && error?.code === "user_not_found";
+      if (error && !missing) throw error;
+      const user = missing ? null : data?.user;
+      if (!missing && user?.id !== row.user_id) throw new Error("Invalid Auth profile response.");
+      return {
+        id: row.user_id,
+        email: user?.email ?? null,
+        role: row.role,
+        createdAt: row.created_at,
+        confirmedAt: user?.confirmed_at ?? null,
+        lastSignInAt: user?.last_sign_in_at ?? null,
+      };
+    }));
+    admins.push(...batch);
+  }
+  return admins;
 }
 
 async function ensureAnotherOwner(ctx: any, targetUserId: string) {
@@ -146,8 +163,7 @@ export default {
         const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
         if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonError("Enter a valid email address.");
 
-        const users = await listAuthUsers(ctx);
-        let user = users.find((candidate: any) => candidate.email?.toLowerCase() === email);
+        let user = await findAuthUserByEmail(ctx, email);
         let invited = false;
 
         if (!user) {
