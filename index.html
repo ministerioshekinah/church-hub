@@ -30,6 +30,7 @@
   <script src="/script.js?v=15.5" defer></script>
   <script src="/public-startup.js?v=1.0" defer></script>
   <link rel="stylesheet" href="/footer.css?v=2.0" />
+  <link rel="stylesheet" href="/editorial.css?v=1.1" />
   <noscript><link rel="stylesheet" href="/no-script.css?v=1.1" /></noscript>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/print.css?v=1.2" media="print" />
@@ -86,7 +87,7 @@
     </noscript>
     <section class="hero" id="home">
       <div class="container hero-grid">
-        <div>
+        <div class="hero-introduction">
           <p class="eyebrow">Ministerio Cristiano Shekinah</p>
           <h1 data-i18n="hero_title">A place to worship, grow, and belong.</h1>
 
@@ -106,8 +107,10 @@
 
         <div class="hero-card">
           <div class="card-symbol" aria-hidden="true"><svg viewBox="0 0 24 32" fill="none" aria-hidden="true"><path d="M12 3v26M4 11h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-          <p class="card-label" id="heroServiceLabel" data-i18n="sunday_service">Sunday Service</p>
-          <h2 data-i18n="join_us">Join Us</h2>
+          <div class="hero-service-heading">
+            <p class="card-label" id="heroServiceLabel" data-i18n="sunday_service">Sunday Service</p>
+            <h2 data-i18n="join_us">Join Us</h2>
+          </div>
           <p class="service-time" id="heroServiceTime">3:00 PM</p>
           <p data-service-address>
             2149 W Washington Blvd<br>
@@ -120,13 +123,15 @@
     </section>
 
     <section class="section" id="services">
-      <div class="container">
-        <p class="eyebrow" data-i18n="worship_with_us">Worship with us</p>
-        <h2 class="section-title" data-i18n="service_time">Service Time</h2>
+      <div class="container service-editorial-grid">
+        <div class="section-heading">
+          <span class="section-index" aria-hidden="true">01 /</span>
+          <p class="eyebrow" data-i18n="worship_with_us">Worship with us</p>
+          <h2 class="section-title" data-i18n="service_time">Service Time</h2>
+        </div>
 
         <div class="service-feature">
-          <div class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div>
-          <div>
+          <div class="service-details">
             <h3 id="serviceSectionLabel" data-i18n="sunday_service">Sunday Service</h3>
             <strong id="serviceSectionTime">3:00 PM</strong>
             <p data-service-address>2149 W Washington Blvd, Los Angeles, CA 90018</p>
@@ -139,6 +144,7 @@
     <section class="section section-alt newsletter-preview">
       <div class="container newsletter-preview-grid">
         <div>
+          <span class="section-index" aria-hidden="true">02 /</span>
           <p class="eyebrow" data-i18n="stay_connected">Stay connected</p>
           <h2 class="section-title" data-i18n="church_newsletter">Church Newsletter</h2>
           <p class="section-copy" data-i18n="newsletter_preview_copy">
@@ -160,6 +166,7 @@
 
     <section class="section" id="announcements">
       <div class="container">
+        <span class="section-index" aria-hidden="true">03 /</span>
         <p class="eyebrow" data-i18n="church_updates">Church updates</p>
         <h2 class="section-title" data-i18n="announcements">Announcements</h2>
 
@@ -175,6 +182,7 @@
     <section class="section visit-section" id="visit">
       <div class="container visit-grid">
         <div>
+          <span class="section-index" aria-hidden="true">04 /</span>
           <p class="eyebrow" data-i18n="come_worship">Come worship with us</p>
           <h2 class="section-title" data-i18n="visit_ministerio">Visit Ministerio Cristiano Shekinah</h2>
           <p class="visit-address" id="visitAddress" data-service-address>
