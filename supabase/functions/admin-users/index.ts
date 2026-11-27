@@ -1,4 +1,4 @@
-import { withSupabase } from "npm:@supabase/server@1.9.1";
+import { withSupabase } from "npm:@supabase/server@1.9.2";
 
 type AdminAction =
   | { action: "list" }

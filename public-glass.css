@@ -697,3 +697,164 @@ button:disabled { cursor: default; opacity: .65; }
   .hero-card, .preview-card, .service-feature, .announcement-card { background: Canvas !important; }
   .hero-card::before, .hero-card::after, .preview-card::after { display: none; }
 }
+
+/* ------------------------------------------------------------------
+   Liquid Glass (2026-11). Apple-style material: translucent fills,
+   a bright specular rim, soft depth, and springy touch feedback.
+   Scrolling cards stay blur-free (the ambient background is already
+   soft, so translucency reads as glass without the paint cost); only
+   the floating header, menu, back-to-top, and the few static cards
+   on the dark Visit band use backdrop blur.
+   ------------------------------------------------------------------ */
+:root {
+  --lg-fill: rgba(255, 255, 255, 0.5);
+  --lg-fill-strong: rgba(255, 255, 255, 0.72);
+  --lg-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0) 46%);
+  --lg-rim: rgba(255, 255, 255, 0.78);
+  --lg-depth: 0 1px 2px rgba(38, 55, 33, 0.05), 0 18px 44px -14px rgba(38, 55, 33, 0.16);
+  --lg-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
+  --lg-blur: blur(24px) saturate(180%);
+  --lg-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --lg-radius: 28px;
+}
+[data-theme="dark"] {
+  --lg-fill: rgba(44, 60, 40, 0.46);
+  --lg-fill-strong: rgba(40, 55, 36, 0.78);
+  --lg-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 46%);
+  --lg-rim: rgba(210, 228, 196, 0.16);
+  --lg-depth: 0 1px 2px rgba(0, 0, 0, 0.2), 0 18px 44px -14px rgba(0, 0, 0, 0.5);
+  --lg-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.03), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+}
+
+/* San Francisco on Apple devices; Inter everywhere else. Inter is not
+   downloaded at all on devices that have the system font. */
+:root { --lg-sans: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+body { font-family: var(--lg-sans); text-rendering: optimizeLegibility; }
+.brand-copy small { font-family: var(--lg-sans); }
+
+/* Floating capsule header */
+.site-header { border: 1px solid var(--lg-rim); box-shadow: var(--lg-depth), var(--lg-highlight); }
+.site-header.is-scrolled { box-shadow: 0 1px 2px rgba(38, 55, 33, 0.06), 0 22px 50px -16px rgba(38, 55, 33, 0.26), var(--lg-highlight); }
+@media (min-width: 1101px) { .site-header { border-radius: 999px; } .nav-wrap { padding-inline: 14px 12px; } }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .site-header, .back-to-top { -webkit-backdrop-filter: var(--lg-blur); backdrop-filter: var(--lg-blur); }
+  .site-header { background: rgba(250, 251, 245, 0.62); }
+  [data-theme="dark"] .site-header { background: rgba(28, 40, 29, 0.66); }
+}
+.nav a[aria-current], .lang-button.active {
+  background: var(--lg-fill-strong);
+  box-shadow: 0 2px 10px rgba(38, 55, 33, 0.08), var(--lg-highlight);
+}
+.language-toggle, .theme-toggle { background: rgba(255, 255, 255, 0.36); border-color: var(--lg-rim); box-shadow: var(--lg-highlight); }
+.theme-toggle { border-radius: 999px; }
+
+/* Glass cards */
+.preview-card, .service-feature, .announcement-card, .archive-item, .full-newsletter, .newsletter-page-grid > aside {
+  background: var(--lg-sheen), var(--lg-fill);
+  border: 1px solid var(--lg-rim);
+  box-shadow: var(--lg-depth), var(--lg-highlight);
+}
+.service-feature, .preview-card, .announcement-card { border-radius: var(--lg-radius); }
+.full-newsletter { background: var(--lg-sheen), var(--lg-fill-strong); }
+.hero-card { border-color: var(--lg-rim); box-shadow: 0 30px 80px -20px rgba(69, 87, 56, 0.22), var(--lg-highlight); }
+.hero-card::before { border-color: rgba(255, 255, 255, 0.65); }
+.service-icon, .card-symbol { box-shadow: 0 8px 20px -8px rgba(38, 55, 33, 0.25), var(--lg-highlight); }
+.status-pill, .tag, .service-summary { box-shadow: var(--lg-highlight); }
+.service-summary { background: rgba(255, 255, 255, 0.42); border-color: var(--lg-rim); }
+.section-alt { background: rgba(228, 233, 216, 0.34); }
+
+[data-theme="dark"] .preview-card, [data-theme="dark"] .service-feature, [data-theme="dark"] .announcement-card,
+[data-theme="dark"] .archive-item, [data-theme="dark"] .newsletter-page-grid > aside {
+  background: var(--lg-sheen), var(--lg-fill);
+  border-color: var(--lg-rim);
+  box-shadow: var(--lg-depth), var(--lg-highlight);
+}
+[data-theme="dark"] .full-newsletter { background: var(--lg-sheen), var(--lg-fill-strong); border-color: var(--lg-rim); }
+[data-theme="dark"] .hero-card { border-color: var(--lg-rim); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.55), var(--lg-highlight); }
+[data-theme="dark"] .hero-card::before { border-color: rgba(210, 228, 196, 0.14); }
+[data-theme="dark"] .service-summary { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .section-alt { background: rgba(26, 36, 24, 0.55); }
+
+/* Buttons: capsules with a specular top edge and a springy press */
+.button, .utility-button, .theme-toggle, .lang-button, .back-to-top {
+  transition: transform 320ms var(--lg-spring), background-color 220ms ease, box-shadow 220ms ease, color 220ms ease;
+}
+.button-primary { box-shadow: 0 6px 16px -6px rgba(41, 62, 39, 0.55), inset 0 1px 0 rgba(214, 232, 196, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.12); }
+.button-secondary, .button-light { background: var(--lg-sheen), var(--lg-fill-strong); border-color: var(--lg-rim); box-shadow: 0 4px 12px -6px rgba(38, 55, 33, 0.22), var(--lg-highlight); }
+[data-theme="dark"] .button-secondary, [data-theme="dark"] .button-light { background: var(--lg-sheen), rgba(64, 84, 56, 0.55); border-color: var(--lg-rim); box-shadow: var(--lg-highlight); }
+.button:active, .utility-button:active, .theme-toggle:active, .back-to-top:active { transform: scale(0.96); transition-duration: 90ms; }
+@media (hover: hover) and (pointer: fine) {
+  .button:hover { transform: translateY(-1px); }
+  .button:active { transform: scale(0.96); }
+}
+
+/* Visit band: dark glass controls over the green, frosted card */
+.visit-section .button-light {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.06));
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #f6f9f1;
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.visit-section .button-light:hover { background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1)); }
+.visit-card { border-color: rgba(255, 255, 255, 0.55); box-shadow: 0 30px 70px -24px rgba(8, 16, 7, 0.6), inset 0 1px 0 #fff, inset 0 0 0 0.5px rgba(255, 255, 255, 0.6); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .visit-section .button-light { -webkit-backdrop-filter: blur(12px) saturate(160%); backdrop-filter: blur(12px) saturate(160%); }
+  .visit-card { background: rgba(247, 250, 239, 0.84); -webkit-backdrop-filter: var(--lg-blur); backdrop-filter: var(--lg-blur); }
+  [data-theme="dark"] .visit-card { background: rgba(36, 50, 33, 0.7); }
+}
+[data-theme="dark"] .visit-card { border-color: var(--lg-rim); box-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.7), var(--lg-highlight); }
+.big-time { font-family: inherit; font-weight: 600; letter-spacing: -0.04em; }
+
+/* Mobile menu and back-to-top as floating glass */
+@media (max-width: 1100px) {
+  .nav { border-color: var(--lg-rim); box-shadow: var(--lg-depth), var(--lg-highlight); border-radius: 26px; }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .nav { background: rgba(250, 251, 245, 0.74); -webkit-backdrop-filter: var(--lg-blur); backdrop-filter: var(--lg-blur); }
+    [data-theme="dark"] .nav { background: rgba(30, 42, 29, 0.8); }
+  }
+}
+.back-to-top { border-color: var(--lg-rim); box-shadow: var(--lg-depth), var(--lg-highlight); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .back-to-top { background: rgba(250, 251, 245, 0.66); }
+  [data-theme="dark"] .back-to-top { background: rgba(36, 50, 33, 0.7); }
+}
+
+/* Smoother corners where the browser supports Apple-style squircles */
+@supports (corner-shape: squircle) {
+  .service-feature, .preview-card, .announcement-card, .visit-card, .full-newsletter, .archive-item,
+  .newsletter-page-grid > aside, .service-icon, .card-symbol {
+    corner-shape: squircle;
+  }
+  .service-feature, .preview-card, .announcement-card, .visit-card { border-radius: 44px; }
+}
+
+/* Gentle scroll-in for cards, driven by the compositor (no JavaScript). */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .service-feature, .preview-card, .announcement-card, .visit-card {
+      animation: lg-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+/* Individual translate/scale properties leave `transform` free for hover
+   and press feedback; archive items keep their hover lift instead. */
+@keyframes lg-rise {
+  from { opacity: 0.001; translate: 0 22px; scale: 0.985; }
+  to { opacity: 1; translate: none; scale: none; }
+}
+@media print {
+  .service-feature, .preview-card, .announcement-card, .visit-card { animation: none !important; }
+}
+
+/* Accessibility fallbacks keep solid, readable surfaces. */
+@media (prefers-reduced-transparency: reduce) {
+  .preview-card, .service-feature, .announcement-card, .archive-item, .full-newsletter, .newsletter-page-grid > aside,
+  .button-secondary, .button-light, .site-header, .nav, .back-to-top, .visit-card { background: #f8faf2; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .visit-section .button-light { background: #3b5233; }
+  [data-theme="dark"] :is(.preview-card, .service-feature, .announcement-card, .archive-item, .full-newsletter, .newsletter-page-grid > aside, .button-secondary, .button-light, .site-header, .nav, .back-to-top, .visit-card) { background: #202c1e; }
+}
+@media (forced-colors: active) {
+  .preview-card, .service-feature, .announcement-card, .archive-item, .full-newsletter, .visit-card { background: Canvas !important; box-shadow: none; }
+}

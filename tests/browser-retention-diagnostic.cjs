@@ -59,6 +59,6 @@ const cycles = 30;
     }
     report.completedAt=new Date().toISOString();report.pass=true;
     console.log('RETENTION_OBSERVATION',JSON.stringify(report));
-    fs.mkdirSync('security/local-results',{recursive:true});fs.writeFileSync('security/local-results/retention-diagnostic.json',JSON.stringify(report,null,2)+'\n');
+    fs.mkdirSync('test-results',{recursive:true});fs.writeFileSync('test-results/retention-diagnostic.json',JSON.stringify(report,null,2)+'\n');
   } finally {await browser.close();await site.close();}
 })().catch(error=>{console.error(error);process.exitCode=1});

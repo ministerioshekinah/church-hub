@@ -50,8 +50,8 @@ test('Supply chain: the local SDK matches its pinned upstream bytes, SRI, versio
  assert(document.querySelector('meta[http-equiv="Content-Security-Policy"]').content.includes("script-src 'self';"));
 });
 test('Supply chain: runtime audit covers the exact browser and Edge Function package pins',()=>{
- const manifest=JSON.parse(read('security/runtime-dependencies/package.json'));
- const lock=JSON.parse(read('security/runtime-dependencies/package-lock.json'));
+ const manifest=JSON.parse(read('tooling/runtime-dependencies/package.json'));
+ const lock=JSON.parse(read('tooling/runtime-dependencies/package-lock.json'));
  const versions=manifest.dependencies;
  assert.equal(manifest.private,true);
  assert.deepEqual(lock.packages[''].dependencies,versions);
@@ -62,7 +62,7 @@ test('Supply chain: runtime audit covers the exact browser and Edge Function pac
  assert.equal(JSON.parse(read('assets/vendor/provenance.json')).version,versions['@supabase/supabase-js']);
  assert(read('admin/index.html').includes('/assets/vendor/supabase-'+versions['@supabase/supabase-js']+'.js'));
  assert(read('supabase/functions/admin-users/index.ts').includes('npm:@supabase/server@'+versions['@supabase/server']+'"'));
- assert(read('.github/workflows/frontend-checks.yml').includes('npm audit --prefix security/runtime-dependencies --audit-level=high'));
+ assert(read('.github/workflows/frontend-checks.yml').includes('npm audit --prefix tooling/runtime-dependencies --audit-level=high'));
 });
 test('Redirect: invitation parameters cannot change the origin',()=>{const vm=require('node:vm');let target;vm.runInNewContext(read('admin-redirect.js'),{window:{location:{search:'?next=https://evil.example',hash:'#access_token=test',replace:v=>target=v}}});assert.equal(new URL(target,'https://mcshekinah.org').origin,'https://mcshekinah.org');assert(target.startsWith('/admin/index.html?'));assert(target.endsWith('#access_token=test'));});
 test('Privacy: admin requests never select author UUIDs or wildcard columns',()=>{for(const file of ['admin.js','newsletter-extensions.js','admin-service-validation.js']){const source=read(file);assert(!/\.select\(\s*["']\*["']/.test(source));assert(!/\b(?:created_by|updated_by)\s*:/.test(source));}});

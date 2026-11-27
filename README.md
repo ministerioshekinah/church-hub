@@ -36,7 +36,7 @@ The public site reads current service information, active announcements, and pub
 - Protected Supabase Edge Function for administrator invitations and role changes
 - Bilingual recovery page, Inter and Playfair Display typography, favicon, and public sitemap
 
-See [the October 26 release record](security/RELEASE-2026-10-26.md) for current deployment and verification evidence, and [operational follow-up](security/OPERATIONS-FOLLOW-UP.md) for remaining work. The [October 18 sprint](security/SPRINT-2026-10-18.md) and [October 13 review](security/REVIEW-2026-10-13.md) preserve historical findings.
+Security audit, release, and follow-up records are kept privately by the site owners rather than in this public repository.
 
 ## Security model
 
@@ -154,11 +154,11 @@ Old `/newsletter.html` and `/admin.html` bookmarks forward to the clean routes w
 
 ## Verification and staged updates
 
-Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The Node suite limits itself to four worker processes so machines with many logical CPUs do not start an unnecessarily large worker pool. Check the final test/pass/fail totals; an exit code alone is not a complete test transcript. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main, and audits both the development dependencies and the pinned browser/Edge Function packages in `security/runtime-dependencies/`.
+Use Node 24 or newer: `npm ci --ignore-scripts`, then `npm test`. The Node suite limits itself to four worker processes so machines with many logical CPUs do not start an unnecessarily large worker pool. Check the final test/pass/fail totals; an exit code alone is not a complete test transcript. The automated checks cover security, clean-URL routing, and public interactions. GitHub Actions runs them for pull requests and pushes to main, and audits both the development dependencies and the pinned browser/Edge Function packages in `tooling/runtime-dependencies/`.
 
 For rendered browser checks, run `npx playwright install --with-deps chromium` once, then `npm run test:browser`. The suite serves a local copy, intercepts **every** Supabase request, and uses fake content and authentication sessions. Saves, publication, deletion, invitations, and role changes never reach the production backend. The administrator SDK is served from the repository and its integrity is enforced by the browser and checked in the Node suite. CI runs the same suite with Playwright's Chromium, Firefox, and WebKit builds. To run another engine locally, install it with Playwright and set `BROWSER_ENGINE=firefox` or `BROWSER_ENGINE=webkit`.
 
-`CHROMIUM_EXECUTABLE_PATH` can select an existing Chromium binary. `SHEKINAH_TEST_SDK_PATH` is only needed when replaying an older page that loaded the SDK from the CDN; its SHA-384 must still match. Current pages use the vendored SDK and need no CDN request. The JSON report defaults to the ignored `security/local-results/browser-regression.json`; `BROWSER_REPORT_PATH` changes that destination.
+`CHROMIUM_EXECUTABLE_PATH` can select an existing Chromium binary. `SHEKINAH_TEST_SDK_PATH` is only needed when replaying an older page that loaded the SDK from the CDN; its SHA-384 must still match. Current pages use the vendored SDK and need no CDN request. The JSON report defaults to the ignored `test-results/browser-regression.json`; `BROWSER_REPORT_PATH` changes that destination.
 
 The browser fixture also requires OpenSSL. It generates an ephemeral localhost certificate, removes the temporary key files, and serves HTTPS so the production CSP's upgrade rules behave consistently across engines. The test context trusts that loopback certificate; it does not validate the production certificate. CSP and SDK integrity checks remain enabled.
 
@@ -170,7 +170,7 @@ For an existing production project, apply the audit-trigger migration first, dep
 
 The Edge Function uses `@supabase/server` with `auth: "user"` to verify session JWTs and a database owner check for authorization. Keep the legacy gateway `verify_jwt` setting false, as required by the SDK/new API-key workflow. This does not make the handler unauthenticated.
 
-See [the October 26 release record](security/RELEASE-2026-10-26.md) for current results and [operational follow-up](security/OPERATIONS-FOLLOW-UP.md) for remaining account/hosting work. Earlier dated audit records remain historical snapshots. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
+Dated audit and release records are kept privately by the site owners. `npm run security:test` runs the security-focused local suite; `tests/database-readonly-security.sql` provides a read-only database recheck without fixture writes.
 
 ## Church information
 

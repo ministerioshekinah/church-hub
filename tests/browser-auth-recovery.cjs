@@ -76,6 +76,6 @@ const {startSite,createPage}=require('./browser/support.cjs');
   });
 
   const report={checkedAt:new Date().toISOString(),engine,mode:'real ten-second read deadlines; every Auth/database request is a local fixture',passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
-  fs.mkdirSync('security/local-results',{recursive:true});fs.writeFileSync(`security/local-results/browser-auth-recovery-${engine}.json`,JSON.stringify(report,null,2)+'\n');
+  fs.mkdirSync('test-results',{recursive:true});fs.writeFileSync(`test-results/browser-auth-recovery-${engine}.json`,JSON.stringify(report,null,2)+'\n');
   await browser.close();await site.close();console.log(`${report.passed}/${results.length} Auth connection journeys passed`);if(report.failed)process.exitCode=1;
 })().catch(error=>{console.error(error);process.exitCode=1});
