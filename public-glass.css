@@ -831,19 +831,21 @@ body { font-family: var(--lg-sans); text-rendering: optimizeLegibility; }
 /* Gentle scroll-in for cards, driven by the compositor (no JavaScript). */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    .service-feature, .preview-card, .announcement-card, .visit-card, .archive-item {
+    .service-feature, .preview-card, .announcement-card, .visit-card {
       animation: lg-rise linear both;
       animation-timeline: view();
       animation-range: entry 0% entry 55%;
     }
   }
 }
+/* Individual translate/scale properties leave `transform` free for hover
+   and press feedback; archive items keep their hover lift instead. */
 @keyframes lg-rise {
-  from { opacity: 0.001; transform: translateY(22px) scale(0.985); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0.001; translate: 0 22px; scale: 0.985; }
+  to { opacity: 1; translate: none; scale: none; }
 }
 @media print {
-  .service-feature, .preview-card, .announcement-card, .visit-card, .archive-item { animation: none !important; }
+  .service-feature, .preview-card, .announcement-card, .visit-card { animation: none !important; }
 }
 
 /* Accessibility fallbacks keep solid, readable surfaces. */
