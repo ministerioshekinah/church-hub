@@ -404,9 +404,8 @@ function handleAdminAuthChange(event, session) {
   // private drafts or Owner UI from a previously verified identity in this tab.
   if (event === "SIGNED_OUT") {
     const requested = signOutState;
-    // The SDK emits SIGNED_OUT after clearing local storage: after global
-    // revocation, or after the local fallback when global revocation failed.
-    // Only the awaited request result confirms the remote outcome.
+    // The SDK emits SIGNED_OUT after clearing local storage even when global
+    // revocation failed. Only the awaited request result confirms that outcome.
     if (requested?.pending) requested.localCleared = true;
     else signOutState = null;
     lastAuthEventId = null;
@@ -581,16 +580,7 @@ async function requestSignOut() {
   try {
     if (supabaseClient) {
       const { error } = await supabaseClient.auth.signOut();
-      if (error) {
-        // Since Supabase JS 2.119, a failed global revocation (offline, 5xx)
-        // keeps the stored session. Always clear this device anyway so a
-        // shared computer is never left signed in; local scope removes the
-        // session before its own network request.
-        if (signOutState === state && !state.localCleared) {
-          try { await supabaseClient.auth.signOut({ scope: "local" }); } catch {}
-        }
-        throw error;
-      }
+      if (error) throw error;
     }
     if (signOutState !== state) return;
     signOutState = null;

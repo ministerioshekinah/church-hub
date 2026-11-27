@@ -5,6 +5,6 @@
   "description": "Audit-only lockfile for the pinned browser SDK and Edge Function package; not a deployed bundle.",
   "dependencies": {
     "@supabase/server": "1.9.2",
-    "@supabase/supabase-js": "2.119.2"
+    "@supabase/supabase-js": "2.112.2"
   }
 }

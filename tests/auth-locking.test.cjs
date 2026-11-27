@@ -9,7 +9,7 @@ async function fixture(settings={}) {
   const context={console,URL,URLSearchParams,Headers,Request,Response,AbortController,
     TextEncoder,TextDecoder,crypto:globalThis.crypto,WebSocket:globalThis.WebSocket,
     setTimeout,clearTimeout,setInterval,clearInterval};
-  vm.runInNewContext(read('assets/vendor/supabase-2.119.2.js'),context);
+  vm.runInNewContext(read('assets/vendor/supabase-2.112.2.js'),context);
   const storage=new Map();
   const user={id:'11111111-1111-4111-8111-111111111111',aud:'authenticated',role:'authenticated',email:'fixture@example.test',app_metadata:{},user_metadata:{}};
   const token=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.test-signature';
@@ -54,16 +54,12 @@ test('Real Auth SDK: process-lock fallback prevents a delayed password response 
   } finally {p.release();await p.client.auth.dispose();}
 });
 
-test('Real Auth SDK: failed global sign-out keeps the session, and the admin local fallback clears it before returning',{timeout:10000},async()=>{
+test('Real Auth SDK: failed global sign-out clears the local session and emits SIGNED_OUT before returning its error',{timeout:10000},async()=>{
   const p=await fixture({logoutFailure:true});
   try {
     p.client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')p.events.push('local-sign-out');});
-    // Supabase JS 2.119 keeps the stored session when global revocation fails.
-    // admin.js therefore follows a failed global sign-out with scope "local".
-    const result=await p.client.auth.signOut();p.events.push('global-returned');
-    assert(result.error);assert.notEqual((await p.client.auth.getSession()).data.session,null);
-    await p.client.auth.signOut({scope:'local'});p.events.push('local-returned');
-    assert.deepEqual(p.events,['logout','global-returned','local-sign-out','logout','local-returned']);
+    const result=await p.client.auth.signOut();p.events.push('request-returned');
+    assert(result.error);assert.deepEqual(p.events,['logout','local-sign-out','request-returned']);
     assert.equal((await p.client.auth.getSession()).data.session,null);
   } finally {p.release();await p.client.auth.dispose();}
 });

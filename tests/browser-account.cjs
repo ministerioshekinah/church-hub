@@ -189,13 +189,11 @@ const secret='Fixture-only new passphrase 42!';
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.evaluate(axe.source);assert.deepEqual(await page.evaluate(async()=>(await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>v.id)),[]);
     if(process.env.BROWSER_SCREENSHOT_DIR&&engine==='chromium')await page.screenshot({path:path.join(process.env.BROWSER_SCREENSHOT_DIR,'signout-local-only-dark-320.png')});
-    // The rejected global request is followed by the local-scope fallback, which clears this device first.
-    const logouts=state.requests.filter(request=>request.url.includes('/auth/v1/logout'));
-    assert.equal(logouts.length,2);assert(logouts[1].url.includes('scope=local'));
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,1);
     state.logoutError=null;await login(p);await page.locator('#signOutButton').click();await page.waitForFunction(()=>document.getElementById('adminMessage').textContent==='Signed out securely.');
     assert(await page.locator('#adminEmail').evaluate(element=>element===document.activeElement));assert(await page.locator('#adminLoginForm').isVisible());
     assert.equal(await page.evaluate(async()=>(await supabaseClient.auth.getSession()).data.session),null);
-    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,3);
+    assert.equal(state.requests.filter(request=>request.url.includes('/auth/v1/logout')).length,2);
   });
   await check('Sign-out privacy: a browser lock failure keeps a cleared accessible view and an explicit retry',{theme:'dark',viewport:{width:320,height:1000}},async p=>{
     await login(p);const {page,state}=p;await page.locator('#accountTab').click();await fill(page);

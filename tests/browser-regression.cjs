@@ -323,7 +323,7 @@ async function check(name,fn) {
     await p.page.locator('.admin-back-link').click();await p.page.waitForURL(site.url+'/');
   }));
   await check('Admin supply chain: an altered SDK is blocked by integrity and cannot enable sign-in',()=>journey({},async p=>{
-    await p.context.route('**/assets/vendor/supabase-2.119.2.js',route=>route.fulfill({contentType:'text/javascript',body:'window.__alteredSDKExecuted=true;'}));
+    await p.context.route('**/assets/vendor/supabase-2.112.2.js',route=>route.fulfill({contentType:'text/javascript',body:'window.__alteredSDKExecuted=true;'}));
     await p.goto('/admin/');
     assert.equal(await p.page.evaluate(()=>window.__alteredSDKExecuted),undefined);
     assert(await p.page.locator('#adminEmail').isDisabled());
