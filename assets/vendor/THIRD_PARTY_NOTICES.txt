@@ -2,7 +2,7 @@ Supabase browser SDK and its npm runtime dependency licenses
 
 The following notices cover the SDK dependency graph; some Node-only code may not be present in the browser bundle.
 
-@supabase/auth-js 2.112.2 (MIT)
+@supabase/auth-js 2.119.2 (MIT)
 ============================================================
 MIT License
 
@@ -27,7 +27,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-@supabase/functions-js 2.112.2 (MIT)
+@supabase/functions-js 2.119.2 (MIT)
 ============================================================
 MIT License
 
@@ -78,7 +78,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-@supabase/postgrest-js 2.112.2 (MIT)
+@supabase/postgrest-js 2.119.2 (MIT)
 ============================================================
 MIT License
 
@@ -103,7 +103,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-@supabase/realtime-js 2.112.2 (MIT)
+@supabase/realtime-js 2.119.2 (MIT)
 ============================================================
 MIT License
 
@@ -128,7 +128,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-@supabase/storage-js 2.112.2 (MIT)
+@supabase/storage-js 2.119.2 (MIT)
 ============================================================
 MIT License
 
@@ -153,7 +153,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-@supabase/supabase-js 2.112.2 (MIT)
+@supabase/supabase-js 2.119.2 (MIT)
 ============================================================
 MIT License
 

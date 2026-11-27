@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const os = require('node:os');
 const {execFileSync} = require('node:child_process');
 
-const sdkURL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.js';
+const sdkURL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js';
 let sdkPromise;
 async function sdk() {
   if (!sdkPromise) sdkPromise = (async () => {
@@ -17,7 +17,7 @@ async function sdk() {
       body = Buffer.from(await response.arrayBuffer());
     }
     const integrity = 'sha384-' + crypto.createHash('sha384').update(body).digest('base64');
-    if (integrity !== 'sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd') throw Error('Test SDK integrity mismatch');
+    if (integrity !== 'sha384-A97u3Qnt9GZHURO9YJZRe7VQgGUeFzcv6I1oIGnUTxQrCxnpQMwR0/G8F2zt9abZ') throw Error('Test SDK integrity mismatch');
     return body;
   })();
   return sdkPromise;

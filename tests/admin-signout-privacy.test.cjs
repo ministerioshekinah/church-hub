@@ -5,8 +5,10 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
 
 async function fixture(){
   const p=await page('admin/index.html');p.run(read('admin-account.js'));
-  p.run(`let finishLogout,logoutCalls=0,ownerClears=0;
-    supabaseClient={auth:{signOut:()=>{logoutCalls++;return new Promise(resolve=>{finishLogout=resolve})}}};
+  // Global sign-out is held for the test to resolve. The local-scope fallback
+  // defaults to a device whose stored session could not be cleared.
+  p.run(`let finishLogout,logoutCalls=0,localCalls=0,ownerClears=0,localSignOut=async()=>({error:new Error('local fixture failure')});
+    supabaseClient={auth:{signOut:options=>{if(options?.scope==='local'){localCalls++;return localSignOut();}logoutCalls++;return new Promise(resolve=>{finishLogout=resolve})}}};
     authenticatedAdmin={id:'fixture-owner'};lastAuthEventId='fixture-owner';
     window.SHEKINAH_OWNER={clear(){ownerClears++}};
     window.SHEKINAH_ACCOUNT.connect({client:supabaseClient,identity:()=>authenticatedAdmin,generation:()=>adminSessionVersion,verify:async()=>true,open(){}});
@@ -47,6 +49,22 @@ test('Sign-out privacy: failure before local cleanup keeps private data cleared 
   p.run('finishLogout({error:null})');await settle();
   assert.equal(p.document.getElementById('adminMessage').textContent,'Signed out securely.');
   assert.equal(p.document.getElementById('adminLoginForm').hidden,false);assert.equal(p.reports.focused,'adminEmail');
+});
+
+test('Sign-out privacy: a failed global revocation still signs out this device through the local fallback',async()=>{
+  const p=await fixture();
+  p.run(`localSignOut=async()=>{handleAdminAuthChange('SIGNED_OUT',null);return {error:null};};`);
+  click(p,p.document.getElementById('signOutButton'));
+  p.run('finishLogout({error:{message:"Private provider detail"}})');await settle();await settle();
+  assert.equal(p.run('localCalls'),1);
+  assert.equal(p.document.getElementById('adminMessage').textContent,'Signed out on this device. Sign-out of other sessions could not be confirmed.');
+  assert.equal(p.document.getElementById('retrySignOutButton').hidden,true);assert.equal(p.document.getElementById('adminLoginForm').hidden,false);
+});
+
+test('Sign-out privacy: a successful global sign-out does not run the local fallback',async()=>{
+  const p=await fixture();click(p,p.document.getElementById('signOutButton'));
+  p.run('finishLogout({error:null})');await settle();
+  assert.equal(p.run('localCalls'),0);assert.equal(p.document.getElementById('adminMessage').textContent,'Signed out securely.');
 });
 
 test('Sign-out privacy: duplicate requests and hidden sign-in submissions cannot start competing Auth operations',async()=>{

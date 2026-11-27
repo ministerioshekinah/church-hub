@@ -43,7 +43,7 @@ test('Supply chain: the local SDK matches its pinned upstream bytes, SRI, versio
  const crypto=require('node:crypto');
  assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),provenance.sha256);
  assert.equal('sha384-'+crypto.createHash('sha384').update(bytes).digest('base64'),el.getAttribute('integrity'));
- assert.equal(el.getAttribute('integrity'),'sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd');
+ assert.equal(el.getAttribute('integrity'),'sha384-A97u3Qnt9GZHURO9YJZRe7VQgGUeFzcv6I1oIGnUTxQrCxnpQMwR0/G8F2zt9abZ');
  assert.equal(el.getAttribute('crossorigin'),'anonymous');
  const notices=read('assets/vendor/THIRD_PARTY_NOTICES.txt');
  for(const dependency of provenance.licenses)assert(notices.includes(dependency.name+' '+dependency.version));

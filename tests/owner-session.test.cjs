@@ -211,7 +211,7 @@ test('Owner list: the real SDK aborts an incomplete native-fetch JSON body and r
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   let nativeSignal,responseReady;const received=new Promise(resolve=>{responseReady=resolve});
   const context={console,URL,URLSearchParams,Headers,Request,Response,AbortController,TextEncoder,TextDecoder,crypto,WebSocket,setTimeout,clearTimeout,setInterval,clearInterval};
-  vm.runInNewContext(read('assets/vendor/supabase-2.112.2.js'),context);
+  vm.runInNewContext(read('assets/vendor/supabase-2.119.2.js'),context);
   const client=context.supabase.createClient(`http://127.0.0.1:${server.address().port}`,'fixture-publishable-key',{
     auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
     global:{fetch:async(url,options)=>{nativeSignal=options.signal;const response=await fetch(url,options);responseReady();return response;}}
