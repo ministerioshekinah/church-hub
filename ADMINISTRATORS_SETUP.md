@@ -36,7 +36,7 @@ Apply all nine committed migrations in the [canonical README sequence](README.md
 9. Sign out of the website admin portal, sign back in, and refresh the page.
 10. The **Administrators** tab appears only when the signed-in allow-listed account has `role = 'owner'`.
 
-The existing production repair was applied on October 26 as Supabase migration `20261026205057_fix_admin_removal_trigger`, initially with `admin-users` Edge Function version 5. The bounded directory handler was deployed as version 6 on October 27; its source was read back and matched the reviewed code. The trigger definition was rechecked against the repository repair. See [the release record](security/RELEASE-2026-10-26.md). Do not deploy the older defective trigger as a rollback.
+The existing production repair was applied on October 26 as Supabase migration `20261026205057_fix_admin_removal_trigger`, initially with `admin-users` Edge Function version 5. The bounded directory handler was deployed as version 6 on October 27; its source was read back and matched the reviewed code. The trigger definition was rechecked against the repository repair. The release record is kept privately by the site owners. Do not deploy the older defective trigger as a rollback.
 
 ### Required post-migration verification
 

@@ -135,7 +135,7 @@ const report = {requestedMinutes:minutes, scope:'Isolated Chromium fixtures; no 
     console.error('ENDURANCE_FAILED',JSON.stringify(report));
     process.exitCode=1;
   } finally {
-    const destination=path.resolve(process.env.ENDURANCE_REPORT_PATH||'security/local-results/browser-endurance.json');
+    const destination=path.resolve(process.env.ENDURANCE_REPORT_PATH||'test-results/browser-endurance.json');
     fs.mkdirSync(path.dirname(destination),{recursive:true});
     fs.writeFileSync(destination,JSON.stringify(report,null,2)+'\n');
     for(const session of sessions)await session.close();

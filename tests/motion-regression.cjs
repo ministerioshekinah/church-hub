@@ -142,7 +142,7 @@ async function check(name, run) {
     }));
   } finally {
     const report = { checkedAt: new Date().toISOString(), engine, browser: browser.version(), mode: 'local site with intercepted backend; no production writes', passed: results.filter(r => r.pass).length, failed: results.filter(r => !r.pass).length, results };
-    const output = process.env.MOTION_REPORT_PATH || path.resolve(__dirname, '../security/local-results/motion-regression.json');
+    const output = process.env.MOTION_REPORT_PATH || path.resolve(__dirname, '../test-results/motion-regression.json');
     fs.mkdirSync(path.dirname(output), { recursive: true }); fs.writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
     await browser.close(); await site.close();
     console.log(`${report.passed}/${results.length} motion journeys passed`);

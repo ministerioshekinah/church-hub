@@ -72,6 +72,6 @@ const {startSite,createPage} = require('./browser/support.cjs');
     await browser?.close();await site.close();
   }
   const report={checkedAt:new Date().toISOString(),engine,mode:'synthetic persisted page lifecycle triggers actual reload; isolated backend; no production writes',passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results};
-  fs.mkdirSync('security/local-results',{recursive:true});fs.writeFileSync(`security/local-results/browser-history-${engine}.json`,JSON.stringify(report,null,2)+'\n');
+  fs.mkdirSync('test-results',{recursive:true});fs.writeFileSync(`test-results/browser-history-${engine}.json`,JSON.stringify(report,null,2)+'\n');
   if(report.failed)process.exitCode=1;
 })().catch(error=>{console.error(error);process.exitCode=1;});

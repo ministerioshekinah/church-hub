@@ -28,7 +28,7 @@ jobs:
       - run: npm test
       - run: npm audit --audit-level=high
       - name: Audit pinned browser and Edge Function dependencies
-        run: npm audit --prefix security/runtime-dependencies --audit-level=high
+        run: npm audit --prefix tooling/runtime-dependencies --audit-level=high
   browser-regressions:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -50,7 +50,7 @@ jobs:
         run: npm run test:browser
         env:
           BROWSER_ENGINE: ${{ matrix.browser }}
-          BROWSER_SCREENSHOT_DIR: security/local-results/previews
+          BROWSER_SCREENSHOT_DIR: test-results/previews
       - name: Verify the extended-session harness
         if: matrix.browser == 'chromium'
         run: node tests/browser-endurance.cjs
@@ -61,6 +61,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: browser-results-${{ matrix.browser }}
-          path: security/local-results/
+          path: test-results/
           retention-days: 7
           if-no-files-found: ignore

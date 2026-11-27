@@ -30,6 +30,6 @@ jobs:
         if: always()
         with:
           name: retention-observation
-          path: security/local-results/retention-diagnostic.json
+          path: test-results/retention-diagnostic.json
           retention-days: 7
           if-no-files-found: ignore

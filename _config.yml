@@ -1,0 +1,13 @@
+# GitHub Pages settings.
+# Keep internal project files in the repository but off the public website.
+exclude:
+  - README.md
+  - ADMINISTRATORS_SETUP.md
+  - supabase
+  - supabase-admin-setup.sql
+  - tests
+  - tooling
+  - test-results
+  - package.json
+  - package-lock.json
+  - node_modules

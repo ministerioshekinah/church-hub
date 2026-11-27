@@ -81,7 +81,7 @@ function handshake(hostname, version) {
     mode:'Direct TLS using bundled public roots, SNI and normal hostname/expiry validation; six serial handshakes and two HTTP redirect requests',
     modernValidated:modern.every(c=>c.connected&&c.authorized),legacyRejected,httpsRedirectsVerified:httpRedirects.every(result=>result.verified),checks,httpRedirects,findings,
     limitations:['Observed endpoint and negotiated ciphers only; no exhaustive cipher, revocation, OCSP, or global-edge assessment.']};
-  const output=path.resolve('security/local-results/live-transport.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
+  const output=path.resolve('test-results/live-transport.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify(report,null,2));
   if(!report.modernValidated||!legacyRejected||!report.httpsRedirectsVerified)process.exitCode=1;
 })().catch(error=>{console.error(error);process.exitCode=1});
