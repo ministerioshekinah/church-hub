@@ -16,6 +16,6 @@
     "@electric-sql/pglite": "0.6.0",
     "axe-core": "4.14.1",
     "linkedom": "0.18.15",
-    "playwright": "1.65.1"
+    "playwright": "1.62.1"
   }
 }
